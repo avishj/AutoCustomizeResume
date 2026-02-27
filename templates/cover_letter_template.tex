@@ -4,6 +4,10 @@
 %
 % All {{PLACEHOLDER}} tokens are replaced at build time.
 % Do not use {{ or }} anywhere else in this file.
+%
+% NOTE: Substitution code MUST escape LaTeX-sensitive characters
+% ( _ % & # $ ~ ^ ) in display text passed to \href and inline
+% text, otherwise compilation will fail for values containing them.
 %-------------------------
 
 
