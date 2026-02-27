@@ -1,0 +1,46 @@
+# ──────────────────────────────────────────────
+# AutoCustomizeResume — Configuration
+# ──────────────────────────────────────────────
+
+# Your personal info (used for file naming and cover letter header)
+user:
+  first_name: ""
+  last_name: ""
+  phone: ""
+  email: ""
+  linkedin: ""     # e.g., "linkedin.com/in/yourname"
+  website: ""      # e.g., "yourname.dev"
+  degree: ""       # e.g., "Master of Software Engineering"
+  university: ""   # e.g., "Carnegie Mellon University"
+
+# File naming templates
+# Variables: {first}, {last}, {company}, {role}, {date}, {timestamp}
+naming:
+  output_resume: "{last}, {first} - Resume.pdf"
+  output_cover: "{last}, {first} - Cover Letter.pdf"
+  history_resume: "{company} - {role} - Resume - {timestamp}.pdf"
+  history_cover: "{company} - {role} - Cover Letter - {timestamp}.pdf"
+
+# LLM backend (OpenAI-compatible API)
+llm:
+  base_url: "https://integrate.api.nvidia.com/v1"
+  model: "meta/llama-3.1-70b-instruct"
+  api_key_env: "LLM_API_KEY"  # Name of the env var holding the API key
+
+# Cover letter settings
+cover_letter:
+  enabled: true
+  template: "templates/cover_letter_template.tex"
+  style: "Professional, concise. No generic filler. Mention specific projects relevant to the role."
+  signature_path: ""  # Optional: path to signature image (e.g., "signature.png"). Leave empty to omit.
+
+# File paths
+paths:
+  master_resume: "resume.tex"
+  jd_file: "jd.txt"
+  output_dir: "output"
+  history_dir: "history"
+
+# Watch mode settings
+watcher:
+  debounce_seconds: 5
