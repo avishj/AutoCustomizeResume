@@ -1,0 +1,122 @@
+%-------------------------
+% Cover Letter Template — AutoCustomizeResume
+% Adapted from Jayesh Sanwal's Entry-level Cover-letter Template
+%
+% All {{PLACEHOLDER}} tokens are replaced at build time.
+% Do not use {{ or }} anywhere else in this file.
+%-------------------------
+
+
+%%%%%%% --------------------------------------------------------------------------------------
+%%%%%%%  PREAMBLE — DO NOT MODIFY UNLESS CHANGING LAYOUT
+%%%%%%% --------------------------------------------------------------------------------------
+
+\documentclass[12pt,a4]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage{multicol}
+\usepackage{hyperref}
+\usepackage{csquotes}
+\usepackage{tabularx}
+\hypersetup{colorlinks=true,urlcolor=black}
+\usepackage[12pt]{moresize}
+\usepackage{setspace}
+\usepackage{fontspec}
+\usepackage[inline]{enumitem}
+\usepackage{ragged2e}
+\usepackage{anyfontsize}
+\usepackage{graphicx}
+
+\usepackage[margin=1cm]{geometry}
+
+\setmainfont[
+BoldFont=fonts/SourceSansPro-Semibold.otf,
+ItalicFont=fonts/SourceSansPro-RegularIt.otf
+]{fonts/SourceSansPro-Regular.otf}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+\definecolor{UI_blue}{RGB}{32, 64, 151}
+\definecolor{HF_color}{RGB}{179, 179, 179}
+\rfoot{{\color{HF_color} \thepage \ of \ \pageref*{LastPage}, Updated \today}}
+
+\titleformat{\section}{
+\color{UI_blue} \scshape \raggedright \large
+}{}{0em}{}[\vspace{-0.7cm} \hrulefill \vspace{-0.2cm}]
+
+%%%%%%% --------------------------------------------------------------------------------------
+%%%%%%%  END PREAMBLE
+%%%%%%% --------------------------------------------------------------------------------------
+
+
+\begin{document}
+
+%%%%%%% --------------------------------------------------------------------------------------
+%%%%%%%  HEADER
+%%%%%%% --------------------------------------------------------------------------------------
+\begin{center}
+    \begin{minipage}[b]{0.24\textwidth}
+            \large {{PHONE}} \\
+            \large \href{mailto:{{EMAIL}}}{{{EMAIL}}}
+    \end{minipage}%
+    \begin{minipage}[b]{0.5\textwidth}
+            \centering
+            {\Huge {{FIRST_NAME}} {{LAST_NAME}}} \\ %
+            \vspace{0.1cm}
+            {\color{UI_blue} \large{{{DEGREE}} \\ {{UNIVERSITY}}}} \\
+    \end{minipage}%
+    \begin{minipage}[b]{0.24\textwidth}
+            \flushright \large
+            {\href{https://{{LINKEDIN}}}{{{LINKEDIN}}} } \\
+            \href{https://{{WEBSITE}}}{{{WEBSITE}}}
+    \end{minipage}
+
+\vspace{-0.15cm}
+{\color{UI_blue} \hrulefill}
+\end{center}
+
+\justify
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{12pt}
+\vspace{0.2cm}
+\begin{center}
+    {\color{UI_blue} \Large{COVER LETTER}}
+\end{center}
+
+
+%%%%%%% --------------------------------------------------------------------------------------
+%%%%%%%  BODY
+%%%%%%% --------------------------------------------------------------------------------------
+\vspace{0.5cm}
+
+Date: {{DATE}} \par \vspace{-0.1cm}
+
+{{BODY}}
+
+%%%%%%% --------------------------------------------------------------------------------------
+%%%%%%%  SIGNATURE (optional — removed if signature_path is empty)
+%%%%%%% --------------------------------------------------------------------------------------
+{{SIGNATURE_BLOCK}}
+
+\raggedright
+Best, \\ {{FIRST_NAME}} {{LAST_NAME}}. \\ {{PHONE}} \\ \href{mailto:{{EMAIL}}}{{{EMAIL}}}
+\label{LastPage}
+
+\end{document}
