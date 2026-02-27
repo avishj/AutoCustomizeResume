@@ -150,6 +150,11 @@ def load_config(config_path: str = "config.yaml") -> Config:
         university=_get(user_raw, "university", "user", default=""),
     )
 
+    if not user.first_name.strip():
+        raise ConfigError("user.first_name cannot be empty — required for file naming")
+    if not user.last_name.strip():
+        raise ConfigError("user.last_name cannot be empty — required for file naming")
+
     naming_raw = _get(raw, "naming", "root")
     naming = NamingConfig(
         output_resume=_get(naming_raw, "output_resume", "naming"),
