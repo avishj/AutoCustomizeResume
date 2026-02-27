@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Auto-customize your LaTeX resume for different jobs using LLM-powered content selection"
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.14"
+requires-python = ">=3.10"
 dependencies = [
     "openai>=1.0.0",
     "watchdog>=4.0.0",
