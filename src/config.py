@@ -9,6 +9,7 @@ import os
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 import yaml
 from dotenv import load_dotenv
@@ -86,11 +87,20 @@ class ConfigError(Exception):
     """Raised when configuration is invalid or missing."""
 
 
-def _get(data: dict, key: str, section: str, default=None):
-    """Get a value from a dict with a clear error if missing and no default."""
-    val = data.get(key, default)
-    if val is None:
-        raise ConfigError(f"Missing required config: {section}.{key}")
+_MISSING = object()
+
+
+def _get(data: dict, key: str, section: str, default: Any = _MISSING) -> Any:
+    """Get a value from a dict with a clear error if missing and no default.
+
+    If the key is absent or its value is None (YAML null), the default is used.
+    If no default was provided, raises ConfigError.
+    """
+    val = data.get(key, _MISSING)
+    if val is _MISSING or val is None:
+        if default is _MISSING:
+            raise ConfigError(f"Missing required config: {section}.{key}")
+        return default
     return val
 
 
