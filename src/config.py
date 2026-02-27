@@ -192,9 +192,14 @@ def load_config(config_path: str = "config.yaml") -> Config:
     )
 
     watcher_raw = _get(raw, "watcher", "root")
-    watcher = WatcherConfig(
-        debounce_seconds=int(_get(watcher_raw, "debounce_seconds", "watcher")),
-    )
+    debounce_val = _get(watcher_raw, "debounce_seconds", "watcher")
+    try:
+        debounce_seconds = int(debounce_val)
+    except (ValueError, TypeError):
+        raise ConfigError(
+            f"watcher.debounce_seconds must be an integer, got: {debounce_val!r}"
+        )
+    watcher = WatcherConfig(debounce_seconds=debounce_seconds)
 
     config = Config(
         user=user,
