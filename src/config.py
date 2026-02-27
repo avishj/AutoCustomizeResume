@@ -96,6 +96,8 @@ def _get(data: dict, key: str, section: str, default: Any = _MISSING) -> Any:
     If the key is absent or its value is None (YAML null), the default is used.
     If no default was provided, raises ConfigError.
     """
+    if not isinstance(data, dict):
+        raise ConfigError(f"Expected '{section}' to be a YAML mapping, got {type(data).__name__}")
     val = data.get(key, _MISSING)
     if val is _MISSING or val is None:
         if default is _MISSING:
