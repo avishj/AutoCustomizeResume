@@ -6,16 +6,19 @@ by dropping lowest-scored optional items if the result exceeds 1 page.
 
 from __future__ import annotations
 
-import copy
 import logging
 import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pypdf import PdfReader
 
 from autocustomizeresume.schemas import ContentSelection
+
+if TYPE_CHECKING:
+    from autocustomizeresume.models import ParsedResume
 
 logger = logging.getLogger(__name__)
 
@@ -174,3 +177,121 @@ def _drop_element(
                 # Drop the entire item
                 it["include"] = False
                 return
+
+
+# ---------------------------------------------------------------------------
+# 1-page enforcement
+# ---------------------------------------------------------------------------
+
+_MAX_RETRIES = 3
+
+
+def compile_with_enforcement(
+    parsed: "ParsedResume",
+    selection: ContentSelection,
+    *,
+    keep_dir: Path | None = None,
+) -> tuple[Path, ContentSelection]:
+    """Assemble, compile, and enforce the 1-page limit.
+
+    If the compiled PDF exceeds 1 page, the lowest-scored optional
+    element is dropped (bullets first, then whole items) and the
+    document is recompiled.  Up to *_MAX_RETRIES* attempts are made.
+
+    Parameters
+    ----------
+    parsed:
+        Structured parsed resume from the parser.
+    selection:
+        The LLM's content selection decisions.
+    keep_dir:
+        If provided, write build artifacts here.
+
+    Returns
+    -------
+    tuple[Path, ContentSelection]
+        The PDF path and the (possibly modified) selection used.
+
+    Raises
+    ------
+    CompileError
+        If tectonic fails or the document still exceeds 1 page after
+        all retry attempts.
+    """
+    from autocustomizeresume.assembler import assemble_tex
+
+    # Work on a mutable copy so we can drop elements
+    sel_dict = _selection_to_dict(selection)
+    current_sel = selection
+
+    for attempt in range(_MAX_RETRIES + 1):
+        tex = assemble_tex(parsed, current_sel)
+        pdf_path = compile_tex(tex, keep_dir=keep_dir)
+        pages = get_page_count(pdf_path)
+
+        if pages <= 1:
+            logger.info("PDF fits in 1 page (attempt %d)", attempt + 1)
+            return pdf_path, current_sel
+
+        logger.warning(
+            "PDF has %d pages (attempt %d/%d), dropping content",
+            pages, attempt + 1, _MAX_RETRIES + 1,
+        )
+
+        if attempt == _MAX_RETRIES:
+            break
+
+        # Find something to drop
+        droppables = _find_droppables(current_sel)
+        if not droppables:
+            break
+
+        target = droppables[0]
+        kind = f"bullet '{target.bullet_id}'" if target.bullet_id else f"item '{target.item_id}'"
+        logger.info(
+            "Dropping %s (score=%d) from section '%s'",
+            kind, target.score, target.section_id,
+        )
+
+        _drop_element(sel_dict, target)
+        current_sel = ContentSelection.from_dict(sel_dict)
+
+    raise CompileError(
+        f"Resume still exceeds 1 page after {_MAX_RETRIES} retries"
+    )
+
+
+def _selection_to_dict(selection: ContentSelection) -> dict:
+    """Convert a frozen ContentSelection to a mutable dict."""
+    return {
+        "sections": [
+            {
+                "id": sec.id,
+                "include": sec.include,
+                "items": [
+                    {
+                        "id": it.id,
+                        "include": it.include,
+                        "relevance_score": it.relevance_score,
+                        "bullets": [
+                            {
+                                "id": bd.id,
+                                "include": bd.include,
+                                "edited_text": bd.edited_text,
+                            }
+                            for bd in it.bullets
+                        ],
+                    }
+                    for it in sec.items
+                ],
+            }
+            for sec in selection.sections
+        ],
+        "skill_categories": [
+            {
+                "name": sc.name,
+                "skills": list(sc.skills),
+            }
+            for sc in selection.skill_categories
+        ],
+    }
