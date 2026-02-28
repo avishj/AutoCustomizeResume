@@ -47,33 +47,33 @@ def _load_fixture(name: str) -> str:
 # Helpers for building test data
 # ---------------------------------------------------------------------------
 
-def _make_bullet(tag_type: str = "optional", id: str = "b1",
+def _make_bullet(tag_type: str = "optional", bullet_id: str = "b1",
                  text: str = r"\resumeItem{Did something.}") -> Bullet:
-    return Bullet(tag_type=tag_type, id=id, text=text)
+    return Bullet(tag_type=tag_type, id=bullet_id, text=text)
 
 
-def _make_item(tag_type: str = "optional", id: str = "it1",
+def _make_item(tag_type: str = "optional", item_id: str = "it1",
                heading: str = r"\resumeSubheading{Co}{2024}{Role}{City}",
                bullets: list[Bullet] | None = None,
                interstitial: list[tuple[int, str]] | None = None) -> ResumeItem:
     return ResumeItem(
-        tag_type=tag_type, id=id,
+        tag_type=tag_type, id=item_id,
         heading_lines=heading,
         bullets=bullets or [],
         interstitial=interstitial or [],
     )
 
 
-def _make_item_decision(id: str = "it1", include: bool = True,
+def _make_item_decision(item_id: str = "it1", include: bool = True,
                          score: int = 50,
                          bullets: list[BulletDecision] | None = None) -> ItemDecision:
-    return ItemDecision(id=id, include=include,
+    return ItemDecision(id=item_id, include=include,
                         relevance_score=score, bullets=bullets or [])
 
 
-def _make_section_decision(id: str = "s1", include: bool = True,
+def _make_section_decision(section_id: str = "s1", include: bool = True,
                             items: list[ItemDecision] | None = None) -> SectionDecision:
-    return SectionDecision(id=id, include=include, items=items or [])
+    return SectionDecision(id=section_id, include=include, items=items or [])
 
 
 def _make_selection(sections: list[SectionDecision] | None = None,
@@ -88,7 +88,7 @@ def _make_selection(sections: list[SectionDecision] | None = None,
 
 class TestLookupHelpers:
     def test_section_decision_found(self):
-        sd = _make_section_decision(id="exp")
+        sd = _make_section_decision(section_id="exp")
         sel = _make_selection(sections=[sd])
         assert _section_decision(sel, "exp") is sd
 
@@ -97,7 +97,7 @@ class TestLookupHelpers:
         assert _section_decision(sel, "exp") is None
 
     def test_item_decision_found(self):
-        itd = _make_item_decision(id="acme")
+        itd = _make_item_decision(item_id="acme")
         sd = _make_section_decision(items=[itd])
         assert _item_decision(sd, "acme") is itd
 
@@ -142,21 +142,21 @@ class TestBulletInclusion:
         assert _is_bullet_included(b, None) is True
 
     def test_optional_included_by_decision(self):
-        b = _make_bullet(id="b1")
+        b = _make_bullet(bullet_id="b1")
         itd = _make_item_decision(bullets=[
             BulletDecision(id="b1", include=True),
         ])
         assert _is_bullet_included(b, itd) is True
 
     def test_optional_excluded_by_decision(self):
-        b = _make_bullet(id="b1")
+        b = _make_bullet(bullet_id="b1")
         itd = _make_item_decision(bullets=[
             BulletDecision(id="b1", include=False),
         ])
         assert _is_bullet_included(b, itd) is False
 
     def test_optional_no_decision_defaults_true(self):
-        b = _make_bullet(id="b1")
+        b = _make_bullet(bullet_id="b1")
         assert _is_bullet_included(b, None) is True
 
 
@@ -166,21 +166,21 @@ class TestBulletText:
         assert _bullet_text(b, None) == "original"
 
     def test_original_when_edited_text_empty(self):
-        b = _make_bullet(id="b1", text="original")
+        b = _make_bullet(bullet_id="b1", text="original")
         itd = _make_item_decision(bullets=[
             BulletDecision(id="b1", include=True, edited_text=""),
         ])
         assert _bullet_text(b, itd) == "original"
 
     def test_edited_text_when_present(self):
-        b = _make_bullet(id="b1", text="original")
+        b = _make_bullet(bullet_id="b1", text="original")
         itd = _make_item_decision(bullets=[
             BulletDecision(id="b1", include=True, edited_text="edited"),
         ])
         assert _bullet_text(b, itd) == "edited"
 
     def test_original_when_no_matching_bullet_decision(self):
-        b = _make_bullet(id="b1", text="original")
+        b = _make_bullet(bullet_id="b1", text="original")
         itd = _make_item_decision(bullets=[
             BulletDecision(id="other", include=True, edited_text="edited"),
         ])
@@ -202,17 +202,17 @@ class TestAssembleItem:
         assert _assemble_item(item, None) is None
 
     def test_optional_excluded_by_decision(self):
-        item = _make_item(id="it1")
-        itd = _make_item_decision(id="it1", include=False)
+        item = _make_item(item_id="it1")
+        itd = _make_item_decision(item_id="it1", include=False)
         assert _assemble_item(item, itd) is None
 
     def test_optional_included_with_bullets(self):
         item = _make_item(
-            id="it1", heading="heading",
-            bullets=[_make_bullet(id="b1", text="bullet1")],
+            item_id="it1", heading="heading",
+            bullets=[_make_bullet(bullet_id="b1", text="bullet1")],
             interstitial=[(0, "\\resumeItemListStart"), (1, "\\resumeItemListEnd")],
         )
-        itd = _make_item_decision(id="it1", include=True, bullets=[
+        itd = _make_item_decision(item_id="it1", include=True, bullets=[
             BulletDecision(id="b1", include=True),
         ])
         result = _assemble_item(item, itd)
@@ -223,10 +223,10 @@ class TestAssembleItem:
 
     def test_all_bullets_excluded_drops_item(self):
         item = _make_item(
-            id="it1", heading="heading",
-            bullets=[_make_bullet(id="b1", text="bullet1")],
+            item_id="it1", heading="heading",
+            bullets=[_make_bullet(bullet_id="b1", text="bullet1")],
         )
-        itd = _make_item_decision(id="it1", include=True, bullets=[
+        itd = _make_item_decision(item_id="it1", include=True, bullets=[
             BulletDecision(id="b1", include=False),
         ])
         assert _assemble_item(item, itd) is None
@@ -234,10 +234,10 @@ class TestAssembleItem:
     def test_pinned_item_all_bullets_excluded_keeps_heading(self):
         """Pinned items should keep their heading even when all bullets are excluded."""
         item = _make_item(
-            tag_type="pinned", id="it1", heading="heading",
-            bullets=[_make_bullet(id="b1", text="bullet1")],
+            tag_type="pinned", item_id="it1", heading="heading",
+            bullets=[_make_bullet(bullet_id="b1", text="bullet1")],
         )
-        itd = _make_item_decision(id="it1", include=True, bullets=[
+        itd = _make_item_decision(item_id="it1", include=True, bullets=[
             BulletDecision(id="b1", include=False),
         ])
         result = _assemble_item(item, itd)
@@ -246,25 +246,25 @@ class TestAssembleItem:
         assert "bullet1" not in result
 
     def test_item_without_bullets(self):
-        item = _make_item(tag_type="optional", id="it1", heading="heading only")
-        itd = _make_item_decision(id="it1", include=True)
+        item = _make_item(tag_type="optional", item_id="it1", heading="heading only")
+        itd = _make_item_decision(item_id="it1", include=True)
         result = _assemble_item(item, itd)
         assert result == "heading only"
 
     def test_first_bullet_excluded_preserves_interstitial(self):
         """Interstitial at position 0 should survive even if bullet 0 is excluded."""
         item = _make_item(
-            id="it1", heading="heading",
+            item_id="it1", heading="heading",
             bullets=[
-                _make_bullet(id="b1", text="bullet1"),
-                _make_bullet(id="b2", text="bullet2"),
+                _make_bullet(bullet_id="b1", text="bullet1"),
+                _make_bullet(bullet_id="b2", text="bullet2"),
             ],
             interstitial=[
                 (0, "\\resumeItemListStart"),
                 (2, "\\resumeItemListEnd"),
             ],
         )
-        itd = _make_item_decision(id="it1", include=True, bullets=[
+        itd = _make_item_decision(item_id="it1", include=True, bullets=[
             BulletDecision(id="b1", include=False),
             BulletDecision(id="b2", include=True),
         ])
