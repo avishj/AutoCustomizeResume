@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 
 from autocustomizeresume.config import Config
 from autocustomizeresume.llm_client import LLMClient
@@ -27,6 +28,63 @@ from autocustomizeresume.schemas import (
 from autocustomizeresume.selector import _latex_preview
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# LaTeX escaping — makes plain text safe for injection into LaTeX
+# ---------------------------------------------------------------------------
+
+# Characters that have special meaning in LaTeX and must be escaped.
+_LATEX_SPECIAL_CHARS: dict[str, str] = {
+    "&": r"\&",
+    "%": r"\%",
+    "$": r"\$",
+    "#": r"\#",
+    "_": r"\_",
+    "~": r"\textasciitilde{}",
+    "^": r"\textasciicircum{}",
+}
+
+
+def _escape_latex(text: str) -> str:
+    """Escape LaTeX special characters in plain text.
+
+    Converts characters that have special meaning in LaTeX into their
+    safe escaped equivalents.  Handles backslash and braces carefully
+    to avoid double-escaping.
+    """
+    # Backslash must be handled first and specially — we replace it
+    # with a placeholder, then handle braces, then swap placeholder.
+    placeholder = "\x00BACKSLASH\x00"
+    text = text.replace("\\", placeholder)
+
+    # Braces next (before other chars, since replacements contain braces)
+    text = text.replace("{", r"\{")
+    text = text.replace("}", r"\}")
+
+    # Now the remaining special chars
+    for char, replacement in _LATEX_SPECIAL_CHARS.items():
+        text = text.replace(char, replacement)
+
+    # Replace placeholder with the proper LaTeX command
+    text = text.replace(placeholder, r"\textbackslash{}")
+
+    return text
+
+
+def _plain_text_to_latex(text: str) -> str:
+    """Convert plain text (from LLM) to LaTeX-safe body content.
+
+    1. Escapes LaTeX special characters.
+    2. Converts blank-line-separated paragraphs to ``\\par`` separators.
+    """
+    escaped = _escape_latex(text)
+
+    # Split on blank lines (one or more empty lines between paragraphs)
+    paragraphs = re.split(r"\n\s*\n", escaped)
+    paragraphs = [p.strip() for p in paragraphs if p.strip()]
+
+    return "\n\n\\par\n\n".join(paragraphs)
 
 
 # ---------------------------------------------------------------------------
