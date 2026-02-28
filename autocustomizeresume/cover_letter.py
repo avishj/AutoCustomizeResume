@@ -353,12 +353,13 @@ def _build_signature_block(signature_path: str) -> str:
     """Build the LaTeX for the signature, or empty string if no path.
 
     Uses only the filename since the image is copied to the compile
-    directory alongside the .tex file.
+    directory alongside the .tex file.  The filename is LaTeX-escaped
+    so that characters like ``_`` don't break compilation.
     """
     if not signature_path.strip():
         return ""
     filename = Path(signature_path).name
-    return _SIGNATURE_LATEX + "{" + filename + "}"
+    return _SIGNATURE_LATEX + "{" + _escape_latex(filename) + "}"
 
 
 def _format_date() -> str:

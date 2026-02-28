@@ -599,6 +599,12 @@ class TestBuildSignatureBlock:
         assert "/full/path/to/" not in result
         assert "sig.png" in result
 
+    def test_escapes_special_chars_in_filename(self):
+        result = _build_signature_block("path/my_signature.png")
+        # Underscore must be escaped for LaTeX
+        assert r"my\_signature.png" in result
+        assert "my_signature.png" not in result
+
 
 class TestFormatDate:
     """Tests for _format_date()."""
