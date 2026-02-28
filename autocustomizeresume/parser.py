@@ -491,9 +491,10 @@ def _parse_skills_section(
 
 # Regex to parse: \textbf{DisplayName}{: skill1, skill2, ...}
 # with optional trailing period, closing brace, and \\
-# Groups: (1) everything up to and including "{: "
-#         (2) the comma-separated skills
-#         (3) trailing suffix (e.g. ".} \\" or "}")
+# Groups: (1) full prefix up to and including "{: "
+#         (2) display name inside \textbf{...}  (nested in group 1)
+#         (3) the comma-separated skills
+#         (4) trailing suffix (e.g. ".} \\" or "}")
 _SKILL_LINE_RE = re.compile(
     r"^(.*\\textbf\{([^}]+)\}\{:\s*)"  # prefix + display name
     r"(.+?)"                             # skills (greedy-minimal)
