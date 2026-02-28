@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 
 from autocustomizeresume.config import Config
 from autocustomizeresume.llm_client import LLMClient
@@ -169,8 +170,6 @@ def _latex_preview(text: str) -> str:
     the content, while keeping it recognisable.  Not a full LaTeX
     parser — just enough to be useful.
     """
-    import re
-
     preview = text.strip()
     # Remove common LaTeX line-break commands
     preview = preview.replace("\\\\", " ")
