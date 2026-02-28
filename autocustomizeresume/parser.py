@@ -23,6 +23,7 @@ from autocustomizeresume.models import (
     ParsedResume,
     ResumeItem,
     ResumeSection,
+    SkillCategory,
     SkillsSection,
 )
 
@@ -357,11 +358,103 @@ def _parse_skills_section(
 ) -> SkillsSection:
     """Parse a skills section with SKILLS category tags.
 
-    Placeholder — full implementation in commit 2.4.
+    Each category is delimited by %%% SKILLS:<name> / %%% END:SKILLS:<name>
+    and contains a single \\textbf{DisplayName}{: skill1, skill2, ...} line.
     """
+    categories: list[SkillCategory] = []
+    interstitial: list[tuple[int, str]] = []
+    buffer: list[str] = []
+
+    in_category = False
+    cat_name: str | None = None
+    cat_lines: list[str] = []
+
+    for line in lines:
+        stripped = line.strip()
+
+        if not in_category:
+            m = SKILLS_BEGIN_RE.match(stripped)
+            if m:
+                if buffer:
+                    interstitial.append((len(categories), "\n".join(buffer)))
+                    buffer = []
+                in_category = True
+                cat_name = m.group(1)
+                cat_lines = []
+                continue
+            buffer.append(line)
+            continue
+
+        # Inside a category — look for matching END
+        m_end = SKILLS_END_RE.match(stripped)
+        if m_end and m_end.group(1) == cat_name:
+            assert cat_name is not None
+            cat = _parse_skill_line(cat_name, cat_lines)
+            categories.append(cat)
+            in_category = False
+            cat_name = None
+            cat_lines = []
+            continue
+
+        cat_lines.append(line)
+
+    if in_category:
+        raise ParseError(
+            f"Unclosed skills tag: %%% SKILLS:{cat_name}"
+        )
+
+    # Trailing interstitial
+    if buffer:
+        interstitial.append((len(categories), "\n".join(buffer)))
+
     return SkillsSection(
         tag_type=tag_type,
         id=tag_id,
-        categories=[],
-        interstitial=[(0, "\n".join(lines))],
+        categories=categories,
+        interstitial=interstitial,
+    )
+
+
+# Regex to parse: \textbf{DisplayName}{: skill1, skill2, ...}
+# with optional trailing period, closing brace, and \\
+# Groups: (1) everything up to and including "{: "
+#         (2) the comma-separated skills
+#         (3) trailing suffix (e.g. ".} \\" or "}")
+_SKILL_LINE_RE = re.compile(
+    r"^(.*\\textbf\{([^}]+)\}\{:\s*)"  # prefix + display name
+    r"(.+?)"                             # skills (greedy-minimal)
+    r"(\.\}.*|\}.*)$",                   # suffix: ".} \\" or "} \\" or "}"
+    re.DOTALL,
+)
+
+
+def _parse_skill_line(cat_name: str, lines: list[str]) -> SkillCategory:
+    """Parse the content lines of a single SKILLS category tag.
+
+    Expects a single logical line (possibly spread across multiple lines)
+    of the form: \\textbf{Display}{: A, B, C.} \\\\
+    """
+    # Join all content lines into one string for matching
+    content = "\n".join(lines).strip()
+
+    m = _SKILL_LINE_RE.match(content)
+    if not m:
+        raise ParseError(
+            f"Could not parse skills line for category '{cat_name}': {content!r}"
+        )
+
+    prefix = m.group(1)
+    display_name = m.group(2)
+    raw_skills = m.group(3)
+    suffix = m.group(4)
+
+    # Split on commas, strip whitespace, filter empties
+    skills = [s.strip() for s in raw_skills.split(",") if s.strip()]
+
+    return SkillCategory(
+        name=cat_name,
+        display_name=display_name,
+        skills=skills,
+        prefix=prefix,
+        suffix=suffix,
     )
