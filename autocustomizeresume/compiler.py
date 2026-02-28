@@ -7,6 +7,7 @@ by dropping lowest-scored optional items if the result exceeds 1 page.
 from __future__ import annotations
 
 import logging
+import shutil
 import subprocess
 import tempfile
 from dataclasses import dataclass, replace
@@ -42,7 +43,9 @@ def compile_tex(tex_content: str, *, keep_dir: Path | None = None) -> Path:
         Complete LaTeX document as a string.
     keep_dir:
         If provided, write the .tex and .pdf here instead of a
-        temporary directory (useful for debugging).
+        temporary directory.  When *None*, a temporary directory is
+        created; the caller owns cleanup of the directory containing
+        the returned PDF path.
 
     Returns
     -------
@@ -227,7 +230,9 @@ def compile_with_enforcement(
     selection:
         The LLM's content selection decisions.
     keep_dir:
-        If provided, write build artifacts here.
+        If provided, write build artifacts here.  When *None*, a
+        temporary directory is created; the caller owns cleanup of the
+        directory containing the returned PDF path.
 
     Returns
     -------
@@ -245,43 +250,54 @@ def compile_with_enforcement(
     # Use a single working directory for all retries to avoid temp dir leaks
     if keep_dir is not None:
         work_dir = keep_dir
+        owns_dir = False
     else:
         work_dir = Path(tempfile.mkdtemp(prefix="acr_"))
+        owns_dir = True
 
     # Work on an immutable selection, producing new copies on each drop
     current_sel = selection
 
-    for attempt in range(_MAX_RETRIES + 1):
-        tex = assemble_tex(parsed, current_sel)
-        pdf_path = compile_tex(tex, keep_dir=work_dir)
-        pages = get_page_count(pdf_path)
+    try:
+        for attempt in range(_MAX_RETRIES + 1):
+            tex = assemble_tex(parsed, current_sel)
+            pdf_path = compile_tex(tex, keep_dir=work_dir)
+            pages = get_page_count(pdf_path)
 
-        if pages <= 1:
-            logger.info("PDF fits in 1 page (attempt %d)", attempt + 1)
-            return pdf_path, current_sel
+            if pages <= 1:
+                logger.info("PDF fits in 1 page (attempt %d)", attempt + 1)
+                return pdf_path, current_sel
 
-        logger.warning(
-            "PDF has %d pages (attempt %d/%d), dropping content",
-            pages, attempt + 1, _MAX_RETRIES + 1,
-        )
+            logger.warning(
+                "PDF has %d pages (attempt %d/%d), dropping content",
+                pages, attempt + 1, _MAX_RETRIES + 1,
+            )
 
-        if attempt == _MAX_RETRIES:
-            break
+            if attempt == _MAX_RETRIES:
+                break
 
-        # Find something to drop
-        droppables = _find_droppables(current_sel)
-        if not droppables:
-            break
+            # Find something to drop
+            droppables = _find_droppables(current_sel)
+            if not droppables:
+                break
 
-        target = droppables[0]
-        kind = f"bullet '{target.bullet_id}'" if target.bullet_id else f"item '{target.item_id}'"
-        logger.info(
-            "Dropping %s (score=%d) from section '%s'",
-            kind, target.score, target.section_id,
-        )
+            target = droppables[0]
+            kind = f"bullet '{target.bullet_id}'" if target.bullet_id else f"item '{target.item_id}'"
+            logger.info(
+                "Dropping %s (score=%d) from section '%s'",
+                kind, target.score, target.section_id,
+            )
 
-        current_sel = _drop_element(current_sel, target)
+            current_sel = _drop_element(current_sel, target)
+    except Exception:
+        # Clean up auto-created temp dir on failure so it doesn't leak
+        if owns_dir:
+            shutil.rmtree(work_dir, ignore_errors=True)
+        raise
 
+    # Still exceeds 1 page — clean up and raise
+    if owns_dir:
+        shutil.rmtree(work_dir, ignore_errors=True)
     raise CompileError(
         f"Resume still exceeds 1 page after {_MAX_RETRIES} retries"
     )
