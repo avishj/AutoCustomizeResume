@@ -295,7 +295,7 @@ def _parse_section(
     a regular section (contains BEGIN/END item tags).
     """
     # Check if any line is a SKILLS tag
-    has_skills = any(SKILLS_BEGIN_RE.match(l.strip()) for l in lines)
+    has_skills = any(SKILLS_BEGIN_RE.match(line.strip()) for line in lines)
 
     if has_skills:
         return _parse_skills_section(tag_type, tag_id, lines)
