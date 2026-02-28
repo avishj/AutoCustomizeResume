@@ -60,8 +60,10 @@ def compile_tex(tex_content: str, *, keep_dir: Path | None = None) -> Path:
     if keep_dir is not None:
         work = keep_dir
         work.mkdir(parents=True, exist_ok=True)
+        owns_dir = False
     else:
         work = Path(tempfile.mkdtemp(prefix="acr_"))
+        owns_dir = True
 
     tex_path = work / "resume.tex"
     tex_path.write_text(tex_content, encoding="utf-8")
@@ -76,11 +78,15 @@ def compile_tex(tex_content: str, *, keep_dir: Path | None = None) -> Path:
             timeout=_COMPILE_TIMEOUT_SECS,
         )
     except subprocess.TimeoutExpired as exc:
+        if owns_dir:
+            shutil.rmtree(work, ignore_errors=True)
         raise CompileError(
             f"tectonic timed out after {_COMPILE_TIMEOUT_SECS}s"
         ) from exc
 
     if result.returncode != 0:
+        if owns_dir:
+            shutil.rmtree(work, ignore_errors=True)
         raise CompileError(
             f"tectonic failed (exit {result.returncode}):\n"
             f"{result.stderr.strip()}"
@@ -88,6 +94,8 @@ def compile_tex(tex_content: str, *, keep_dir: Path | None = None) -> Path:
 
     pdf_path = tex_path.with_suffix(".pdf")
     if not pdf_path.exists():
+        if owns_dir:
+            shutil.rmtree(work, ignore_errors=True)
         raise CompileError(
             "tectonic exited successfully but no PDF was produced"
         )

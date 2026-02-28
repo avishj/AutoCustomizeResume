@@ -329,6 +329,54 @@ class TestCompileTex:
         with pytest.raises(CompileError, match="timed out"):
             compile_tex(r"\documentclass{article}", keep_dir=tmp_path)
 
+    @patch("autocustomizeresume.compiler.subprocess.run")
+    def test_temp_dir_cleaned_on_failure(self, mock_run):
+        """Temp dir is removed when compile_tex raises CompileError (no keep_dir)."""
+        mock_run.return_value = MagicMock(returncode=1, stderr="error")
+        import tempfile as _tempfile
+        td = _tempfile.mkdtemp(prefix="test_acr_leak_")
+        td_path = Path(td)
+
+        with patch("autocustomizeresume.compiler.tempfile") as mock_tempmod:
+            mock_tempmod.mkdtemp.return_value = td
+            with pytest.raises(CompileError):
+                compile_tex(r"\bad")
+
+        assert not td_path.exists(), "temp dir should be cleaned up on failure"
+
+    @patch("autocustomizeresume.compiler.subprocess.run")
+    def test_temp_dir_cleaned_on_timeout(self, mock_run):
+        """Temp dir is removed when compile_tex raises CompileError on timeout."""
+        import subprocess as _subprocess
+        import tempfile as _tempfile
+        mock_run.side_effect = _subprocess.TimeoutExpired(
+            cmd=["tectonic"], timeout=120
+        )
+        td = _tempfile.mkdtemp(prefix="test_acr_leak_")
+        td_path = Path(td)
+
+        with patch("autocustomizeresume.compiler.tempfile") as mock_tempmod:
+            mock_tempmod.mkdtemp.return_value = td
+            with pytest.raises(CompileError, match="timed out"):
+                compile_tex(r"\documentclass{article}")
+
+        assert not td_path.exists(), "temp dir should be cleaned up on timeout"
+
+    @patch("autocustomizeresume.compiler.subprocess.run")
+    def test_temp_dir_cleaned_on_no_pdf(self, mock_run):
+        """Temp dir is removed when tectonic succeeds but no PDF is produced."""
+        mock_run.return_value = MagicMock(returncode=0, stderr="")
+        import tempfile as _tempfile
+        td = _tempfile.mkdtemp(prefix="test_acr_leak_")
+        td_path = Path(td)
+
+        with patch("autocustomizeresume.compiler.tempfile") as mock_tempmod:
+            mock_tempmod.mkdtemp.return_value = td
+            with pytest.raises(CompileError, match="no PDF was produced"):
+                compile_tex(r"\documentclass{article}")
+
+        assert not td_path.exists(), "temp dir should be cleaned up when no PDF produced"
+
 
 # ---------------------------------------------------------------------------
 # get_page_count (unit tests with real tiny PDFs)
