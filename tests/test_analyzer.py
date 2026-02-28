@@ -74,7 +74,11 @@ class TestAnalyzeJD:
         analyze_jd(_SAMPLE_JD, config=_make_config(), client=client)
 
         call_kwargs = client.chat_json.call_args[1]
-        assert call_kwargs["user"] == _SAMPLE_JD
+        user = call_kwargs["user"]
+        assert _SAMPLE_JD in user
+        # JD should be wrapped in XML delimiters for prompt-injection hardening
+        assert user.startswith("<jd>")
+        assert user.endswith("</jd>")
 
     def test_uses_low_temperature(self):
         client = _make_client(_SAMPLE_ANALYSIS_DICT)
