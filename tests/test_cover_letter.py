@@ -986,3 +986,149 @@ class TestBuildCoverLetter:
         assert r"\%" in filled_tex
         assert r"\$" in filled_tex
         assert r"\par" in filled_tex
+
+
+# ===========================================================================
+# 5.4d — Integration test (requires tectonic)
+# ===========================================================================
+
+def _tectonic_available() -> bool:
+    return shutil.which("tectonic") is not None
+
+
+@pytest.mark.skipif(
+    not _tectonic_available(),
+    reason="tectonic not installed",
+)
+class TestCoverLetterIntegration:
+    """End-to-end compilation using the real template and tectonic."""
+
+    def test_compile_cover_letter_produces_pdf(self, tmp_path):
+        """Fill the real template and compile to a valid PDF."""
+        template_path = Path("templates/cover_letter_template.tex")
+        if not template_path.exists():
+            pytest.skip("Template not available")
+
+        cfg = _make_config(
+            cover_letter={
+                "enabled": True,
+                "template": str(template_path),
+                "signature_path": "",
+            }
+        )
+
+        template_tex = template_path.read_text(encoding="utf-8")
+
+        with patch("autocustomizeresume.cover_letter.date") as mock_date:
+            mock_date.today.return_value = date(2026, 2, 28)
+            mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+            filled_tex = inject_template(
+                template_tex,
+                config=cfg,
+                body_text="This is a test cover letter body paragraph.",
+            )
+
+        pdf_path = compile_cover_letter(
+            filled_tex, config=cfg, keep_dir=tmp_path
+        )
+
+        assert pdf_path.exists()
+        assert pdf_path.suffix == ".pdf"
+        # Verify it's a real PDF
+        header = pdf_path.read_bytes()[:5]
+        assert header == b"%PDF-"
+
+    def test_compile_with_signature(self, tmp_path):
+        """Compile with a signature image (fake PNG)."""
+        template_path = Path("templates/cover_letter_template.tex")
+        if not template_path.exists():
+            pytest.skip("Template not available")
+
+        # Create a minimal valid PNG (1x1 transparent pixel)
+        # This is the smallest valid PNG file
+        import struct
+        import zlib
+
+        def _make_minimal_png() -> bytes:
+            sig = b"\x89PNG\r\n\x1a\n"
+            # IHDR chunk
+            ihdr_data = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
+            ihdr_crc = zlib.crc32(b"IHDR" + ihdr_data) & 0xFFFFFFFF
+            ihdr = struct.pack(">I", 13) + b"IHDR" + ihdr_data + struct.pack(">I", ihdr_crc)
+            # IDAT chunk
+            raw = zlib.compress(b"\x00\xff\xff\xff")
+            idat_crc = zlib.crc32(b"IDAT" + raw) & 0xFFFFFFFF
+            idat = struct.pack(">I", len(raw)) + b"IDAT" + raw + struct.pack(">I", idat_crc)
+            # IEND chunk
+            iend_crc = zlib.crc32(b"IEND") & 0xFFFFFFFF
+            iend = struct.pack(">I", 0) + b"IEND" + struct.pack(">I", iend_crc)
+            return sig + ihdr + idat + iend
+
+        sig_file = tmp_path / "signature.png"
+        sig_file.write_bytes(_make_minimal_png())
+
+        cfg = _make_config(
+            cover_letter={
+                "enabled": True,
+                "template": str(template_path),
+                "signature_path": str(sig_file),
+            }
+        )
+
+        template_tex = template_path.read_text(encoding="utf-8")
+
+        with patch("autocustomizeresume.cover_letter.date") as mock_date:
+            mock_date.today.return_value = date(2026, 2, 28)
+            mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+            filled_tex = inject_template(
+                template_tex,
+                config=cfg,
+                body_text="Test body with signature.",
+            )
+
+        work = tmp_path / "build"
+        pdf_path = compile_cover_letter(
+            filled_tex, config=cfg, keep_dir=work
+        )
+
+        assert pdf_path.exists()
+        assert pdf_path.suffix == ".pdf"
+        # Signature should have been copied to build dir
+        assert (work / "signature.png").exists()
+
+    def test_compile_with_special_chars_in_body(self, tmp_path):
+        """Body with LaTeX special chars compiles cleanly after escaping."""
+        template_path = Path("templates/cover_letter_template.tex")
+        if not template_path.exists():
+            pytest.skip("Template not available")
+
+        cfg = _make_config(
+            cover_letter={
+                "enabled": True,
+                "template": str(template_path),
+                "signature_path": "",
+            }
+        )
+
+        # Body with special chars — this would break compilation if not escaped
+        body_plain = (
+            "I improved performance by 100% and saved $50k.\n\n"
+            "Technologies: C++ & Python. Used the #1 framework."
+        )
+        body_latex = _plain_text_to_latex(body_plain)
+
+        template_tex = template_path.read_text(encoding="utf-8")
+
+        with patch("autocustomizeresume.cover_letter.date") as mock_date:
+            mock_date.today.return_value = date(2026, 2, 28)
+            mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+            filled_tex = inject_template(
+                template_tex, config=cfg, body_text=body_latex
+            )
+
+        pdf_path = compile_cover_letter(
+            filled_tex, config=cfg, keep_dir=tmp_path
+        )
+
+        assert pdf_path.exists()
+        assert pdf_path.suffix == ".pdf"
