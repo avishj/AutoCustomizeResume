@@ -501,3 +501,90 @@ def compile_cover_letter(
         if owns_dir:
             shutil.rmtree(work, ignore_errors=True)
         raise
+
+
+# ---------------------------------------------------------------------------
+# Top-level orchestration
+# ---------------------------------------------------------------------------
+
+def build_cover_letter(
+    jd_analysis: JDAnalysis,
+    parsed_resume: ParsedResume,
+    selection: ContentSelection,
+    *,
+    config: Config,
+    client: LLMClient | None = None,
+    keep_dir: Path | None = None,
+) -> Path | None:
+    """Generate and compile a cover letter PDF end-to-end.
+
+    Checks ``config.cover_letter.enabled`` and returns *None* if
+    cover letter generation is disabled.
+
+    Parameters
+    ----------
+    jd_analysis:
+        Structured metadata from the job description.
+    parsed_resume:
+        The fully parsed tagged resume.
+    selection:
+        The content selection decisions.
+    config:
+        Application config.
+    client:
+        Optional pre-built LLM client.
+    keep_dir:
+        If provided, write build artifacts here.
+
+    Returns
+    -------
+    Path or None
+        Path to the generated PDF, or *None* if disabled.
+
+    Raises
+    ------
+    CompileError
+        If compilation fails.
+    FileNotFoundError
+        If the template file does not exist.
+    """
+    if not config.cover_letter.enabled:
+        logger.info("Cover letter generation disabled — skipping")
+        return None
+
+    # Validate template exists
+    template_path = Path(config.cover_letter.template)
+    if not template_path.exists():
+        raise FileNotFoundError(
+            f"Cover letter template not found: {template_path}"
+        )
+
+    # 1. Generate body text via LLM
+    body_plain = generate_cover_letter_body(
+        jd_analysis,
+        parsed_resume,
+        selection,
+        config=config,
+        client=client,
+    )
+
+    # 2. Post-process: escape special chars + convert paragraphs
+    body_latex = _plain_text_to_latex(body_plain)
+
+    # 3. Inject into template
+    template_tex = template_path.read_text(encoding="utf-8")
+    filled_tex = inject_template(
+        template_tex,
+        config=config,
+        body_text=body_latex,
+    )
+
+    # 4. Compile to PDF
+    pdf_path = compile_cover_letter(
+        filled_tex,
+        config=config,
+        keep_dir=keep_dir,
+    )
+
+    logger.info("Cover letter build complete: %s", pdf_path)
+    return pdf_path
