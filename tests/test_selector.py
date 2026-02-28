@@ -573,6 +573,30 @@ class TestEdgeCases:
         assert analysis.key_skills == []
         assert analysis.technologies == []
 
+    def test_null_lists_default_to_empty(self):
+        """LLM may return null for list fields — should not crash."""
+        from autocustomizeresume.schemas import (
+            ContentSelection, ItemDecision, SectionDecision,
+        )
+
+        sel = ContentSelection.from_dict({
+            "sections": None,
+            "skill_categories": None,
+        })
+        assert sel.sections == []
+        assert sel.skill_categories == []
+
+        sec = SectionDecision.from_dict({
+            "id": "exp", "include": True, "items": None,
+        })
+        assert sec.items == []
+
+        item = ItemDecision.from_dict({
+            "id": "acme", "include": True,
+            "relevance_score": 80, "bullets": None,
+        })
+        assert item.bullets == []
+
     def test_missing_include_warns_and_defaults_true(self, caplog):
         """Missing 'include' key should log a warning and default to True."""
         from autocustomizeresume.schemas import BulletDecision

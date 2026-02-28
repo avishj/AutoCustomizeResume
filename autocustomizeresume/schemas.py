@@ -132,7 +132,7 @@ class ItemDecision:
             relevance_score=int(float(data.get("relevance_score") or 50)),
             bullets=[
                 BulletDecision.from_dict(b)
-                for b in data.get("bullets", [])
+                for b in (data.get("bullets") or [])
             ],
         )
 
@@ -168,7 +168,7 @@ class SectionDecision:
             include=bool(data.get("include", True)),
             items=[
                 ItemDecision.from_dict(it)
-                for it in data.get("items", [])
+                for it in (data.get("items") or [])
             ],
         )
 
@@ -215,11 +215,11 @@ class ContentSelection:
         return cls(
             sections=[
                 SectionDecision.from_dict(s)
-                for s in data.get("sections", [])
+                for s in (data.get("sections") or [])
             ],
             skill_categories=[
                 SkillCategoryDecision.from_dict(sc)
-                for sc in data.get("skill_categories", [])
+                for sc in (data.get("skill_categories") or [])
             ],
         )
 
