@@ -156,7 +156,7 @@ individual skills so the LLM can **reorder, add, and remove** them.
 
 ## Tag Hierarchy
 
-```
+```text
 section (pinned|optional)
 ├── item (pinned|optional)
 │   ├── bullet (pinned|optional)   ← LLM can tweak text
