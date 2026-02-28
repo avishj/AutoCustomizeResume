@@ -183,7 +183,7 @@ def _latex_preview(text: str) -> str:
     # Remove \resumeSubheading and similar — keep args
     preview = re.sub(r"\\resume\w+\{", "", preview)
     # Strip leftover braces from the above removals
-    preview = preview.replace("{", "").replace("}", "")
+    preview = preview.replace("{", " ").replace("}", " ")
     # Collapse whitespace
     preview = re.sub(r"\s+", " ", preview).strip()
     # Truncate for sanity
