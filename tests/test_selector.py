@@ -517,3 +517,27 @@ class TestEdgeCases:
             client=client,
         )
         assert result.sections == []
+
+    def test_float_relevance_score(self):
+        """LLM may return a float relevance_score — should be truncated to int."""
+        from autocustomizeresume.schemas import ItemDecision
+
+        item = ItemDecision.from_dict({
+            "id": "acme",
+            "include": True,
+            "relevance_score": 85.7,
+            "bullets": [],
+        })
+        assert item.relevance_score == 85
+
+    def test_string_float_relevance_score(self):
+        """LLM may return relevance_score as a string like '85.5'."""
+        from autocustomizeresume.schemas import ItemDecision
+
+        item = ItemDecision.from_dict({
+            "id": "acme",
+            "include": True,
+            "relevance_score": "85.5",
+            "bullets": [],
+        })
+        assert item.relevance_score == 85
