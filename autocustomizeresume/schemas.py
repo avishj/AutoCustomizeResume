@@ -50,10 +50,10 @@ class JDAnalysis:
     def from_dict(cls, data: dict) -> JDAnalysis:
         """Parse and validate a dict (from LLM JSON) into a JDAnalysis."""
         return cls(
-            company=str(data.get("company", "Unknown")).strip() or "Unknown",
-            role=str(data.get("role", "Unknown")).strip() or "Unknown",
-            seniority=str(data.get("seniority", "unknown")).strip().lower(),
-            domain=str(data.get("domain", "unknown")).strip(),
+            company=str(data.get("company") or "Unknown").strip() or "Unknown",
+            role=str(data.get("role") or "Unknown").strip() or "Unknown",
+            seniority=str(data.get("seniority") or "unknown").strip().lower(),
+            domain=str(data.get("domain") or "unknown").strip(),
             key_skills=_str_list(data.get("key_skills", [])),
             technologies=_str_list(data.get("technologies", [])),
         )

@@ -554,6 +554,25 @@ class TestEdgeCases:
         })
         assert item.relevance_score == 50
 
+    def test_null_jd_fields_default_gracefully(self):
+        """LLM may return null for JDAnalysis fields — should use defaults."""
+        from autocustomizeresume.schemas import JDAnalysis
+
+        analysis = JDAnalysis.from_dict({
+            "company": None,
+            "role": None,
+            "seniority": None,
+            "domain": None,
+            "key_skills": None,
+            "technologies": None,
+        })
+        assert analysis.company == "Unknown"
+        assert analysis.role == "Unknown"
+        assert analysis.seniority == "unknown"
+        assert analysis.domain == "unknown"
+        assert analysis.key_skills == []
+        assert analysis.technologies == []
+
     def test_missing_include_warns_and_defaults_true(self, caplog):
         """Missing 'include' key should log a warning and default to True."""
         from autocustomizeresume.schemas import BulletDecision
