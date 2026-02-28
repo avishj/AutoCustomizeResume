@@ -173,6 +173,11 @@ def parse_resume(tex_content: str) -> ParsedResume:
                 })
                 i += 1
                 continue
+            # Reject stray END tags before any section opens
+            if TAG_END_RE.match(stripped):
+                raise ParseError(
+                    f"Unexpected END tag before any section: {stripped}"
+                )
             header_lines.append(line)
             i += 1
             continue
@@ -197,6 +202,11 @@ def parse_resume(tex_content: str) -> ParsedResume:
                 })
                 i += 1
                 continue
+            # Reject stray END tags between sections
+            if TAG_END_RE.match(stripped):
+                raise ParseError(
+                    f"Unexpected END tag between sections: {stripped}"
+                )
             interstitial_lines.append(line)
             i += 1
             continue
@@ -320,6 +330,12 @@ def _parse_regular_section(
                 item_id = m.group(2)
                 item_lines = []
                 continue
+            # Reject stray END tags outside any item
+            if TAG_END_RE.match(stripped):
+                raise ParseError(
+                    f"Unexpected END tag outside any item in section "
+                    f"'{tag_id}': {stripped}"
+                )
             buffer.append(line)
             continue
 
@@ -385,6 +401,13 @@ def _parse_item(
                 bullet_id = m.group(2)
                 bullet_lines = []
                 continue
+
+            # Reject stray END tags outside any bullet
+            if TAG_END_RE.match(stripped):
+                raise ParseError(
+                    f"Unexpected END tag outside any bullet in item "
+                    f"'{tag_id}': {stripped}"
+                )
 
             if not found_first_bullet_tag:
                 heading_lines.append(line)
@@ -456,6 +479,12 @@ def _parse_skills_section(
                 cat_name = m.group(1)
                 cat_lines = []
                 continue
+            # Reject stray END:SKILLS tags outside any category
+            if SKILLS_END_RE.match(stripped):
+                raise ParseError(
+                    f"Unexpected END:SKILLS tag outside any category in "
+                    f"section '{tag_id}': {stripped}"
+                )
             buffer.append(line)
             continue
 

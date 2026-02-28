@@ -381,6 +381,80 @@ class TestErrors:
             # Re-parse — if any warning fires, this will raise
             parse_resume(_load_fixture("sample_tagged.tex"))
 
+    def test_stray_end_in_header(self):
+        tex = r"""\documentclass{article}
+\begin{document}
+%%% END:pinned:foo
+%%% BEGIN:pinned:edu
+\section{Education}
+%%% END:pinned:edu
+\end{document}
+"""
+        with pytest.raises(ParseError, match="Unexpected END tag before any section"):
+            parse_resume(tex)
+
+    def test_stray_end_between_sections(self):
+        tex = r"""\documentclass{article}
+\begin{document}
+%%% BEGIN:pinned:edu
+\section{Education}
+%%% END:pinned:edu
+%%% END:optional:ghost
+%%% BEGIN:optional:exp
+\section{Experience}
+%%% END:optional:exp
+\end{document}
+"""
+        with pytest.raises(ParseError, match="Unexpected END tag between sections"):
+            parse_resume(tex)
+
+    def test_stray_end_outside_item(self):
+        tex = r"""\documentclass{article}
+\begin{document}
+%%% BEGIN:pinned:edu
+\section{Education}
+    %%% END:pinned:ghost
+    %%% BEGIN:pinned:mit
+    \resumeSubheading{MIT}{2025}{MS}{MA}
+    %%% END:pinned:mit
+%%% END:pinned:edu
+\end{document}
+"""
+        with pytest.raises(ParseError, match="Unexpected END tag outside any item"):
+            parse_resume(tex)
+
+    def test_stray_end_outside_bullet(self):
+        tex = r"""\documentclass{article}
+\begin{document}
+%%% BEGIN:pinned:exp
+    %%% BEGIN:pinned:acme
+    \resumeSubheading{Acme}{2025}{SWE}{NY}
+        %%% END:optional:ghost
+        %%% BEGIN:optional:acme-1
+        \resumeItem{Built REST API}
+        %%% END:optional:acme-1
+    %%% END:pinned:acme
+%%% END:pinned:exp
+\end{document}
+"""
+        with pytest.raises(ParseError, match="Unexpected END tag outside any bullet"):
+            parse_resume(tex)
+
+    def test_stray_end_skills_outside_category(self):
+        tex = r"""\documentclass{article}
+\begin{document}
+%%% BEGIN:pinned:skills
+\section{Skills}
+    %%% END:SKILLS:ghost
+    %%% SKILLS:languages
+    \textbf{Languages}{: Python, Java.}
+    %%% END:SKILLS:languages
+%%% END:pinned:skills
+\end{document}
+"""
+        with pytest.raises(ParseError, match="Unexpected END:SKILLS tag outside any category"):
+            parse_resume(tex)
+
 
 # ---------------------------------------------------------------------------
 # Minimal fixture tests
