@@ -11,6 +11,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
+from pypdf import PdfReader
+
 logger = logging.getLogger(__name__)
 
 
@@ -70,3 +72,25 @@ def compile_tex(tex_content: str, *, keep_dir: Path | None = None) -> Path:
 
     logger.info("Compiled PDF: %s", pdf_path)
     return pdf_path
+
+
+def get_page_count(pdf_path: Path) -> int:
+    """Return the number of pages in a PDF file.
+
+    Parameters
+    ----------
+    pdf_path:
+        Path to an existing PDF file.
+
+    Raises
+    ------
+    CompileError
+        If the file cannot be read as a valid PDF.
+    """
+    try:
+        reader = PdfReader(pdf_path)
+        return len(reader.pages)
+    except Exception as exc:
+        raise CompileError(
+            f"Failed to read page count from {pdf_path}: {exc}"
+        ) from exc
