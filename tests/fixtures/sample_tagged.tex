@@ -1,0 +1,99 @@
+\documentclass[10pt]{article}
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+
+\newcommand{\resumeItem}[1]{\item\small{#1}}
+\newcommand{\resumeSubheading}[4]{\item \textbf{#1} #2 \\ \textit{#3} #4}
+\newcommand{\resumeProjectHeading}[2]{\item \small#1 \textbf{#2}}
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}}
+
+\begin{document}
+\begin{center}
+{\huge Jane Doe} \\
+\small jane@example.com
+\end{center}
+
+%%% BEGIN:pinned:education
+\section{Education}
+\resumeSubHeadingListStart
+    %%% BEGIN:pinned:mit
+    \resumeSubheading{MIT}{May 2025}{M.S. Computer Science}{Cambridge, MA}
+    \resumeItemListStart
+        %%% BEGIN:pinned:mit-1
+        \resumeItem{Teaching Assistant: Distributed Systems}
+        %%% END:pinned:mit-1
+    \resumeItemListEnd
+    %%% END:pinned:mit
+    %%% BEGIN:optional:state-u
+    \resumeSubheading{State University}{May 2023}{B.S. Computer Science}{Anytown, USA}
+    %%% END:optional:state-u
+\resumeSubHeadingListEnd
+%%% END:pinned:education
+
+%%% BEGIN:optional:experience
+\section{Experience}
+\resumeSubHeadingListStart
+    %%% BEGIN:optional:acme
+    \resumeSubheading{Acme Corp}{Jun 2024 -- Aug 2024}{Software Intern}{San Francisco, CA}
+    \resumeItemListStart
+        %%% BEGIN:optional:acme-1
+        \resumeItem{Built a REST API serving 10k requests per second.}
+        %%% END:optional:acme-1
+        %%% BEGIN:optional:acme-2
+        \resumeItem{Migrated legacy auth to OAuth 2.0.}
+        %%% END:optional:acme-2
+        %%% BEGIN:pinned:acme-3
+        \resumeItem{Reduced p99 latency by 40\% through query optimization.}
+        %%% END:pinned:acme-3
+    \resumeItemListEnd
+    %%% END:optional:acme
+    %%% BEGIN:optional:widgets
+    \resumeSubheading{Widgets Inc}{Jan 2024 -- May 2024}{Data Engineer Intern}{Remote}
+    \resumeItemListStart
+        %%% BEGIN:optional:widgets-1
+        \resumeItem{Designed ETL pipelines processing 5TB daily.}
+        %%% END:optional:widgets-1
+    \resumeItemListEnd
+    %%% END:optional:widgets
+\resumeSubHeadingListEnd
+%%% END:optional:experience
+
+%%% BEGIN:optional:projects
+\section{Projects}
+\resumeSubHeadingListStart
+    %%% BEGIN:optional:chatbot
+    \resumeProjectHeading{\textbf{Chatbot} $|$ \emph{Python, FastAPI}}{2024}
+    \resumeItemListStart
+        %%% BEGIN:optional:chatbot-1
+        \resumeItem{NLP-based chatbot with intent classification.}
+        %%% END:optional:chatbot-1
+    \resumeItemListEnd
+    %%% END:optional:chatbot
+\resumeSubHeadingListEnd
+%%% END:optional:projects
+
+%%% BEGIN:pinned:skills
+\section{Technical Skills}
+\begin{itemize}[leftmargin=0in, label={}]
+    \small{\item{
+
+     %%% SKILLS:languages
+     \textbf{Languages}{: Python, Java, C++, Go, TypeScript, SQL.} \\
+     %%% END:SKILLS:languages
+
+     %%% SKILLS:cloud
+     \textbf{Cloud \& Infra}{: AWS, Docker, Kubernetes, Kafka.} \\
+     %%% END:SKILLS:cloud
+
+     %%% SKILLS:frameworks
+     \textbf{Frameworks}{: FastAPI, Spring Boot, React, TensorFlow.}
+     %%% END:SKILLS:frameworks
+
+    }}
+\end{itemize}
+%%% END:pinned:skills
+
+\end{document}
