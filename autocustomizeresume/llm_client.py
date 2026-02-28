@@ -35,6 +35,7 @@ class LLMClient:
 
     def __init__(self, config: Config) -> None:
         self._model = config.llm.model
+        self._api_key_env = config.llm.api_key_env
         self._client = OpenAI(
             base_url=config.llm.base_url,
             api_key=config.llm.api_key,
@@ -96,7 +97,7 @@ class LLMClient:
         except AuthenticationError as exc:
             raise LLMError(
                 f"LLM authentication failed — check your API key "
-                f"(env var from config llm.api_key_env): {exc}"
+                f"(env var '{self._api_key_env}'): {exc}"
             ) from exc
         except APITimeoutError as exc:
             raise LLMError(f"LLM API request timed out: {exc}") from exc

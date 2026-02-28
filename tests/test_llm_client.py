@@ -19,6 +19,7 @@ def _make_config() -> MagicMock:
     cfg.llm.base_url = "https://api.example.com/v1"
     cfg.llm.model = "test-model"
     cfg.llm.api_key = "test-key-123"
+    cfg.llm.api_key_env = "TEST_API_KEY"
     return cfg
 
 
@@ -147,8 +148,9 @@ class TestChatErrors:
         )
 
         client = LLMClient(_make_config())
-        with pytest.raises(LLMError, match="authentication failed"):
+        with pytest.raises(LLMError, match="authentication failed") as exc_info:
             client.chat(system="sys", user="usr")
+        assert "TEST_API_KEY" in str(exc_info.value)
 
     @patch("autocustomizeresume.llm_client.OpenAI")
     def test_timeout_error(self, mock_openai_cls: MagicMock):
