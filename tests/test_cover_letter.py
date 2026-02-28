@@ -492,3 +492,247 @@ class TestGenerateCoverLetterBody:
         system = call_kwargs["system"]
         assert "plain text" in system.lower()
         assert "greeting" in system.lower() or "salutation" in system.lower()
+
+
+# ===========================================================================
+# 5.4b — LaTeX escaping + template injection
+# ===========================================================================
+
+
+class TestEscapeLatex:
+    """Tests for _escape_latex()."""
+
+    def test_ampersand(self):
+        assert _escape_latex("A & B") == r"A \& B"
+
+    def test_percent(self):
+        assert _escape_latex("100%") == r"100\%"
+
+    def test_dollar(self):
+        assert _escape_latex("$100") == r"\$100"
+
+    def test_hash(self):
+        assert _escape_latex("#1") == r"\#1"
+
+    def test_underscore(self):
+        assert _escape_latex("foo_bar") == r"foo\_bar"
+
+    def test_tilde(self):
+        assert _escape_latex("~") == r"\textasciitilde{}"
+
+    def test_caret(self):
+        assert _escape_latex("x^2") == r"x\textasciicircum{}2"
+
+    def test_braces(self):
+        assert _escape_latex("{hello}") == r"\{hello\}"
+
+    def test_backslash(self):
+        assert _escape_latex("a\\b") == r"a\textbackslash{}b"
+
+    def test_backslash_with_braces(self):
+        """Backslash followed by braces: no double-escaping."""
+        result = _escape_latex("\\{")
+        assert r"\textbackslash{}" in result
+        assert r"\{" in result
+
+    def test_no_special_chars(self):
+        assert _escape_latex("Hello World") == "Hello World"
+
+    def test_multiple_specials(self):
+        result = _escape_latex("A & B $100 #1 _x")
+        assert r"\&" in result
+        assert r"\$" in result
+        assert r"\#" in result
+        assert r"\_" in result
+
+    def test_empty_string(self):
+        assert _escape_latex("") == ""
+
+
+class TestPlainTextToLatex:
+    """Tests for _plain_text_to_latex()."""
+
+    def test_single_paragraph(self):
+        result = _plain_text_to_latex("Hello world.")
+        assert result == "Hello world."
+        assert r"\par" not in result
+
+    def test_two_paragraphs(self):
+        result = _plain_text_to_latex("Para one.\n\nPara two.")
+        assert r"\par" in result
+        assert "Para one." in result
+        assert "Para two." in result
+
+    def test_multiple_blank_lines(self):
+        result = _plain_text_to_latex("A.\n\n\n\nB.")
+        # Multiple blank lines should collapse to single \par
+        assert result.count(r"\par") == 1
+
+    def test_escapes_special_chars_in_paragraphs(self):
+        result = _plain_text_to_latex("100% of $20\n\nA & B")
+        assert r"\%" in result
+        assert r"\$" in result
+        assert r"\&" in result
+
+    def test_strips_whitespace_from_paragraphs(self):
+        result = _plain_text_to_latex("  A.  \n\n  B.  ")
+        # Paragraphs should be stripped
+        assert result.startswith("A.")
+        assert result.endswith("B.")
+
+
+class TestBuildSignatureBlock:
+    """Tests for _build_signature_block()."""
+
+    def test_empty_path_returns_empty(self):
+        assert _build_signature_block("") == ""
+        assert _build_signature_block("   ") == ""
+
+    def test_returns_latex_with_filename(self):
+        result = _build_signature_block("coverletter/signature.png")
+        assert "signature.png" in result
+        assert r"\includegraphics" in result
+
+    def test_uses_only_filename(self):
+        result = _build_signature_block("/full/path/to/sig.png")
+        # Should NOT contain the full path
+        assert "/full/path/to/" not in result
+        assert "sig.png" in result
+
+
+class TestFormatDate:
+    """Tests for _format_date()."""
+
+    def test_format(self):
+        with patch("autocustomizeresume.cover_letter.date") as mock_date:
+            mock_date.today.return_value = date(2026, 2, 28)
+            mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+            result = _format_date()
+            assert result == "February 28, 2026"
+
+
+class TestInjectTemplate:
+    """Tests for inject_template()."""
+
+    def test_replaces_first_name(self):
+        template = "Hello {{FIRST_NAME}}!"
+        result = inject_template(
+            template, config=_make_config(), body_text="Body."
+        )
+        assert "Jane" in result
+        assert "{{FIRST_NAME}}" not in result
+
+    def test_replaces_last_name(self):
+        template = "Hello {{LAST_NAME}}!"
+        result = inject_template(
+            template, config=_make_config(), body_text="Body."
+        )
+        assert "Doe" in result
+
+    def test_replaces_phone(self):
+        template = "Phone: {{PHONE}}"
+        result = inject_template(
+            template, config=_make_config(), body_text="Body."
+        )
+        assert "555-123-4567" in result
+
+    def test_replaces_email(self):
+        template = "Email: {{EMAIL}}"
+        result = inject_template(
+            template, config=_make_config(), body_text="Body."
+        )
+        assert "jane@example.com" in result
+
+    def test_replaces_linkedin(self):
+        template = "{{LINKEDIN}}"
+        result = inject_template(
+            template, config=_make_config(), body_text="Body."
+        )
+        assert "linkedin.com/in/janedoe" in result
+
+    def test_replaces_website(self):
+        template = "{{WEBSITE}}"
+        result = inject_template(
+            template, config=_make_config(), body_text="Body."
+        )
+        assert "janedoe.dev" in result
+
+    def test_replaces_degree(self):
+        template = "{{DEGREE}}"
+        result = inject_template(
+            template, config=_make_config(), body_text="Body."
+        )
+        assert "MS Computer Science" in result
+
+    def test_replaces_university(self):
+        template = "{{UNIVERSITY}}"
+        result = inject_template(
+            template, config=_make_config(), body_text="Body."
+        )
+        assert "MIT" in result
+
+    def test_replaces_body(self):
+        template = "{{BODY}}"
+        result = inject_template(
+            template, config=_make_config(), body_text="My cover letter body."
+        )
+        assert "My cover letter body." in result
+        assert "{{BODY}}" not in result
+
+    def test_replaces_date(self):
+        template = "{{DATE}}"
+        with patch("autocustomizeresume.cover_letter.date") as mock_date:
+            mock_date.today.return_value = date(2026, 3, 15)
+            mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+            result = inject_template(
+                template, config=_make_config(), body_text="Body."
+            )
+        assert "March 15, 2026" in result
+
+    def test_replaces_signature_block(self):
+        cfg = _make_config(cover_letter={"signature_path": "sig.png"})
+        template = "{{SIGNATURE_BLOCK}}"
+        result = inject_template(template, config=cfg, body_text="Body.")
+        assert r"\includegraphics" in result
+        assert "sig.png" in result
+
+    def test_empty_signature_block(self):
+        cfg = _make_config(cover_letter={"signature_path": ""})
+        template = "before{{SIGNATURE_BLOCK}}after"
+        result = inject_template(template, config=cfg, body_text="Body.")
+        assert result == "beforeafter"
+
+    def test_escapes_user_info(self):
+        """User info with LaTeX special chars is properly escaped."""
+        cfg = _make_config(user={"email": "user_name@example.com"})
+        template = "{{EMAIL}}"
+        result = inject_template(template, config=cfg, body_text="Body.")
+        assert r"\_" in result
+
+    def test_warns_on_unreplaced_placeholders(self, caplog):
+        template = "{{FIRST_NAME}} {{UNKNOWN_THING}}"
+        import logging
+        with caplog.at_level(logging.WARNING):
+            inject_template(
+                template, config=_make_config(), body_text="Body."
+            )
+        assert "UNKNOWN_THING" in caplog.text
+
+    def test_full_template(self):
+        """Injection against the real template produces no remaining placeholders."""
+        template_path = Path("templates/cover_letter_template.tex")
+        if not template_path.exists():
+            pytest.skip("Template not available")
+        template = template_path.read_text(encoding="utf-8")
+        cfg = _make_config(cover_letter={"signature_path": "sig.png"})
+
+        with patch("autocustomizeresume.cover_letter.date") as mock_date:
+            mock_date.today.return_value = date(2026, 1, 1)
+            mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+            result = inject_template(template, config=cfg, body_text="Body text.")
+
+        import re
+        remaining = re.findall(r"\{\{[A-Z_]+\}\}", result)
+        # {{PLACEHOLDER}} in a comment is expected — filter it out
+        remaining = [p for p in remaining if p != "{{PLACEHOLDER}}"]
+        assert remaining == [], f"Unreplaced placeholders: {remaining}"
