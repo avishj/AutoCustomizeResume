@@ -6,24 +6,61 @@ injects it into the LaTeX template, and compiles to PDF.
 
 from __future__ import annotations
 
+import json
 import logging
 
+from autocustomizeresume.config import Config
+from autocustomizeresume.llm_client import LLMClient
 from autocustomizeresume.models import (
     ParsedResume,
     ResumeItem,
     ResumeSection,
-    SkillCategory,
     SkillsSection,
 )
 from autocustomizeresume.schemas import (
     ContentSelection,
     ItemDecision,
+    JDAnalysis,
     SectionDecision,
     SkillCategoryDecision,
 )
 from autocustomizeresume.selector import _latex_preview
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# System prompt for body generation
+# ---------------------------------------------------------------------------
+
+_BODY_SYSTEM_PROMPT = """\
+You are a cover letter writing assistant.
+
+You will receive three inputs wrapped in XML tags:
+1. **<jd_analysis>** — structured metadata about the target job (company, \
+role, seniority, domain, key skills, technologies).
+2. **<resume_summary>** — a summary of the candidate's resume content that \
+will appear in their final resume for this application.
+3. **<style>** — the user's style preferences for the cover letter tone.
+
+Your job is to write the **body text** of a cover letter.
+
+Rules:
+- Write 3-4 paragraphs of plain text.
+- Reference specific experiences, projects, or skills from the resume \
+summary that are relevant to the job.
+- Tailor the letter to the specific company and role.
+- Match the style preferences provided.
+- Do NOT fabricate experiences, skills, or qualifications not present in \
+the resume summary.
+- Do NOT include a greeting/salutation (e.g. "Dear Hiring Manager") — \
+the template already has one.
+- Do NOT include a closing (e.g. "Sincerely") — the template handles that.
+- Do NOT use any LaTeX commands or formatting.  Output plain text only.
+- Separate paragraphs with a blank line.
+- Be concise and direct.  Avoid generic filler phrases.
+- Return ONLY the body text.  No commentary, no markdown.\
+"""
 
 
 # ---------------------------------------------------------------------------
@@ -158,3 +195,82 @@ def _summarize_skills_section(
         return ""
 
     return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# Body generation via LLM
+# ---------------------------------------------------------------------------
+
+def generate_cover_letter_body(
+    jd_analysis: JDAnalysis,
+    parsed_resume: ParsedResume,
+    selection: ContentSelection,
+    *,
+    config: Config,
+    client: LLMClient | None = None,
+) -> str:
+    """Generate cover letter body text via LLM.
+
+    Parameters
+    ----------
+    jd_analysis:
+        Structured metadata from the job description.
+    parsed_resume:
+        The fully parsed tagged resume.
+    selection:
+        The content selection decisions (determines what's in the
+        final resume).
+    config:
+        Application config (style preferences + LLM settings).
+    client:
+        Optional pre-built LLM client.
+
+    Returns
+    -------
+    str
+        Plain text body (paragraphs separated by blank lines).
+    """
+    if client is None:
+        client = LLMClient(config)
+
+    jd_block = json.dumps(
+        {
+            "company": jd_analysis.company,
+            "role": jd_analysis.role,
+            "seniority": jd_analysis.seniority,
+            "domain": jd_analysis.domain,
+            "key_skills": jd_analysis.key_skills,
+            "technologies": jd_analysis.technologies,
+        },
+        indent=2,
+    )
+
+    resume_summary = _summarize_selected_content(parsed_resume, selection)
+    style = config.cover_letter.style or "Professional, concise."
+
+    user_prompt = (
+        "<jd_analysis>\n"
+        f"{jd_block}\n"
+        "</jd_analysis>\n\n"
+        "<resume_summary>\n"
+        f"{resume_summary}\n"
+        "</resume_summary>\n\n"
+        "<style>\n"
+        f"{style}\n"
+        "</style>"
+    )
+
+    logger.info(
+        "Generating cover letter body for %s at %s",
+        jd_analysis.role,
+        jd_analysis.company,
+    )
+
+    body = client.chat(
+        system=_BODY_SYSTEM_PROMPT,
+        user=user_prompt,
+        temperature=0.4,
+    )
+
+    logger.info("Cover letter body generated (%d chars)", len(body))
+    return body.strip()
