@@ -92,7 +92,7 @@ class BulletDecision:
             )
         return cls(
             id=str(data.get("id", "")),
-            include=bool(data.get("include", True)),
+            include=_coerce_bool(data.get("include", True)),
             edited_text=str(data.get("edited_text", "")),
         )
 
@@ -128,7 +128,7 @@ class ItemDecision:
             )
         return cls(
             id=str(data.get("id", "")),
-            include=bool(data.get("include", True)),
+            include=_coerce_bool(data.get("include", True)),
             relevance_score=_coerce_score(data.get("relevance_score")),
             bullets=[
                 BulletDecision.from_dict(b)
@@ -165,7 +165,7 @@ class SectionDecision:
             )
         return cls(
             id=str(data.get("id", "")),
-            include=bool(data.get("include", True)),
+            include=_coerce_bool(data.get("include", True)),
             items=[
                 ItemDecision.from_dict(it)
                 for it in (data.get("items") or [])
@@ -227,6 +227,17 @@ class ContentSelection:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _coerce_bool(val: object, *, default: bool = True) -> bool:
+    """Coerce a value to bool, handling string 'false'/'true'."""
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, (int, float)):
+        return bool(val)
+    if isinstance(val, str):
+        return val.strip().lower() not in {"false", "0", "no"}
+    return default
+
 
 def _coerce_score(val: object, default: int = 50) -> int:
     """Coerce a value to an int score, clamped to 0-100."""
