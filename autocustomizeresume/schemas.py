@@ -129,7 +129,7 @@ class ItemDecision:
         return cls(
             id=str(data.get("id", "")),
             include=bool(data.get("include", True)),
-            relevance_score=int(float(data.get("relevance_score") or 50)),
+            relevance_score=_coerce_score(data.get("relevance_score")),
             bullets=[
                 BulletDecision.from_dict(b)
                 for b in (data.get("bullets") or [])
@@ -227,6 +227,16 @@ class ContentSelection:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+def _coerce_score(val: object, default: int = 50) -> int:
+    """Coerce a value to an int score, clamped to 0-100."""
+    if val is None:
+        return default
+    try:
+        return max(0, min(100, int(float(val))))
+    except (TypeError, ValueError):
+        return default
+
 
 def _str_list(val: object) -> list[str]:
     """Coerce a value into a list of non-empty strings."""

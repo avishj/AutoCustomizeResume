@@ -554,6 +554,18 @@ class TestEdgeCases:
         })
         assert item.relevance_score == 50
 
+    def test_zero_relevance_score_preserved(self):
+        """A relevance_score of 0 is valid and must not become 50."""
+        from autocustomizeresume.schemas import ItemDecision
+
+        item = ItemDecision.from_dict({
+            "id": "acme",
+            "include": True,
+            "relevance_score": 0,
+            "bullets": [],
+        })
+        assert item.relevance_score == 0
+
     def test_null_jd_fields_default_gracefully(self):
         """LLM may return null for JDAnalysis fields — should use defaults."""
         from autocustomizeresume.schemas import JDAnalysis
