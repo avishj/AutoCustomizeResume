@@ -9,8 +9,12 @@ from __future__ import annotations
 import json
 import logging
 import re
+import shutil
+import tempfile
 from datetime import date
+from pathlib import Path
 
+from autocustomizeresume.compiler import CompileError, compile_tex
 from autocustomizeresume.config import Config
 from autocustomizeresume.llm_client import LLMClient
 from autocustomizeresume.models import (
@@ -339,14 +343,22 @@ def generate_cover_letter_body(
 # Template injection — replace placeholders with values
 # ---------------------------------------------------------------------------
 
-_SIGNATURE_LATEX = r"\hspace{-0.5cm}\includegraphics[width=0.2\textwidth]{{{path}}}"
+_SIGNATURE_LATEX = (
+    r"\hspace{-0.5cm}"
+    r"\includegraphics[width=0.2\textwidth]"
+)
 
 
 def _build_signature_block(signature_path: str) -> str:
-    """Build the LaTeX for the signature, or empty string if no path."""
+    """Build the LaTeX for the signature, or empty string if no path.
+
+    Uses only the filename since the image is copied to the compile
+    directory alongside the .tex file.
+    """
     if not signature_path.strip():
         return ""
-    return _SIGNATURE_LATEX.format(path=signature_path)
+    filename = Path(signature_path).name
+    return _SIGNATURE_LATEX + "{" + filename + "}"
 
 
 def _format_date() -> str:
@@ -409,3 +421,83 @@ def inject_template(
 
     logger.info("Template injection complete")
     return result
+
+
+# ---------------------------------------------------------------------------
+# Cover letter compilation
+# ---------------------------------------------------------------------------
+
+def compile_cover_letter(
+    filled_tex: str,
+    *,
+    config: Config,
+    keep_dir: Path | None = None,
+) -> Path:
+    """Compile a filled-in cover letter .tex to PDF.
+
+    Copies the template's font directory (and signature image if
+    configured) into the compilation directory so tectonic can
+    resolve all referenced files.
+
+    Parameters
+    ----------
+    filled_tex:
+        The complete LaTeX document after placeholder injection.
+    config:
+        Application config (for locating fonts and signature).
+    keep_dir:
+        If provided, write build artifacts here.  Otherwise a
+        temporary directory is created; the caller owns cleanup.
+
+    Returns
+    -------
+    Path
+        Path to the generated PDF file.
+
+    Raises
+    ------
+    CompileError
+        If compilation fails.
+    """
+    template_path = Path(config.cover_letter.template)
+    template_dir = template_path.parent
+    fonts_src = template_dir / "fonts"
+
+    if keep_dir is not None:
+        work = keep_dir
+        work.mkdir(parents=True, exist_ok=True)
+        owns_dir = False
+    else:
+        work = Path(tempfile.mkdtemp(prefix="acr_cl_"))
+        owns_dir = True
+
+    try:
+        # Copy fonts directory
+        fonts_dst = work / "fonts"
+        if fonts_src.is_dir() and not fonts_dst.exists():
+            shutil.copytree(fonts_src, fonts_dst)
+            logger.debug("Copied fonts to %s", fonts_dst)
+
+        # Copy signature image if configured
+        sig_path = config.cover_letter.signature_path
+        if sig_path and sig_path.strip():
+            sig_src = Path(sig_path)
+            if sig_src.exists():
+                sig_dst = work / sig_src.name
+                if not sig_dst.exists():
+                    shutil.copy2(sig_src, sig_dst)
+                logger.debug("Copied signature to %s", sig_dst)
+            else:
+                logger.warning(
+                    "Signature file not found: %s — skipping", sig_path
+                )
+
+        # Compile (compile_tex handles writing the .tex and invoking tectonic)
+        pdf_path = compile_tex(filled_tex, keep_dir=work)
+
+        logger.info("Cover letter compiled: %s", pdf_path)
+        return pdf_path
+    except Exception:
+        if owns_dir:
+            shutil.rmtree(work, ignore_errors=True)
+        raise
