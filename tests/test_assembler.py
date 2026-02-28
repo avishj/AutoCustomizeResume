@@ -237,6 +237,29 @@ class TestAssembleItem:
         result = _assemble_item(item, itd)
         assert result == "heading only"
 
+    def test_first_bullet_excluded_preserves_interstitial(self):
+        """Interstitial at position 0 should survive even if bullet 0 is excluded."""
+        item = _make_item(
+            id="it1", heading="heading",
+            bullets=[
+                _make_bullet(id="b1", text="bullet1"),
+                _make_bullet(id="b2", text="bullet2"),
+            ],
+            interstitial=[
+                (0, "\\resumeItemListStart"),
+                (2, "\\resumeItemListEnd"),
+            ],
+        )
+        itd = _make_item_decision(id="it1", include=True, bullets=[
+            BulletDecision(id="b1", include=False),
+            BulletDecision(id="b2", include=True),
+        ])
+        result = _assemble_item(item, itd)
+        assert "\\resumeItemListStart" in result
+        assert "bullet2" in result
+        assert "bullet1" not in result
+        assert "\\resumeItemListEnd" in result
+
 
 # ---------------------------------------------------------------------------
 # Skill category assembly

@@ -125,14 +125,23 @@ def _assemble_item(
             return None
 
     # Build bullet list — only included bullets
+    #
+    # Interstitials are keyed by position (before which bullet they appear).
+    # If that bullet is excluded, the interstitial must still appear before
+    # the next included bullet so that list wrappers (e.g.
+    # \resumeItemListStart) are not lost.
     included_bullets: list[str] = []
+    pending_interstitials: list[str] = []
     for idx, bullet in enumerate(item.bullets):
-        # Interstitial before this bullet
+        # Collect interstitial at this position
         inter = _get_interstitial(item.interstitial, idx)
-        bullet_included = _is_bullet_included(bullet, item_dec)
-        if bullet_included:
-            if inter is not None:
-                included_bullets.append(inter)
+        if inter is not None:
+            pending_interstitials.append(inter)
+
+        if _is_bullet_included(bullet, item_dec):
+            # Flush any pending interstitials before this bullet
+            included_bullets.extend(pending_interstitials)
+            pending_interstitials = []
             included_bullets.append(_bullet_text(bullet, item_dec))
 
     # Trailing interstitial (after last bullet)
@@ -167,17 +176,22 @@ def _assemble_regular_section(
             return None
 
     assembled_items: list[str] = []
+    pending_interstitials: list[str] = []
     for idx, item in enumerate(section.items):
         item_dec = None
         if section_dec is not None:
             item_dec = _item_decision(section_dec, item.id)
 
+        # Collect interstitial at this position
+        inter = _get_interstitial(section.interstitial, idx)
+        if inter is not None:
+            pending_interstitials.append(inter)
+
         assembled = _assemble_item(item, item_dec)
         if assembled is not None:
-            # Interstitial before this item
-            inter = _get_interstitial(section.interstitial, idx)
-            if inter is not None:
-                assembled_items.append(inter)
+            # Flush pending interstitials before this item
+            assembled_items.extend(pending_interstitials)
+            pending_interstitials = []
             assembled_items.append(assembled)
 
     # If all items were excluded, omit the entire section
@@ -225,13 +239,18 @@ def _assemble_skills_section(
             return None
 
     assembled_cats: list[str] = []
+    pending_interstitials: list[str] = []
     for idx, cat in enumerate(section.categories):
         cat_dec = _skill_cat_decision(selection, cat.name)
+
+        inter = _get_interstitial(section.interstitial, idx)
+        if inter is not None:
+            pending_interstitials.append(inter)
+
         assembled_cat = _assemble_skill_category(cat, cat_dec)
         if assembled_cat is not None:
-            inter = _get_interstitial(section.interstitial, idx)
-            if inter is not None:
-                assembled_cats.append(inter)
+            assembled_cats.extend(pending_interstitials)
+            pending_interstitials = []
             assembled_cats.append(assembled_cat)
 
     if not assembled_cats:
@@ -276,6 +295,7 @@ def assemble_tex(
 
     # 3. Sections
     assembled_sections: list[str] = []
+    pending_interstitials: list[str] = []
     for idx, section in enumerate(parsed.sections):
         if isinstance(section, SkillsSection):
             assembled = _assemble_skills_section(section, selection)
@@ -283,11 +303,13 @@ def assemble_tex(
             section_dec = _section_decision(selection, section.id)
             assembled = _assemble_regular_section(section, section_dec)
 
+        inter = _get_interstitial(parsed.interstitial, idx)
+        if inter is not None:
+            pending_interstitials.append(inter)
+
         if assembled is not None:
-            # Interstitial before this section
-            inter = _get_interstitial(parsed.interstitial, idx)
-            if inter is not None:
-                assembled_sections.append(inter)
+            assembled_sections.extend(pending_interstitials)
+            pending_interstitials = []
             assembled_sections.append(assembled)
 
     if assembled_sections:
