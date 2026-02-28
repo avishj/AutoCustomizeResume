@@ -30,10 +30,10 @@ logger = logging.getLogger(__name__)
 _SYSTEM_PROMPT = """\
 You are a resume content-selection assistant.
 
-You will receive two inputs:
-1. **JD Analysis** — structured metadata about the target job (company, \
+You will receive two inputs wrapped in XML tags:
+1. **<jd_analysis>** — structured metadata about the target job (company, \
 role, seniority, domain, key skills, technologies).
-2. **Resume Data** — the candidate's resume broken into sections, items, \
+2. **<resume_data>** — the candidate's resume broken into sections, items, \
 bullets, and skill categories.  Each element is marked as either \
 "pinned" (always included) or "optional" (you decide).
 
@@ -239,10 +239,12 @@ def select_content(
     resume_block = _serialize_resume(parsed_resume)
 
     user_prompt = (
-        "=== JD ANALYSIS ===\n"
-        f"{jd_block}\n\n"
-        "=== RESUME DATA ===\n"
-        f"{resume_block}"
+        "<jd_analysis>\n"
+        f"{jd_block}\n"
+        "</jd_analysis>\n\n"
+        "<resume_data>\n"
+        f"{resume_block}\n"
+        "</resume_data>"
     )
 
     logger.info(
