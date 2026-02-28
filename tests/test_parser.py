@@ -352,6 +352,36 @@ class TestErrors:
         with pytest.raises(ParseError, match="Duplicate ID 'b1'"):
             parse_resume(tex)
 
+    def test_malformed_tag_warns(self):
+        tex = r"""\documentclass{article}
+\begin{document}
+%%% BEGIN:invalid:foo
+\section{Education}
+%%% END:invalid:foo
+\end{document}
+"""
+        with pytest.warns(UserWarning, match="malformed tag-like comment"):
+            parse_resume(tex)
+
+    def test_malformed_tag_missing_id_warns(self):
+        tex = r"""\documentclass{article}
+\begin{document}
+%%% BEGIN:pinned
+\section{Education}
+\end{document}
+"""
+        with pytest.warns(UserWarning, match="malformed tag-like comment"):
+            parse_resume(tex)
+
+    def test_valid_tags_no_warning(self, sample_resume: ParsedResume):
+        """The sample fixture should produce no warnings."""
+        import warnings as _warnings
+        with _warnings.catch_warnings():
+            _warnings.simplefilter("error")
+            # Re-parse — if any warning fires, this will raise
+            _load_fixture("sample_tagged.tex")
+            parse_resume(_load_fixture("sample_tagged.tex"))
+
 
 # ---------------------------------------------------------------------------
 # Minimal fixture tests

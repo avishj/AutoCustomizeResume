@@ -17,6 +17,7 @@ The LLM can:
 from __future__ import annotations
 
 import re
+import warnings
 
 from autocustomizeresume.models import (
     Bullet,
@@ -66,6 +67,13 @@ SKILLS_END_RE = re.compile(
     r"^%%% END:SKILLS:(\S+)\s*$"
 )
 
+# Catches any line that looks like a tag directive (starts with %%% followed
+# by a keyword) but doesn't match any of the valid tag patterns above.
+# Used to warn about typos in tag markup.
+_TAG_LIKE_RE = re.compile(
+    r"^%%% (?:BEGIN|END|SKILLS)\b"
+)
+
 
 # ---------------------------------------------------------------------------
 # Errors
@@ -73,6 +81,32 @@ SKILLS_END_RE = re.compile(
 
 class ParseError(Exception):
     """Raised when the tagged resume has structural errors."""
+
+
+# ---------------------------------------------------------------------------
+# Tag validation helpers
+# ---------------------------------------------------------------------------
+
+_VALID_TAG_RES = (TAG_BEGIN_RE, TAG_END_RE, SKILLS_BEGIN_RE, SKILLS_END_RE)
+
+
+def _warn_malformed_tags(tex_content: str) -> None:
+    """Emit warnings for lines that look like tags but don't match any pattern.
+
+    This catches typos like ``%%% BEGIN:invalid:foo``, ``%%% BEGIN:pinned``
+    (missing ID), ``%%% END:SKILLS`` (missing category), etc.
+    """
+    for lineno, line in enumerate(tex_content.split("\n"), start=1):
+        stripped = line.strip()
+        if not _TAG_LIKE_RE.match(stripped):
+            continue
+        # It looks like a tag — does it match a valid pattern?
+        if any(r.match(stripped) for r in _VALID_TAG_RES):
+            continue
+        warnings.warn(
+            f"Line {lineno}: malformed tag-like comment ignored: {stripped!r}",
+            stacklevel=2,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -92,6 +126,9 @@ def parse_resume(tex_content: str) -> ParsedResume:
     Raises:
         ParseError: If tags are malformed, mismatched, or improperly nested.
     """
+    # --- 0. Warn about malformed tag-like lines ---
+    _warn_malformed_tags(tex_content)
+
     # --- 1. Split preamble from body at \begin{document} ---
     marker = r"\begin{document}"
     idx = tex_content.find(marker)
