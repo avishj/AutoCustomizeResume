@@ -235,7 +235,10 @@ def _coerce_bool(val: object, *, default: bool = True) -> bool:
     if isinstance(val, (int, float)):
         return bool(val)
     if isinstance(val, str):
-        return val.strip().lower() not in {"false", "0", "no"}
+        norm = val.strip().lower()
+        if not norm:
+            return default
+        return norm not in {"false", "0", "no"}
     return default
 
 
