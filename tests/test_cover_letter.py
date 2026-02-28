@@ -736,3 +736,253 @@ class TestInjectTemplate:
         # {{PLACEHOLDER}} in a comment is expected — filter it out
         remaining = [p for p in remaining if p != "{{PLACEHOLDER}}"]
         assert remaining == [], f"Unreplaced placeholders: {remaining}"
+
+
+# ===========================================================================
+# 5.4c — Config flag / skip logic + compile_cover_letter unit tests
+# ===========================================================================
+
+
+class TestCompileCoverLetter:
+    """Tests for compile_cover_letter() with mocked compile_tex."""
+
+    @patch("autocustomizeresume.cover_letter.compile_tex")
+    def test_copies_fonts(self, mock_compile, tmp_path):
+        # Set up font source
+        template_dir = tmp_path / "tpl"
+        template_dir.mkdir()
+        fonts_dir = template_dir / "fonts"
+        fonts_dir.mkdir()
+        (fonts_dir / "Regular.otf").write_bytes(b"font-data")
+
+        cfg = _make_config(
+            cover_letter={"template": str(template_dir / "template.tex")}
+        )
+
+        work = tmp_path / "work"
+        mock_compile.return_value = work / "resume.pdf"
+
+        compile_cover_letter(r"\documentclass{}", config=cfg, keep_dir=work)
+
+        # Fonts should have been copied
+        assert (work / "fonts" / "Regular.otf").exists()
+
+    @patch("autocustomizeresume.cover_letter.compile_tex")
+    def test_copies_signature(self, mock_compile, tmp_path):
+        template_dir = tmp_path / "tpl"
+        template_dir.mkdir()
+
+        sig_file = tmp_path / "sig.png"
+        sig_file.write_bytes(b"PNG-data")
+
+        cfg = _make_config(
+            cover_letter={
+                "template": str(template_dir / "template.tex"),
+                "signature_path": str(sig_file),
+            }
+        )
+
+        work = tmp_path / "work"
+        mock_compile.return_value = work / "resume.pdf"
+
+        compile_cover_letter(r"\documentclass{}", config=cfg, keep_dir=work)
+
+        assert (work / "sig.png").exists()
+
+    @patch("autocustomizeresume.cover_letter.compile_tex")
+    def test_missing_signature_warns(self, mock_compile, tmp_path, caplog):
+        template_dir = tmp_path / "tpl"
+        template_dir.mkdir()
+
+        cfg = _make_config(
+            cover_letter={
+                "template": str(template_dir / "template.tex"),
+                "signature_path": "/nonexistent/sig.png",
+            }
+        )
+
+        work = tmp_path / "work"
+        mock_compile.return_value = work / "resume.pdf"
+
+        import logging
+        with caplog.at_level(logging.WARNING):
+            compile_cover_letter(r"\documentclass{}", config=cfg, keep_dir=work)
+
+        assert "not found" in caplog.text.lower()
+
+    @patch("autocustomizeresume.cover_letter.compile_tex")
+    def test_temp_dir_cleaned_on_failure(self, mock_compile, tmp_path):
+        template_dir = tmp_path / "tpl"
+        template_dir.mkdir()
+
+        cfg = _make_config(
+            cover_letter={"template": str(template_dir / "template.tex")}
+        )
+
+        mock_compile.side_effect = CompileError("boom")
+
+        import tempfile as _tempfile
+        td = _tempfile.mkdtemp(prefix="test_acr_cl_")
+        td_path = Path(td)
+
+        with patch("autocustomizeresume.cover_letter.tempfile") as mock_tempmod:
+            mock_tempmod.mkdtemp.return_value = td
+            with pytest.raises(CompileError):
+                compile_cover_letter(r"\documentclass{}", config=cfg)
+
+        assert not td_path.exists(), "temp dir should be cleaned on failure"
+
+    @patch("autocustomizeresume.cover_letter.compile_tex")
+    def test_keep_dir_not_cleaned_on_failure(self, mock_compile, tmp_path):
+        template_dir = tmp_path / "tpl"
+        template_dir.mkdir()
+
+        cfg = _make_config(
+            cover_letter={"template": str(template_dir / "template.tex")}
+        )
+
+        work = tmp_path / "work"
+        mock_compile.side_effect = CompileError("boom")
+
+        with pytest.raises(CompileError):
+            compile_cover_letter(r"\documentclass{}", config=cfg, keep_dir=work)
+
+        # keep_dir should NOT be deleted
+        assert work.exists()
+
+
+class TestBuildCoverLetter:
+    """Tests for build_cover_letter() — config flag + orchestration."""
+
+    def test_disabled_returns_none(self):
+        cfg = _make_config(cover_letter={"enabled": False})
+        result = build_cover_letter(
+            _make_jd_analysis(),
+            _make_parsed_resume(),
+            _make_selection(),
+            config=cfg,
+        )
+        assert result is None
+
+    def test_missing_template_raises(self, tmp_path):
+        cfg = _make_config(
+            cover_letter={
+                "enabled": True,
+                "template": str(tmp_path / "nonexistent.tex"),
+            }
+        )
+        with pytest.raises(FileNotFoundError, match="not found"):
+            build_cover_letter(
+                _make_jd_analysis(),
+                _make_parsed_resume(),
+                _make_selection(),
+                config=cfg,
+            )
+
+    @patch("autocustomizeresume.cover_letter.compile_cover_letter")
+    @patch("autocustomizeresume.cover_letter.generate_cover_letter_body")
+    def test_calls_pipeline(self, mock_gen, mock_compile, tmp_path):
+        """build_cover_letter calls generate → escape → inject → compile."""
+        # Create template file
+        template = tmp_path / "template.tex"
+        template.write_text("{{BODY}}", encoding="utf-8")
+
+        cfg = _make_config(
+            cover_letter={
+                "enabled": True,
+                "template": str(template),
+            }
+        )
+
+        mock_gen.return_value = "Hello world."
+        mock_compile.return_value = tmp_path / "output.pdf"
+
+        result = build_cover_letter(
+            _make_jd_analysis(),
+            _make_parsed_resume(),
+            _make_selection(),
+            config=cfg,
+        )
+
+        mock_gen.assert_called_once()
+        mock_compile.assert_called_once()
+        assert result == tmp_path / "output.pdf"
+
+    @patch("autocustomizeresume.cover_letter.compile_cover_letter")
+    @patch("autocustomizeresume.cover_letter.generate_cover_letter_body")
+    def test_passes_client_through(self, mock_gen, mock_compile, tmp_path):
+        template = tmp_path / "template.tex"
+        template.write_text("{{BODY}}", encoding="utf-8")
+
+        cfg = _make_config(
+            cover_letter={"enabled": True, "template": str(template)}
+        )
+
+        client = MagicMock(spec=LLMClient)
+        mock_gen.return_value = "Body."
+        mock_compile.return_value = tmp_path / "out.pdf"
+
+        build_cover_letter(
+            _make_jd_analysis(),
+            _make_parsed_resume(),
+            _make_selection(),
+            config=cfg,
+            client=client,
+        )
+
+        # Client should be passed to generate_cover_letter_body
+        call_kwargs = mock_gen.call_args[1]
+        assert call_kwargs["client"] is client
+
+    @patch("autocustomizeresume.cover_letter.compile_cover_letter")
+    @patch("autocustomizeresume.cover_letter.generate_cover_letter_body")
+    def test_passes_keep_dir_through(self, mock_gen, mock_compile, tmp_path):
+        template = tmp_path / "template.tex"
+        template.write_text("{{BODY}}", encoding="utf-8")
+
+        cfg = _make_config(
+            cover_letter={"enabled": True, "template": str(template)}
+        )
+
+        keep = tmp_path / "keep"
+        mock_gen.return_value = "Body."
+        mock_compile.return_value = keep / "out.pdf"
+
+        build_cover_letter(
+            _make_jd_analysis(),
+            _make_parsed_resume(),
+            _make_selection(),
+            config=cfg,
+            keep_dir=keep,
+        )
+
+        call_kwargs = mock_compile.call_args[1]
+        assert call_kwargs["keep_dir"] is keep
+
+    @patch("autocustomizeresume.cover_letter.compile_cover_letter")
+    @patch("autocustomizeresume.cover_letter.generate_cover_letter_body")
+    def test_body_is_escaped_before_injection(self, mock_gen, mock_compile, tmp_path):
+        """Body text goes through _plain_text_to_latex before template injection."""
+        template = tmp_path / "template.tex"
+        template.write_text("{{BODY}}", encoding="utf-8")
+
+        cfg = _make_config(
+            cover_letter={"enabled": True, "template": str(template)}
+        )
+
+        # Body with special chars + paragraph break
+        mock_gen.return_value = "100% of $20.\n\nA & B."
+        mock_compile.return_value = tmp_path / "out.pdf"
+
+        build_cover_letter(
+            _make_jd_analysis(),
+            _make_parsed_resume(),
+            _make_selection(),
+            config=cfg,
+        )
+
+        # Check the filled_tex passed to compile_cover_letter
+        filled_tex = mock_compile.call_args[0][0]
+        assert r"\%" in filled_tex
+        assert r"\$" in filled_tex
+        assert r"\par" in filled_tex
