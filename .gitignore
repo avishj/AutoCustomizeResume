@@ -1,0 +1,34 @@
+# Personal data (never commit)
+resume.tex
+resume.pdf
+jd.txt
+.env
+config.yaml
+signature.png
+coverletter/
+
+# Outputs
+output/
+history/
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+
+# Planning files
+plan.md
+implementation.md
