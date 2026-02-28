@@ -542,6 +542,18 @@ class TestEdgeCases:
         })
         assert item.relevance_score == 85
 
+    def test_null_relevance_score(self):
+        """LLM may return relevance_score as null — should default to 50."""
+        from autocustomizeresume.schemas import ItemDecision
+
+        item = ItemDecision.from_dict({
+            "id": "acme",
+            "include": True,
+            "relevance_score": None,
+            "bullets": [],
+        })
+        assert item.relevance_score == 50
+
     def test_missing_include_warns_and_defaults_true(self, caplog):
         """Missing 'include' key should log a warning and default to True."""
         from autocustomizeresume.schemas import BulletDecision

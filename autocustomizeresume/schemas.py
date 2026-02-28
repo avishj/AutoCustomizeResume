@@ -129,7 +129,7 @@ class ItemDecision:
         return cls(
             id=str(data.get("id", "")),
             include=bool(data.get("include", True)),
-            relevance_score=int(float(data.get("relevance_score", 50))),
+            relevance_score=int(float(data.get("relevance_score") or 50)),
             bullets=[
                 BulletDecision.from_dict(b)
                 for b in data.get("bullets", [])
