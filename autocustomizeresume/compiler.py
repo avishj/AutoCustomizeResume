@@ -9,13 +9,17 @@ from __future__ import annotations
 import logging
 import subprocess
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from pypdf import PdfReader
 
-from autocustomizeresume.schemas import ContentSelection
+from autocustomizeresume.schemas import (
+    ContentSelection,
+    ItemDecision,
+    SectionDecision,
+)
 
 if TYPE_CHECKING:
     from autocustomizeresume.models import ParsedResume
@@ -166,25 +170,35 @@ def _find_droppables(selection: ContentSelection) -> list[_Droppable]:
 
 
 def _drop_element(
-    selection_dict: dict, droppable: _Droppable
-) -> None:
-    """Mutate *selection_dict* to exclude the given droppable element."""
-    for sec in selection_dict["sections"]:
-        if sec["id"] != droppable.section_id:
+    selection: ContentSelection, droppable: _Droppable
+) -> ContentSelection:
+    """Return a new *ContentSelection* with the given droppable excluded."""
+    new_sections: list[SectionDecision] = []
+    for sec in selection.sections:
+        if sec.id != droppable.section_id:
+            new_sections.append(sec)
             continue
-        for it in sec["items"]:
-            if it["id"] != droppable.item_id:
+
+        new_items: list[ItemDecision] = []
+        for it in sec.items:
+            if it.id != droppable.item_id:
+                new_items.append(it)
                 continue
+
             if droppable.bullet_id is not None:
                 # Drop a single bullet
-                for bd in it["bullets"]:
-                    if bd["id"] == droppable.bullet_id:
-                        bd["include"] = False
-                        return
+                new_bullets = [
+                    replace(bd, include=False) if bd.id == droppable.bullet_id else bd
+                    for bd in it.bullets
+                ]
+                new_items.append(replace(it, bullets=new_bullets))
             else:
                 # Drop the entire item
-                it["include"] = False
-                return
+                new_items.append(replace(it, include=False))
+
+        new_sections.append(replace(sec, items=new_items))
+
+    return replace(selection, sections=new_sections)
 
 
 # ---------------------------------------------------------------------------
@@ -234,8 +248,7 @@ def compile_with_enforcement(
     else:
         work_dir = Path(tempfile.mkdtemp(prefix="acr_"))
 
-    # Work on a mutable copy so we can drop elements
-    sel_dict = _selection_to_dict(selection)
+    # Work on an immutable selection, producing new copies on each drop
     current_sel = selection
 
     for attempt in range(_MAX_RETRIES + 1):
@@ -267,45 +280,8 @@ def compile_with_enforcement(
             kind, target.score, target.section_id,
         )
 
-        _drop_element(sel_dict, target)
-        current_sel = ContentSelection.from_dict(sel_dict)
+        current_sel = _drop_element(current_sel, target)
 
     raise CompileError(
         f"Resume still exceeds 1 page after {_MAX_RETRIES} retries"
     )
-
-
-def _selection_to_dict(selection: ContentSelection) -> dict:
-    """Convert a frozen ContentSelection to a mutable dict."""
-    return {
-        "sections": [
-            {
-                "id": sec.id,
-                "include": sec.include,
-                "items": [
-                    {
-                        "id": it.id,
-                        "include": it.include,
-                        "relevance_score": it.relevance_score,
-                        "bullets": [
-                            {
-                                "id": bd.id,
-                                "include": bd.include,
-                                "edited_text": bd.edited_text,
-                            }
-                            for bd in it.bullets
-                        ],
-                    }
-                    for it in sec.items
-                ],
-            }
-            for sec in selection.sections
-        ],
-        "skill_categories": [
-            {
-                "name": sc.name,
-                "skills": list(sc.skills),
-            }
-            for sc in selection.skill_categories
-        ],
-    }

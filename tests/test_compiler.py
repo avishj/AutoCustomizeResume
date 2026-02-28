@@ -12,7 +12,6 @@ from autocustomizeresume.compiler import (
     _Droppable,
     _drop_element,
     _find_droppables,
-    _selection_to_dict,
     compile_tex,
     compile_with_enforcement,
     get_page_count,
@@ -141,49 +140,6 @@ def _full_selection() -> ContentSelection:
 
 
 # ---------------------------------------------------------------------------
-# _selection_to_dict
-# ---------------------------------------------------------------------------
-
-class TestSelectionToDict:
-    def test_roundtrip(self):
-        """from_dict(to_dict(sel)) should produce equivalent selection."""
-        sel = _full_selection()
-        d = _selection_to_dict(sel)
-        rebuilt = ContentSelection.from_dict(d)
-        assert len(rebuilt.sections) == len(sel.sections)
-        assert rebuilt.sections[0].id == "experience"
-        assert rebuilt.sections[0].items[0].id == "acme"
-        assert rebuilt.sections[0].items[0].relevance_score == 80
-
-    def test_preserves_skill_categories(self):
-        sel = _make_selection(
-            skill_categories=[
-                {"name": "languages", "skills": ["Python", "Go"]},
-            ],
-        )
-        d = _selection_to_dict(sel)
-        assert d["skill_categories"][0]["name"] == "languages"
-        assert d["skill_categories"][0]["skills"] == ["Python", "Go"]
-
-    def test_preserves_edited_text(self):
-        sel = _make_selection(sections=[{
-            "id": "exp", "include": True, "items": [{
-                "id": "acme", "include": True, "relevance_score": 70,
-                "bullets": [
-                    {"id": "b1", "include": True, "edited_text": "custom text"},
-                ],
-            }],
-        }])
-        d = _selection_to_dict(sel)
-        assert d["sections"][0]["items"][0]["bullets"][0]["edited_text"] == "custom text"
-
-    def test_empty_selection(self):
-        sel = _make_selection()
-        d = _selection_to_dict(sel)
-        assert d == {"sections": [], "skill_categories": []}
-
-
-# ---------------------------------------------------------------------------
 # _find_droppables
 # ---------------------------------------------------------------------------
 
@@ -205,59 +161,40 @@ class TestFindDroppables:
         )
         assert last_bullet_idx < first_item_idx
 
-    def test_sorted_by_score_within_group(self):
+    def test_excludes_already_excluded(self):
+        sel = _make_selection(sections=[{
+            "id": "exp", "include": True, "items": [
+                {
+                    "id": "acme", "include": False,
+                    "relevance_score": 80, "bullets": [],
+                },
+            ],
+        }])
+        assert _find_droppables(sel) == []
+
+    def test_sorts_by_score_ascending(self):
         sel = _full_selection()
         droppables = _find_droppables(sel)
         bullet_droppables = [d for d in droppables if d.bullet_id is not None]
         item_droppables = [d for d in droppables if d.bullet_id is None]
-        # Bullets sorted ascending by score
-        bullet_scores = [d.score for d in bullet_droppables]
-        assert bullet_scores == sorted(bullet_scores)
-        # Items sorted ascending by score
-        item_scores = [d.score for d in item_droppables]
-        assert item_scores == sorted(item_scores)
+        # Bullets should be sorted ascending by score
+        scores = [d.score for d in bullet_droppables]
+        assert scores == sorted(scores)
+        # Items should be sorted ascending by score
+        scores = [d.score for d in item_droppables]
+        assert scores == sorted(scores)
 
-    def test_lowest_score_first(self):
-        """Widgets (score=30) bullets should appear before Acme (score=80) bullets."""
-        sel = _full_selection()
-        droppables = _find_droppables(sel)
-        assert droppables[0].item_id == "widgets"
-        assert droppables[0].score == 30
-
-    def test_excluded_items_not_listed(self):
+    def test_excluded_section_skipped(self):
         sel = _make_selection(sections=[{
-            "id": "experience", "include": True, "items": [
+            "id": "exp", "include": False, "items": [
                 {
-                    "id": "acme", "include": True, "relevance_score": 80,
-                    "bullets": [
-                        {"id": "acme-1", "include": True, "edited_text": ""},
-                    ],
-                },
-                {
-                    "id": "widgets", "include": False, "relevance_score": 30,
-                    "bullets": [
-                        {"id": "widgets-1", "include": True, "edited_text": ""},
-                    ],
+                    "id": "acme", "include": True,
+                    "relevance_score": 80,
+                    "bullets": [{"id": "b1", "include": True}],
                 },
             ],
         }])
-        droppables = _find_droppables(sel)
-        ids = {d.item_id for d in droppables}
-        assert "widgets" not in ids
-
-    def test_excluded_sections_not_listed(self):
-        sel = _make_selection(sections=[{
-            "id": "experience", "include": False, "items": [
-                {
-                    "id": "acme", "include": True, "relevance_score": 80,
-                    "bullets": [
-                        {"id": "acme-1", "include": True, "edited_text": ""},
-                    ],
-                },
-            ],
-        }])
-        droppables = _find_droppables(sel)
-        assert droppables == []
+        assert _find_droppables(sel) == []
 
     def test_empty_selection(self):
         sel = _make_selection()
@@ -271,52 +208,60 @@ class TestFindDroppables:
 class TestDropElement:
     def test_drop_bullet(self):
         sel = _full_selection()
-        d = _selection_to_dict(sel)
         droppable = _Droppable(
             section_id="experience", item_id="acme",
             bullet_id="acme-1", score=80,
         )
-        _drop_element(d, droppable)
-        bullets = d["sections"][0]["items"][0]["bullets"]
-        acme1 = next(b for b in bullets if b["id"] == "acme-1")
-        assert acme1["include"] is False
+        new_sel = _drop_element(sel, droppable)
+        acme = next(it for it in new_sel.sections[0].items if it.id == "acme")
+        acme1 = next(b for b in acme.bullets if b.id == "acme-1")
+        assert acme1.include is False
 
     def test_drop_item(self):
         sel = _full_selection()
-        d = _selection_to_dict(sel)
         droppable = _Droppable(
             section_id="experience", item_id="widgets",
             bullet_id=None, score=30,
         )
-        _drop_element(d, droppable)
+        new_sel = _drop_element(sel, droppable)
         widgets = next(
-            it for it in d["sections"][0]["items"] if it["id"] == "widgets"
+            it for it in new_sel.sections[0].items if it.id == "widgets"
         )
-        assert widgets["include"] is False
+        assert widgets.include is False
 
     def test_drop_nonexistent_is_noop(self):
         sel = _full_selection()
-        d = _selection_to_dict(sel)
         droppable = _Droppable(
             section_id="experience", item_id="nonexistent",
             bullet_id=None, score=0,
         )
-        # Should not raise
-        _drop_element(d, droppable)
+        # Should not raise; returns unchanged selection
+        new_sel = _drop_element(sel, droppable)
+        assert len(new_sel.sections) == len(sel.sections)
 
     def test_drop_bullet_leaves_other_bullets(self):
         sel = _full_selection()
-        d = _selection_to_dict(sel)
         droppable = _Droppable(
             section_id="experience", item_id="acme",
             bullet_id="acme-1", score=80,
         )
-        _drop_element(d, droppable)
-        acme2 = next(
-            b for b in d["sections"][0]["items"][0]["bullets"]
-            if b["id"] == "acme-2"
+        new_sel = _drop_element(sel, droppable)
+        acme = next(it for it in new_sel.sections[0].items if it.id == "acme")
+        acme2 = next(b for b in acme.bullets if b.id == "acme-2")
+        assert acme2.include is True
+
+    def test_original_selection_unchanged(self):
+        """_drop_element must not mutate the original selection."""
+        sel = _full_selection()
+        droppable = _Droppable(
+            section_id="experience", item_id="acme",
+            bullet_id="acme-1", score=80,
         )
-        assert acme2["include"] is True
+        _drop_element(sel, droppable)
+        # Original should still have acme-1 included
+        acme = next(it for it in sel.sections[0].items if it.id == "acme")
+        acme1 = next(b for b in acme.bullets if b.id == "acme-1")
+        assert acme1.include is True
 
 
 # ---------------------------------------------------------------------------
