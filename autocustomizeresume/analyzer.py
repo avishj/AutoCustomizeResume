@@ -80,7 +80,7 @@ def analyze_jd(jd_text: str, *, config: Config, client: LLMClient | None = None)
 
     raw = client.chat_json(
         system=_SYSTEM_PROMPT,
-        user=f"<jd>\n{jd_text}\n</jd>",
+        user=f"<jd>\n{jd_text.replace('</jd>', '')}\n</jd>",
         temperature=0.1,
     )
 
