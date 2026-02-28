@@ -179,4 +179,5 @@ section (pinned|optional)
 5. **The preamble** (everything before `\begin{document}`) is never tagged
    and always preserved verbatim.
 6. **The header** (content between `\begin{document}` and the first
-   `\section`) is never tagged and always preserved verbatim.
+   `%%% BEGIN:(pinned|optional):` tag) is never tagged and always preserved
+   verbatim.
