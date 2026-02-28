@@ -375,6 +375,15 @@ class TestCompileTex:
         assert tex_file.exists()
         assert tex_file.read_text(encoding="utf-8") == tex_content
 
+    @patch("autocustomizeresume.compiler.subprocess.run")
+    def test_timeout_raises_compile_error(self, mock_run, tmp_path):
+        import subprocess as _subprocess
+        mock_run.side_effect = _subprocess.TimeoutExpired(
+            cmd=["tectonic"], timeout=120
+        )
+        with pytest.raises(CompileError, match="timed out"):
+            compile_tex(r"\documentclass{article}", keep_dir=tmp_path)
+
 
 # ---------------------------------------------------------------------------
 # get_page_count (unit tests with real tiny PDFs)
@@ -481,8 +490,10 @@ class TestCompileWithEnforcement:
 
     def test_exceeds_after_all_retries(self):
         """Still > 1 page after max retries — raises CompileError."""
-        # 4 attempts all return 2 pages
-        p1, p2 = self._patch_compile([2, 2, 2, 2])
+        # Provide enough 2-page results to exhaust all droppables.
+        # The fixture has 3 bullets + 2 items = 5 droppable elements,
+        # so we need at least 6 attempts (initial + 5 drops) all returning 2.
+        p1, p2 = self._patch_compile([2] * 12)
         with p1, p2:
             with pytest.raises(CompileError, match="still exceeds 1 page"):
                 compile_with_enforcement(

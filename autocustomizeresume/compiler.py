@@ -22,6 +22,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+_COMPILE_TIMEOUT_SECS = 120
+
 
 class CompileError(Exception):
     """Raised when tectonic compilation fails."""
@@ -46,7 +48,7 @@ def compile_tex(tex_content: str, *, keep_dir: Path | None = None) -> Path:
     Raises
     ------
     CompileError
-        If tectonic exits with a non-zero code.
+        If tectonic exits with a non-zero code or times out.
     """
     if keep_dir is not None:
         work = keep_dir
@@ -59,11 +61,17 @@ def compile_tex(tex_content: str, *, keep_dir: Path | None = None) -> Path:
 
     logger.debug("Compiling %s with tectonic", tex_path)
 
-    result = subprocess.run(
-        ["tectonic", "-c", "minimal", str(tex_path)],
-        capture_output=True,
-        text=True,
-    )
+    try:
+        result = subprocess.run(
+            ["tectonic", "-c", "minimal", str(tex_path)],
+            capture_output=True,
+            text=True,
+            timeout=_COMPILE_TIMEOUT_SECS,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise CompileError(
+            f"tectonic timed out after {_COMPILE_TIMEOUT_SECS}s"
+        ) from exc
 
     if result.returncode != 0:
         raise CompileError(
@@ -183,7 +191,7 @@ def _drop_element(
 # 1-page enforcement
 # ---------------------------------------------------------------------------
 
-_MAX_RETRIES = 3
+_MAX_RETRIES = 10
 
 
 def compile_with_enforcement(
@@ -220,13 +228,19 @@ def compile_with_enforcement(
     """
     from autocustomizeresume.assembler import assemble_tex
 
+    # Use a single working directory for all retries to avoid temp dir leaks
+    if keep_dir is not None:
+        work_dir = keep_dir
+    else:
+        work_dir = Path(tempfile.mkdtemp(prefix="acr_"))
+
     # Work on a mutable copy so we can drop elements
     sel_dict = _selection_to_dict(selection)
     current_sel = selection
 
     for attempt in range(_MAX_RETRIES + 1):
         tex = assemble_tex(parsed, current_sel)
-        pdf_path = compile_tex(tex, keep_dir=keep_dir)
+        pdf_path = compile_tex(tex, keep_dir=work_dir)
         pages = get_page_count(pdf_path)
 
         if pages <= 1:
