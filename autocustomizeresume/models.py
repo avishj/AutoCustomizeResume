@@ -8,6 +8,10 @@ tweak) and by the assembler (to reconstruct LaTeX from selections).
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Literal
+
+#: The two valid tag types for BEGIN/END markers.
+TagType = Literal["pinned", "optional"]
 
 
 @dataclass
@@ -18,7 +22,7 @@ class Bullet:
     text edits (keyword incorporation) to optional bullets.
     """
 
-    tag_type: str  # "pinned" or "optional"
+    tag_type: TagType
     id: str  # e.g. "snap-1", "snap-2"
     text: str  # raw LaTeX of the bullet (the full \\resumeItem{...} line(s))
 
@@ -31,7 +35,7 @@ class ResumeItem:
     tagged bullets underneath.
     """
 
-    tag_type: str  # "pinned" or "optional"
+    tag_type: TagType
     id: str  # e.g. "snap", "siemens", "addverb"
     heading_lines: str  # raw LaTeX for the heading (before bullets)
     bullets: list[Bullet] = field(default_factory=list)
@@ -63,7 +67,7 @@ class ResumeSection:
     tagged bullets within each item.
     """
 
-    tag_type: str  # "pinned" or "optional"
+    tag_type: TagType
     id: str  # e.g. "education", "experience", "projects"
     items: list[ResumeItem] = field(default_factory=list)
     # Raw LaTeX content between/around items (section header, list wrappers, etc.)
@@ -79,7 +83,7 @@ class SkillsSection:
     Uses SKILLS tags instead of regular BEGIN/END item tags.
     """
 
-    tag_type: str  # "pinned" or "optional"
+    tag_type: TagType
     id: str  # e.g. "skills"
     categories: list[SkillCategory] = field(default_factory=list)
     # Raw LaTeX around categories (section header, itemize wrappers, etc.)

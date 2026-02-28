@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import re
 import warnings
+from typing import cast
 
 from autocustomizeresume.models import (
     Bullet,
@@ -26,6 +27,7 @@ from autocustomizeresume.models import (
     ResumeSection,
     SkillCategory,
     SkillsSection,
+    TagType,
 )
 
 # ---------------------------------------------------------------------------
@@ -149,7 +151,7 @@ def parse_resume(tex_content: str) -> ParsedResume:
     top_interstitial: list[tuple[int, str]] = []
 
     in_section = False
-    section_depth_type: str | None = None
+    section_depth_type: TagType | None = None
     section_depth_id: str | None = None
     found_first_section = False
 
@@ -164,7 +166,7 @@ def parse_resume(tex_content: str) -> ParsedResume:
             if m:
                 found_first_section = True
                 in_section = True
-                section_depth_type = m.group(1)
+                section_depth_type = cast(TagType, m.group(1))
                 section_depth_id = m.group(2)
                 section_chunks.append({
                     "type": section_depth_type,
@@ -193,7 +195,7 @@ def parse_resume(tex_content: str) -> ParsedResume:
                     )
                     interstitial_lines = []
                 in_section = True
-                section_depth_type = m.group(1)
+                section_depth_type = cast(TagType, m.group(1))
                 section_depth_id = m.group(2)
                 section_chunks.append({
                     "type": section_depth_type,
@@ -237,7 +239,9 @@ def parse_resume(tex_content: str) -> ParsedResume:
     # --- 3. Parse each section chunk ---
     sections: list[ResumeSection | SkillsSection] = []
     for chunk in section_chunks:
-        section = _parse_section(chunk["type"], chunk["id"], chunk["lines"])
+        section = _parse_section(
+            cast(TagType, chunk["type"]), chunk["id"], chunk["lines"]
+        )
         sections.append(section)
 
     # --- 4. Validate ID uniqueness across the entire resume ---
@@ -287,7 +291,7 @@ def _validate_unique_ids(
 
 
 def _parse_section(
-    tag_type: str, tag_id: str, lines: list[str]
+    tag_type: TagType, tag_id: str, lines: list[str]
 ) -> ResumeSection | SkillsSection:
     """Parse the body lines of a section into items or skill categories.
 
@@ -303,7 +307,7 @@ def _parse_section(
 
 
 def _parse_regular_section(
-    tag_type: str, tag_id: str, lines: list[str]
+    tag_type: TagType, tag_id: str, lines: list[str]
 ) -> ResumeSection:
     """Parse a regular section (Education, Experience, Projects, etc.)."""
     items: list[ResumeItem] = []
@@ -311,7 +315,7 @@ def _parse_regular_section(
     buffer: list[str] = []  # accumulates interstitial between items
 
     in_item = False
-    item_type: str | None = None
+    item_type: TagType | None = None
     item_id: str | None = None
     item_lines: list[str] = []
 
@@ -326,7 +330,7 @@ def _parse_regular_section(
                     interstitial.append((len(items), "\n".join(buffer)))
                     buffer = []
                 in_item = True
-                item_type = m.group(1)
+                item_type = cast(TagType, m.group(1))
                 item_id = m.group(2)
                 item_lines = []
                 continue
@@ -371,7 +375,7 @@ def _parse_regular_section(
 
 
 def _parse_item(
-    tag_type: str, tag_id: str, lines: list[str]
+    tag_type: TagType, tag_id: str, lines: list[str]
 ) -> ResumeItem:
     """Parse a single item's lines into heading + bullets."""
     bullets: list[Bullet] = []
@@ -380,7 +384,7 @@ def _parse_item(
     buffer: list[str] = []  # interstitial between bullets
 
     in_bullet = False
-    bullet_type: str | None = None
+    bullet_type: TagType | None = None
     bullet_id: str | None = None
     bullet_lines: list[str] = []
     found_first_bullet_tag = False
@@ -397,7 +401,7 @@ def _parse_item(
                     interstitial.append((len(bullets), "\n".join(buffer)))
                     buffer = []
                 in_bullet = True
-                bullet_type = m.group(1)
+                bullet_type = cast(TagType, m.group(1))
                 bullet_id = m.group(2)
                 bullet_lines = []
                 continue
@@ -451,7 +455,7 @@ def _parse_item(
 
 
 def _parse_skills_section(
-    tag_type: str, tag_id: str, lines: list[str]
+    tag_type: TagType, tag_id: str, lines: list[str]
 ) -> SkillsSection:
     """Parse a skills section with SKILLS category tags.
 
