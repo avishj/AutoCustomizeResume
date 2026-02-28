@@ -373,13 +373,12 @@ class TestErrors:
         with pytest.warns(UserWarning, match="malformed tag-like comment"):
             parse_resume(tex)
 
-    def test_valid_tags_no_warning(self, sample_resume: ParsedResume):
+    def test_valid_tags_no_warning(self):
         """The sample fixture should produce no warnings."""
         import warnings as _warnings
         with _warnings.catch_warnings():
             _warnings.simplefilter("error")
             # Re-parse — if any warning fires, this will raise
-            _load_fixture("sample_tagged.tex")
             parse_resume(_load_fixture("sample_tagged.tex"))
 
 
