@@ -114,6 +114,17 @@ class TestChat:
         with pytest.raises(LLMError, match="empty response"):
             client.chat(system="sys", user="usr")
 
+    @patch("autocustomizeresume.llm_client.OpenAI")
+    def test_empty_choices_raises(self, mock_openai_cls: MagicMock):
+        mock_client = mock_openai_cls.return_value
+        resp = MagicMock()
+        resp.choices = []
+        mock_client.chat.completions.create.return_value = resp
+
+        client = LLMClient(_make_config())
+        with pytest.raises(LLMError, match="no choices"):
+            client.chat(system="sys", user="usr")
+
 
 # ---------------------------------------------------------------------------
 # chat() — error handling

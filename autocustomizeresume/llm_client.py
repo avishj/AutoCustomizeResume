@@ -109,6 +109,9 @@ class LLMClient:
         except Exception as exc:
             raise LLMError(f"LLM API call failed: {exc}") from exc
 
+        if not response.choices:
+            raise LLMError("LLM returned no choices (empty choices list)")
+
         choice = response.choices[0]
         content = choice.message.content
 
