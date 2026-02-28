@@ -71,34 +71,33 @@ def compile_tex(tex_content: str, *, keep_dir: Path | None = None) -> Path:
     logger.debug("Compiling %s with tectonic", tex_path)
 
     try:
-        result = subprocess.run(
-            ["tectonic", "-c", "minimal", str(tex_path)],
-            capture_output=True,
-            text=True,
-            timeout=_COMPILE_TIMEOUT_SECS,
-        )
-    except subprocess.TimeoutExpired as exc:
-        if owns_dir:
-            shutil.rmtree(work, ignore_errors=True)
-        raise CompileError(
-            f"tectonic timed out after {_COMPILE_TIMEOUT_SECS}s"
-        ) from exc
+        try:
+            result = subprocess.run(
+                ["tectonic", "-c", "minimal", str(tex_path)],
+                capture_output=True,
+                text=True,
+                timeout=_COMPILE_TIMEOUT_SECS,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise CompileError(
+                f"tectonic timed out after {_COMPILE_TIMEOUT_SECS}s"
+            ) from exc
 
-    if result.returncode != 0:
-        if owns_dir:
-            shutil.rmtree(work, ignore_errors=True)
-        raise CompileError(
-            f"tectonic failed (exit {result.returncode}):\n"
-            f"{result.stderr.strip()}"
-        )
+        if result.returncode != 0:
+            raise CompileError(
+                f"tectonic failed (exit {result.returncode}):\n"
+                f"{result.stderr.strip()}"
+            )
 
-    pdf_path = tex_path.with_suffix(".pdf")
-    if not pdf_path.exists():
+        pdf_path = tex_path.with_suffix(".pdf")
+        if not pdf_path.exists():
+            raise CompileError(
+                "tectonic exited successfully but no PDF was produced"
+            )
+    except Exception:
         if owns_dir:
             shutil.rmtree(work, ignore_errors=True)
-        raise CompileError(
-            "tectonic exited successfully but no PDF was produced"
-        )
+        raise
 
     logger.info("Compiled PDF: %s", pdf_path)
     return pdf_path
