@@ -242,3 +242,68 @@ def _assemble_skills_section(
         assembled_cats.append(trailing)
 
     return "\n".join(assembled_cats)
+
+
+# ---------------------------------------------------------------------------
+# Top-level assembly
+# ---------------------------------------------------------------------------
+
+def assemble_tex(
+    parsed: ParsedResume,
+    selection: ContentSelection,
+) -> str:
+    """Assemble a complete .tex document from parsed resume + selections.
+
+    Parameters
+    ----------
+    parsed:
+        The structured representation of the tagged master resume.
+    selection:
+        The LLM's content selection decisions.
+
+    Returns
+    -------
+    str
+        A complete LaTeX document ready for compilation.
+    """
+    parts: list[str] = []
+
+    # 1. Preamble
+    parts.append(parsed.preamble)
+
+    # 2. Header
+    parts.append(parsed.header)
+
+    # 3. Sections
+    assembled_sections: list[str] = []
+    for idx, section in enumerate(parsed.sections):
+        if isinstance(section, SkillsSection):
+            assembled = _assemble_skills_section(section, selection)
+        else:
+            section_dec = _section_decision(selection, section.id)
+            assembled = _assemble_regular_section(section, section_dec)
+
+        if assembled is not None:
+            # Interstitial before this section
+            inter = _get_interstitial(parsed.interstitial, idx)
+            if inter is not None:
+                assembled_sections.append(inter)
+            assembled_sections.append(assembled)
+
+    if assembled_sections:
+        parts.extend(assembled_sections)
+
+    # Trailing interstitial after last section
+    trailing = _get_interstitial(
+        parsed.interstitial, len(parsed.sections)
+    )
+    if trailing is not None:
+        parts.append(trailing)
+
+    # 4. Postamble
+    parts.append(parsed.postamble)
+
+    tex = "\n".join(parts)
+
+    logger.info("Assembled .tex document (%d chars)", len(tex))
+    return tex
