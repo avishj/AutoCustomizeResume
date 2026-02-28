@@ -98,12 +98,12 @@ class LLMClient:
                 f"LLM authentication failed — check your API key "
                 f"(env var from config llm.api_key_env): {exc}"
             ) from exc
+        except APITimeoutError as exc:
+            raise LLMError(f"LLM API request timed out: {exc}") from exc
         except APIConnectionError as exc:
             raise LLMError(
                 f"Could not connect to LLM API at {self._client.base_url}: {exc}"
             ) from exc
-        except APITimeoutError as exc:
-            raise LLMError(f"LLM API request timed out: {exc}") from exc
         except RateLimitError as exc:
             raise LLMError(f"LLM API rate limit exceeded: {exc}") from exc
         except Exception as exc:
