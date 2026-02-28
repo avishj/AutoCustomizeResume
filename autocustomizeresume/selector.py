@@ -252,7 +252,11 @@ def select_content(
         jd_analysis.role,
         jd_analysis.company,
     )
-    logger.debug("Selector user prompt:\n%s", user_prompt)
+    logger.debug(
+        "Selector prompt built (jd_chars=%d, resume_chars=%d)",
+        len(jd_block),
+        len(resume_block),
+    )
 
     raw = client.chat_json(
         system=_SYSTEM_PROMPT,
