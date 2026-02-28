@@ -193,6 +193,9 @@ def parse_resume(tex_content: str) -> ParsedResume:
         section = _parse_section(chunk["type"], chunk["id"], chunk["lines"])
         sections.append(section)
 
+    # --- 4. Validate ID uniqueness across the entire resume ---
+    _validate_unique_ids(sections)
+
     return ParsedResume(
         preamble=preamble,
         header="\n".join(header_lines),
@@ -200,6 +203,40 @@ def parse_resume(tex_content: str) -> ParsedResume:
         interstitial=top_interstitial,
         postamble="\n".join(postamble_lines),
     )
+
+
+def _validate_unique_ids(
+    sections: list[ResumeSection | SkillsSection],
+) -> None:
+    """Raise ParseError if any tag ID appears more than once.
+
+    Checks section IDs, item IDs, and bullet IDs across the entire resume.
+    Skill category names are also checked.
+    """
+    seen: dict[str, str] = {}  # id -> context description
+
+    def _check(tag_id: str, context: str) -> None:
+        if tag_id in seen:
+            raise ParseError(
+                f"Duplicate ID '{tag_id}' — first seen in {seen[tag_id]}, "
+                f"also found in {context}"
+            )
+        seen[tag_id] = context
+
+    for section in sections:
+        _check(section.id, f"section '{section.id}'")
+
+        if isinstance(section, SkillsSection):
+            for cat in section.categories:
+                _check(cat.name, f"skill category '{cat.name}' in section '{section.id}'")
+        else:
+            for item in section.items:
+                _check(item.id, f"item '{item.id}' in section '{section.id}'")
+                for bullet in item.bullets:
+                    _check(
+                        bullet.id,
+                        f"bullet '{bullet.id}' in item '{item.id}'",
+                    )
 
 
 def _parse_section(

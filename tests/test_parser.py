@@ -297,6 +297,56 @@ class TestErrors:
         with pytest.raises(ParseError, match="Unclosed skills tag"):
             parse_resume(tex)
 
+    def test_duplicate_section_ids(self):
+        tex = r"""\documentclass{article}
+\begin{document}
+%%% BEGIN:pinned:edu
+\section{Education}
+%%% END:pinned:edu
+%%% BEGIN:optional:edu
+\section{Education 2}
+%%% END:optional:edu
+\end{document}
+"""
+        with pytest.raises(ParseError, match="Duplicate ID 'edu'"):
+            parse_resume(tex)
+
+    def test_duplicate_item_ids(self):
+        tex = r"""\documentclass{article}
+\begin{document}
+%%% BEGIN:pinned:edu
+\section{Education}
+    %%% BEGIN:pinned:mit
+    \resumeSubheading{MIT}{2025}{MS}{MA}
+    %%% END:pinned:mit
+    %%% BEGIN:optional:mit
+    \resumeSubheading{MIT}{2020}{BS}{MA}
+    %%% END:optional:mit
+%%% END:pinned:edu
+\end{document}
+"""
+        with pytest.raises(ParseError, match="Duplicate ID 'mit'"):
+            parse_resume(tex)
+
+    def test_duplicate_bullet_ids(self):
+        tex = r"""\documentclass{article}
+\begin{document}
+%%% BEGIN:pinned:exp
+    %%% BEGIN:pinned:acme
+    \resumeSubheading{Acme}{2025}{SWE}{NY}
+        %%% BEGIN:optional:b1
+        \resumeItem{Built REST API}
+        %%% END:optional:b1
+        %%% BEGIN:optional:b1
+        \resumeItem{Another bullet with same id}
+        %%% END:optional:b1
+    %%% END:pinned:acme
+%%% END:pinned:exp
+\end{document}
+"""
+        with pytest.raises(ParseError, match="Duplicate ID 'b1'"):
+            parse_resume(tex)
+
 
 # ---------------------------------------------------------------------------
 # Edge cases
