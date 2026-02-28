@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import os
 import shutil
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -106,6 +106,45 @@ def _get(data: dict, key: str, section: str, default: Any = _MISSING) -> Any:
     return val
 
 
+def _get_str(data: dict, key: str, section: str, default: Any = _MISSING) -> str:
+    """Get a string value, coercing non-string scalars to str."""
+    val = _get(data, key, section, default)
+    if isinstance(val, str):
+        return val
+    if isinstance(val, (int, float, bool)):
+        return str(val)
+    raise ConfigError(
+        f"{section}.{key} must be a string, got {type(val).__name__}: {val!r}"
+    )
+
+
+def _get_bool(data: dict, key: str, section: str, default: Any = _MISSING) -> bool:
+    """Get a boolean value, coercing common string literals."""
+    val = _get(data, key, section, default)
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, str):
+        lower = val.strip().lower()
+        if lower in ("true", "yes", "1", "on"):
+            return True
+        if lower in ("false", "no", "0", "off"):
+            return False
+    raise ConfigError(
+        f"{section}.{key} must be a boolean, got {type(val).__name__}: {val!r}"
+    )
+
+
+def _get_int(data: dict, key: str, section: str, default: Any = _MISSING) -> int:
+    """Get an integer value with a clear error on failure."""
+    val = _get(data, key, section, default)
+    try:
+        return int(val)
+    except (ValueError, TypeError):
+        raise ConfigError(
+            f"{section}.{key} must be an integer, got {type(val).__name__}: {val!r}"
+        )
+
+
 def load_config(config_path: str = "config.yaml") -> Config:
     """Load and validate the configuration file.
 
@@ -145,14 +184,14 @@ def load_config(config_path: str = "config.yaml") -> Config:
     # Parse sections
     user_raw = _get(raw, "user", "root")
     user = UserConfig(
-        first_name=_get(user_raw, "first_name", "user"),
-        last_name=_get(user_raw, "last_name", "user"),
-        phone=_get(user_raw, "phone", "user", default=""),
-        email=_get(user_raw, "email", "user", default=""),
-        linkedin=_get(user_raw, "linkedin", "user", default=""),
-        website=_get(user_raw, "website", "user", default=""),
-        degree=_get(user_raw, "degree", "user", default=""),
-        university=_get(user_raw, "university", "user", default=""),
+        first_name=_get_str(user_raw, "first_name", "user"),
+        last_name=_get_str(user_raw, "last_name", "user"),
+        phone=_get_str(user_raw, "phone", "user", default=""),
+        email=_get_str(user_raw, "email", "user", default=""),
+        linkedin=_get_str(user_raw, "linkedin", "user", default=""),
+        website=_get_str(user_raw, "website", "user", default=""),
+        degree=_get_str(user_raw, "degree", "user", default=""),
+        university=_get_str(user_raw, "university", "user", default=""),
     )
 
     if not user.first_name.strip():
@@ -162,44 +201,39 @@ def load_config(config_path: str = "config.yaml") -> Config:
 
     naming_raw = _get(raw, "naming", "root")
     naming = NamingConfig(
-        output_resume=_get(naming_raw, "output_resume", "naming"),
-        output_cover=_get(naming_raw, "output_cover", "naming"),
-        history_resume=_get(naming_raw, "history_resume", "naming"),
-        history_cover=_get(naming_raw, "history_cover", "naming"),
+        output_resume=_get_str(naming_raw, "output_resume", "naming"),
+        output_cover=_get_str(naming_raw, "output_cover", "naming"),
+        history_resume=_get_str(naming_raw, "history_resume", "naming"),
+        history_cover=_get_str(naming_raw, "history_cover", "naming"),
     )
 
     llm_raw = _get(raw, "llm", "root")
     llm = LLMConfig(
-        base_url=_get(llm_raw, "base_url", "llm"),
-        model=_get(llm_raw, "model", "llm"),
-        api_key_env=_get(llm_raw, "api_key_env", "llm"),
+        base_url=_get_str(llm_raw, "base_url", "llm"),
+        model=_get_str(llm_raw, "model", "llm"),
+        api_key_env=_get_str(llm_raw, "api_key_env", "llm"),
     )
 
     cl_raw = _get(raw, "cover_letter", "root")
     cover_letter = CoverLetterConfig(
-        enabled=_get(cl_raw, "enabled", "cover_letter"),
-        template=_get(cl_raw, "template", "cover_letter"),
-        style=_get(cl_raw, "style", "cover_letter", default=""),
-        signature_path=_get(cl_raw, "signature_path", "cover_letter", default=""),
+        enabled=_get_bool(cl_raw, "enabled", "cover_letter"),
+        template=_get_str(cl_raw, "template", "cover_letter"),
+        style=_get_str(cl_raw, "style", "cover_letter", default=""),
+        signature_path=_get_str(cl_raw, "signature_path", "cover_letter", default=""),
     )
 
     paths_raw = _get(raw, "paths", "root")
     paths = PathsConfig(
-        master_resume=_get(paths_raw, "master_resume", "paths"),
-        jd_file=_get(paths_raw, "jd_file", "paths"),
-        output_dir=_get(paths_raw, "output_dir", "paths"),
-        history_dir=_get(paths_raw, "history_dir", "paths"),
+        master_resume=_get_str(paths_raw, "master_resume", "paths"),
+        jd_file=_get_str(paths_raw, "jd_file", "paths"),
+        output_dir=_get_str(paths_raw, "output_dir", "paths"),
+        history_dir=_get_str(paths_raw, "history_dir", "paths"),
     )
 
     watcher_raw = _get(raw, "watcher", "root")
-    debounce_val = _get(watcher_raw, "debounce_seconds", "watcher")
-    try:
-        debounce_seconds = int(debounce_val)
-    except (ValueError, TypeError):
-        raise ConfigError(
-            f"watcher.debounce_seconds must be an integer, got: {debounce_val!r}"
-        )
-    watcher = WatcherConfig(debounce_seconds=debounce_seconds)
+    watcher = WatcherConfig(
+        debounce_seconds=_get_int(watcher_raw, "debounce_seconds", "watcher"),
+    )
 
     config = Config(
         user=user,
