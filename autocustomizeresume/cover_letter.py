@@ -3,3 +3,158 @@
 Uses LLM to generate body text from JD + selected resume content,
 injects it into the LaTeX template, and compiles to PDF.
 """
+
+from __future__ import annotations
+
+import logging
+
+from autocustomizeresume.models import (
+    ParsedResume,
+    ResumeItem,
+    ResumeSection,
+    SkillCategory,
+    SkillsSection,
+)
+from autocustomizeresume.schemas import (
+    ContentSelection,
+    ItemDecision,
+    SectionDecision,
+    SkillCategoryDecision,
+)
+from autocustomizeresume.selector import _latex_preview
+
+logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Resume context serializer — builds a text summary of selected content
+# ---------------------------------------------------------------------------
+
+def _summarize_selected_content(
+    parsed: ParsedResume,
+    selection: ContentSelection,
+) -> str:
+    """Build a human-readable summary of the selected resume content.
+
+    Includes pinned content (always present) and optional content that
+    was included by the LLM selection.  This gives the cover letter
+    generator full context about what appears in the final resume.
+    """
+    parts: list[str] = []
+
+    for section in parsed.sections:
+        if isinstance(section, SkillsSection):
+            block = _summarize_skills_section(section, selection)
+        elif isinstance(section, ResumeSection):
+            block = _summarize_regular_section(section, selection)
+        else:
+            continue
+
+        if block:
+            parts.append(block)
+
+    return "\n\n".join(parts)
+
+
+def _find_section_decision(
+    selection: ContentSelection, section_id: str
+) -> SectionDecision | None:
+    return next((sd for sd in selection.sections if sd.id == section_id), None)
+
+
+def _find_item_decision(
+    section_dec: SectionDecision, item_id: str
+) -> ItemDecision | None:
+    return next((itd for itd in section_dec.items if itd.id == item_id), None)
+
+
+def _find_skill_cat_decision(
+    selection: ContentSelection, cat_name: str
+) -> SkillCategoryDecision | None:
+    return next(
+        (scd for scd in selection.skill_categories if scd.name == cat_name),
+        None,
+    )
+
+
+def _is_item_included(item: ResumeItem, item_dec: ItemDecision | None) -> bool:
+    """Determine if an item is included in the final resume."""
+    if item.tag_type == "pinned":
+        return True
+    if item_dec is None or not item_dec.include:
+        return False
+    return True
+
+
+def _summarize_regular_section(
+    section: ResumeSection,
+    selection: ContentSelection,
+) -> str:
+    """Summarize a regular section's selected content."""
+    sec_dec = _find_section_decision(selection, section.id)
+
+    # Optional section excluded
+    if section.tag_type == "optional" and (sec_dec is None or not sec_dec.include):
+        return ""
+
+    lines: list[str] = [f"## {section.id.replace('-', ' ').title()}"]
+
+    for item in section.items:
+        item_dec = _find_item_decision(sec_dec, item.id) if sec_dec else None
+
+        if not _is_item_included(item, item_dec):
+            continue
+
+        heading = _latex_preview(item.heading_lines)
+        if heading:
+            lines.append(f"- {heading}")
+
+        # Include selected bullet text
+        for bullet in item.bullets:
+            # Pinned bullets always included
+            if bullet.tag_type == "pinned":
+                text = _latex_preview(bullet.text)
+                if text:
+                    lines.append(f"  * {text}")
+            elif item_dec is not None:
+                # Check if this optional bullet is included
+                bd = next(
+                    (b for b in item_dec.bullets if b.id == bullet.id), None
+                )
+                if bd is not None and bd.include:
+                    # Use edited text if present
+                    raw = bd.edited_text if bd.edited_text else bullet.text
+                    text = _latex_preview(raw)
+                    if text:
+                        lines.append(f"  * {text}")
+
+    # If only the header line, section had no included items
+    if len(lines) <= 1:
+        return ""
+
+    return "\n".join(lines)
+
+
+def _summarize_skills_section(
+    section: SkillsSection,
+    selection: ContentSelection,
+) -> str:
+    """Summarize the skills section's selected content."""
+    if section.tag_type == "optional":
+        sd = _find_section_decision(selection, section.id)
+        if sd is None or not sd.include:
+            return ""
+
+    lines: list[str] = [f"## {section.id.replace('-', ' ').title()}"]
+
+    for cat in section.categories:
+        cat_dec = _find_skill_cat_decision(selection, cat.name)
+        skills = cat_dec.skills if cat_dec is not None else cat.skills
+
+        if skills:
+            lines.append(f"- {cat.display_name}: {', '.join(skills)}")
+
+    if len(lines) <= 1:
+        return ""
+
+    return "\n".join(lines)
