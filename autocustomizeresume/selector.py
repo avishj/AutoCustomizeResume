@@ -175,14 +175,16 @@ def _latex_preview(text: str) -> str:
     # Remove common LaTeX line-break commands
     preview = preview.replace("\\\\", " ")
     preview = preview.replace("\\newline", " ")
+    # Remove \href{url}{text} — keep text (before brace stripping)
+    preview = re.sub(r"\\href\{[^}]*\}\{([^}]*)\}", r"\1", preview)
+    # Remove \textbf{...} / \textit{...} — keep content
+    preview = re.sub(r"\\text\w+\{([^}]*)\}", r"\1", preview)
     # Remove \resumeItem{...} wrapper — keep the content
     preview = re.sub(r"\\resumeItem\{", "", preview)
     # Remove \resumeSubheading and similar — keep args
-    preview = re.sub(r"\\resume\w+\{", "{", preview)
-    # Remove \textbf{...} / \textit{...} — keep content
-    preview = re.sub(r"\\text\w+\{([^}]*)\}", r"\1", preview)
-    # Remove \href{url}{text} — keep text
-    preview = re.sub(r"\\href\{[^}]*\}\{([^}]*)\}", r"\1", preview)
+    preview = re.sub(r"\\resume\w+\{", "", preview)
+    # Strip leftover braces from the above removals
+    preview = preview.replace("{", "").replace("}", "")
     # Collapse whitespace
     preview = re.sub(r"\s+", " ", preview).strip()
     # Truncate for sanity
