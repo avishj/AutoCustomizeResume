@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+from datetime import date
 
 from autocustomizeresume.config import Config
 from autocustomizeresume.llm_client import LLMClient
@@ -332,3 +333,79 @@ def generate_cover_letter_body(
 
     logger.info("Cover letter body generated (%d chars)", len(body))
     return body.strip()
+
+
+# ---------------------------------------------------------------------------
+# Template injection — replace placeholders with values
+# ---------------------------------------------------------------------------
+
+_SIGNATURE_LATEX = r"\hspace{-0.5cm}\includegraphics[width=0.2\textwidth]{{{path}}}"
+
+
+def _build_signature_block(signature_path: str) -> str:
+    """Build the LaTeX for the signature, or empty string if no path."""
+    if not signature_path.strip():
+        return ""
+    return _SIGNATURE_LATEX.format(path=signature_path)
+
+
+def _format_date() -> str:
+    """Return today's date in 'Month DD, YYYY' format."""
+    return date.today().strftime("%B %d, %Y")
+
+
+def inject_template(
+    template_tex: str,
+    *,
+    config: Config,
+    body_text: str,
+) -> str:
+    """Replace all ``{{PLACEHOLDER}}`` tokens in the cover letter template.
+
+    Parameters
+    ----------
+    template_tex:
+        The raw LaTeX template string with ``{{...}}`` placeholders.
+    config:
+        Application config (user info, cover letter settings).
+    body_text:
+        The LLM-generated body text (already LaTeX-escaped via
+        :func:`_plain_text_to_latex`).
+
+    Returns
+    -------
+    str
+        The filled-in LaTeX document ready for compilation.
+    """
+    esc = _escape_latex
+
+    replacements: dict[str, str] = {
+        "{{FIRST_NAME}}": esc(config.user.first_name),
+        "{{LAST_NAME}}": esc(config.user.last_name),
+        "{{PHONE}}": esc(config.user.phone),
+        "{{EMAIL}}": esc(config.user.email),
+        "{{LINKEDIN}}": esc(config.user.linkedin),
+        "{{WEBSITE}}": esc(config.user.website),
+        "{{DEGREE}}": esc(config.user.degree),
+        "{{UNIVERSITY}}": esc(config.user.university),
+        "{{DATE}}": esc(_format_date()),
+        "{{BODY}}": body_text,  # already escaped by _plain_text_to_latex
+        "{{SIGNATURE_BLOCK}}": _build_signature_block(
+            config.cover_letter.signature_path
+        ),
+    }
+
+    result = template_tex
+    for placeholder, value in replacements.items():
+        result = result.replace(placeholder, value)
+
+    # Warn about any remaining unreplaced placeholders
+    remaining = re.findall(r"\{\{[A-Z_]+\}\}", result)
+    if remaining:
+        logger.warning(
+            "Unreplaced placeholders in cover letter template: %s",
+            ", ".join(remaining),
+        )
+
+    logger.info("Template injection complete")
+    return result
