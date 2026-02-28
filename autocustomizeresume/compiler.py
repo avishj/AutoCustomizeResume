@@ -257,6 +257,7 @@ def compile_with_enforcement(
 
     # Work on an immutable selection, producing new copies on each drop
     current_sel = selection
+    attempt = 0
 
     try:
         for attempt in range(_MAX_RETRIES + 1):
@@ -299,5 +300,5 @@ def compile_with_enforcement(
     if owns_dir:
         shutil.rmtree(work_dir, ignore_errors=True)
     raise CompileError(
-        f"Resume still exceeds 1 page after {_MAX_RETRIES} retries"
+        f"Resume still exceeds 1 page after {attempt + 1} attempts"
     )
