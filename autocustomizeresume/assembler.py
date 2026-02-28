@@ -150,3 +150,95 @@ def _assemble_item(
         parts.append(trailing)
 
     return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# Section-level assembly
+# ---------------------------------------------------------------------------
+
+def _assemble_regular_section(
+    section: ResumeSection,
+    section_dec: SectionDecision | None,
+) -> str | None:
+    """Assemble a regular section, or None if excluded/empty."""
+    # Pinned sections always included; optional checked against decision
+    if section.tag_type == "optional":
+        if section_dec is None or not section_dec.include:
+            return None
+
+    assembled_items: list[str] = []
+    for idx, item in enumerate(section.items):
+        item_dec = None
+        if section_dec is not None:
+            item_dec = _item_decision(section_dec, item.id)
+
+        assembled = _assemble_item(item, item_dec)
+        if assembled is not None:
+            # Interstitial before this item
+            inter = _get_interstitial(section.interstitial, idx)
+            if inter is not None:
+                assembled_items.append(inter)
+            assembled_items.append(assembled)
+
+    # If all items were excluded, omit the entire section
+    if not assembled_items:
+        return None
+
+    # Trailing interstitial (after last item)
+    trailing = _get_interstitial(section.interstitial, len(section.items))
+    if trailing is not None:
+        assembled_items.append(trailing)
+
+    return "\n".join(assembled_items)
+
+
+def _assemble_skill_category(
+    cat: SkillCategory,
+    cat_dec: SkillCategoryDecision | None,
+) -> str | None:
+    """Assemble a single skill category line.
+
+    If a SkillCategoryDecision is provided, use its skill list (already
+    filtered and reordered by the LLM).  Otherwise, use the original.
+    """
+    if cat_dec is not None:
+        skills = cat_dec.skills
+    else:
+        skills = cat.skills
+
+    if not skills:
+        return None
+
+    skills_str = ", ".join(skills)
+    return f"{cat.prefix}{skills_str}{cat.suffix}"
+
+
+def _assemble_skills_section(
+    section: SkillsSection,
+    selection: ContentSelection,
+) -> str | None:
+    """Assemble the skills section with reordered skills."""
+    # Skills section is always pinned in the plan, but handle optional too
+    if section.tag_type == "optional":
+        sd = _section_decision(selection, section.id)
+        if sd is None or not sd.include:
+            return None
+
+    assembled_cats: list[str] = []
+    for idx, cat in enumerate(section.categories):
+        cat_dec = _skill_cat_decision(selection, cat.name)
+        assembled_cat = _assemble_skill_category(cat, cat_dec)
+        if assembled_cat is not None:
+            inter = _get_interstitial(section.interstitial, idx)
+            if inter is not None:
+                assembled_cats.append(inter)
+            assembled_cats.append(assembled_cat)
+
+    if not assembled_cats:
+        return None
+
+    trailing = _get_interstitial(section.interstitial, len(section.categories))
+    if trailing is not None:
+        assembled_cats.append(trailing)
+
+    return "\n".join(assembled_cats)
