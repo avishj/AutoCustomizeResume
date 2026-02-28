@@ -8,7 +8,10 @@ a typed instance.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -82,6 +85,11 @@ class BulletDecision:
 
     @classmethod
     def from_dict(cls, data: dict) -> BulletDecision:
+        if "include" not in data:
+            logger.warning(
+                "BulletDecision missing 'include' for id=%s, defaulting to True",
+                data.get("id", "?"),
+            )
         return cls(
             id=str(data.get("id", "")),
             include=bool(data.get("include", True)),
@@ -113,6 +121,11 @@ class ItemDecision:
 
     @classmethod
     def from_dict(cls, data: dict) -> ItemDecision:
+        if "include" not in data:
+            logger.warning(
+                "ItemDecision missing 'include' for id=%s, defaulting to True",
+                data.get("id", "?"),
+            )
         return cls(
             id=str(data.get("id", "")),
             include=bool(data.get("include", True)),
@@ -145,6 +158,11 @@ class SectionDecision:
 
     @classmethod
     def from_dict(cls, data: dict) -> SectionDecision:
+        if "include" not in data:
+            logger.warning(
+                "SectionDecision missing 'include' for id=%s, defaulting to True",
+                data.get("id", "?"),
+            )
         return cls(
             id=str(data.get("id", "")),
             include=bool(data.get("include", True)),

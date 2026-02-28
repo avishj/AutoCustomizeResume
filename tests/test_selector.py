@@ -541,3 +541,14 @@ class TestEdgeCases:
             "bullets": [],
         })
         assert item.relevance_score == 85
+
+    def test_missing_include_warns_and_defaults_true(self, caplog):
+        """Missing 'include' key should log a warning and default to True."""
+        from autocustomizeresume.schemas import BulletDecision
+
+        import logging
+        with caplog.at_level(logging.WARNING, logger="autocustomizeresume.schemas"):
+            bullet = BulletDecision.from_dict({"id": "b1"})
+
+        assert bullet.include is True
+        assert "missing 'include'" in caplog.text.lower()
