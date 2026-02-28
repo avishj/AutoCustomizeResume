@@ -7,6 +7,7 @@ technologies, domain, and seniority from raw JD text.
 from __future__ import annotations
 
 import logging
+import re
 
 from autocustomizeresume.config import Config
 from autocustomizeresume.llm_client import LLMClient
@@ -80,7 +81,7 @@ def analyze_jd(jd_text: str, *, config: Config, client: LLMClient | None = None)
 
     raw = client.chat_json(
         system=_SYSTEM_PROMPT,
-        user=f"<jd>\n{jd_text.replace('</jd>', '')}\n</jd>",
+        user=f"<jd>\n{re.sub(r'</?jd\s*>', '', jd_text, flags=re.IGNORECASE)}\n</jd>",
         temperature=0.1,
     )
 
