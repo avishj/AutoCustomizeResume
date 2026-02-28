@@ -147,8 +147,9 @@ def _assemble_item(
     # Trailing interstitial (after last bullet)
     trailing = _get_interstitial(item.interstitial, len(item.bullets))
 
-    # If item has bullets defined but none survived, skip the item entirely
-    if item.bullets and not included_bullets:
+    # If item has bullets defined but none survived, skip *optional* items.
+    # Pinned items always keep their heading even with zero bullets.
+    if item.bullets and not included_bullets and item.tag_type == "optional":
         return None
 
     parts: list[str] = []

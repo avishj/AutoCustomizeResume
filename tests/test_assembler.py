@@ -231,6 +231,20 @@ class TestAssembleItem:
         ])
         assert _assemble_item(item, itd) is None
 
+    def test_pinned_item_all_bullets_excluded_keeps_heading(self):
+        """Pinned items should keep their heading even when all bullets are excluded."""
+        item = _make_item(
+            tag_type="pinned", id="it1", heading="heading",
+            bullets=[_make_bullet(id="b1", text="bullet1")],
+        )
+        itd = _make_item_decision(id="it1", include=True, bullets=[
+            BulletDecision(id="b1", include=False),
+        ])
+        result = _assemble_item(item, itd)
+        assert result is not None
+        assert "heading" in result
+        assert "bullet1" not in result
+
     def test_item_without_bullets(self):
         item = _make_item(tag_type="optional", id="it1", heading="heading only")
         itd = _make_item_decision(id="it1", include=True)
