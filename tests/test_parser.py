@@ -32,6 +32,11 @@ def sample_resume() -> ParsedResume:
     return parse_resume(_load_fixture("sample_tagged.tex"))
 
 
+@pytest.fixture
+def minimal_resume() -> ParsedResume:
+    return parse_resume(_load_fixture("minimal_tagged.tex"))
+
+
 # ---------------------------------------------------------------------------
 # Preamble / header / postamble extraction
 # ---------------------------------------------------------------------------
@@ -346,6 +351,37 @@ class TestErrors:
 """
         with pytest.raises(ParseError, match="Duplicate ID 'b1'"):
             parse_resume(tex)
+
+
+# ---------------------------------------------------------------------------
+# Minimal fixture tests
+# ---------------------------------------------------------------------------
+
+class TestMinimalFixture:
+    """Tests using the minimal single-section fixture."""
+
+    def test_single_section(self, minimal_resume: ParsedResume):
+        assert len(minimal_resume.sections) == 1
+        assert minimal_resume.sections[0].id == "education"
+
+    def test_single_item(self, minimal_resume: ParsedResume):
+        edu = minimal_resume.sections[0]
+        assert isinstance(edu, ResumeSection)
+        assert len(edu.items) == 1
+        assert edu.items[0].id == "mit"
+
+    def test_single_bullet(self, minimal_resume: ParsedResume):
+        edu = minimal_resume.sections[0]
+        assert isinstance(edu, ResumeSection)
+        mit = edu.items[0]
+        assert len(mit.bullets) == 1
+        assert "Distributed Systems" in mit.bullets[0].text
+
+    def test_header(self, minimal_resume: ParsedResume):
+        assert "Test User" in minimal_resume.header
+
+    def test_postamble(self, minimal_resume: ParsedResume):
+        assert r"\end{document}" in minimal_resume.postamble
 
 
 # ---------------------------------------------------------------------------
