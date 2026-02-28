@@ -279,6 +279,42 @@ class TestAssembleItem:
 # Skill category assembly
 # ---------------------------------------------------------------------------
 
+class TestAssembleRegularSectionPinned:
+    """Tests for pinned sections that survive even when all items are excluded."""
+
+    def test_pinned_section_empty_items_returns_header(self):
+        """A pinned section with all items excluded still emits its header."""
+        section = ResumeSection(
+            tag_type="pinned", id="edu",
+            items=[
+                _make_item(tag_type="optional", item_id="it1", heading="Item1"),
+            ],
+            interstitial=[(0, r"\section{Education}")],
+        )
+        sec_dec = _make_section_decision(section_id="edu", include=True, items=[
+            _make_item_decision(item_id="it1", include=False),
+        ])
+        result = _assemble_regular_section(section, sec_dec)
+        assert result is not None
+        assert r"\section{Education}" in result
+        assert "Item1" not in result
+
+    def test_optional_section_empty_items_returns_none(self):
+        """An optional section with all items excluded returns None."""
+        section = ResumeSection(
+            tag_type="optional", id="proj",
+            items=[
+                _make_item(tag_type="optional", item_id="it1", heading="Item1"),
+            ],
+            interstitial=[(0, r"\section{Projects}")],
+        )
+        sec_dec = _make_section_decision(section_id="proj", include=True, items=[
+            _make_item_decision(item_id="it1", include=False),
+        ])
+        result = _assemble_regular_section(section, sec_dec)
+        assert result is None
+
+
 class TestAssembleSkillCategory:
     def test_with_decision(self):
         cat = SkillCategory(
@@ -309,6 +345,44 @@ class TestAssembleSkillCategory:
         )
         dec = SkillCategoryDecision(name="lang", skills=[])
         assert _assemble_skill_category(cat, dec) is None
+
+
+class TestAssembleSkillsSectionPinned:
+    """Tests for pinned skills sections with all categories emptied."""
+
+    def test_pinned_skills_section_empty_cats_returns_header(self):
+        """A pinned skills section with all categories empty still emits its header."""
+        section = SkillsSection(
+            tag_type="pinned", id="skills",
+            categories=[
+                SkillCategory(name="lang", display_name="Languages",
+                              skills=["Python"], prefix="pre", suffix="suf"),
+            ],
+            interstitial=[(0, r"\section{Technical Skills}")],
+        )
+        sel = _make_selection(skill_cats=[
+            SkillCategoryDecision(name="lang", skills=[]),
+        ])
+        result = _assemble_skills_section(section, sel)
+        assert result is not None
+        assert r"\section{Technical Skills}" in result
+
+    def test_optional_skills_section_empty_cats_returns_none(self):
+        """An optional skills section with all categories empty returns None."""
+        section = SkillsSection(
+            tag_type="optional", id="skills",
+            categories=[
+                SkillCategory(name="lang", display_name="Languages",
+                              skills=["Python"], prefix="pre", suffix="suf"),
+            ],
+            interstitial=[(0, r"\section{Technical Skills}")],
+        )
+        sel = _make_selection(
+            sections=[_make_section_decision(section_id="skills", include=True)],
+            skill_cats=[SkillCategoryDecision(name="lang", skills=[])],
+        )
+        result = _assemble_skills_section(section, sel)
+        assert result is None
 
 
 # ---------------------------------------------------------------------------

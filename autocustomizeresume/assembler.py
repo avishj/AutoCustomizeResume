@@ -185,9 +185,14 @@ def _assemble_regular_section(
             pending_interstitials = []
             assembled_items.append(assembled)
 
-    # If all items were excluded, omit the entire section
-    if not assembled_items:
+    # If all items were excluded, omit optional sections entirely.
+    # Pinned sections keep their header even with no items.
+    if not assembled_items and section.tag_type == "optional":
         return None
+
+    # Flush any remaining interstitials (for pinned sections with no items)
+    if pending_interstitials:
+        assembled_items.extend(pending_interstitials)
 
     # Trailing interstitial (after last item)
     trailing = _get_interstitial(section.interstitial, len(section.items))
@@ -244,8 +249,14 @@ def _assemble_skills_section(
             pending_interstitials = []
             assembled_cats.append(assembled_cat)
 
-    if not assembled_cats:
+    # If all categories were empty, omit optional sections entirely.
+    # Pinned sections keep their header even with no categories.
+    if not assembled_cats and section.tag_type == "optional":
         return None
+
+    # Flush any remaining interstitials (for pinned sections with no categories)
+    if pending_interstitials:
+        assembled_cats.extend(pending_interstitials)
 
     trailing = _get_interstitial(section.interstitial, len(section.categories))
     if trailing is not None:
