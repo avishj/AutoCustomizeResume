@@ -132,7 +132,7 @@ class ItemDecision:
             relevance_score=_coerce_score(data.get("relevance_score")),
             bullets=[
                 BulletDecision.from_dict(b)
-                for b in (data.get("bullets") or [])
+                for b in _dict_list(data.get("bullets"))
             ],
         )
 
@@ -168,7 +168,7 @@ class SectionDecision:
             include=_coerce_bool(data.get("include", True)),
             items=[
                 ItemDecision.from_dict(it)
-                for it in (data.get("items") or [])
+                for it in _dict_list(data.get("items"))
             ],
         )
 
@@ -215,11 +215,11 @@ class ContentSelection:
         return cls(
             sections=[
                 SectionDecision.from_dict(s)
-                for s in (data.get("sections") or [])
+                for s in _dict_list(data.get("sections"))
             ],
             skill_categories=[
                 SkillCategoryDecision.from_dict(sc)
-                for sc in (data.get("skill_categories") or [])
+                for sc in _dict_list(data.get("skill_categories"))
             ],
         )
 
@@ -254,3 +254,10 @@ def _str_list(val: object) -> list[str]:
     if not isinstance(val, list):
         return []
     return [str(item).strip() for item in val if str(item).strip()]
+
+
+def _dict_list(val: object) -> list[dict]:
+    """Coerce a value into a list of dicts, dropping non-dict entries."""
+    if not isinstance(val, list):
+        return []
+    return [item for item in val if isinstance(item, dict)]
