@@ -117,7 +117,7 @@ class TestHandleOutput:
         result = PipelineResult(
             resume_pdf=fake_pdf,
             analysis=analysis,
-            selection=None,  # type: ignore[arg-type]
+            selection=None,
         )
 
         handle_output(result, config)
@@ -144,7 +144,7 @@ class TestHandleOutput:
         result = PipelineResult(
             resume_pdf=fake_resume,
             analysis=analysis,
-            selection=None,  # type: ignore[arg-type]
+            selection=None,
             cover_letter_pdf=fake_cl,
         )
 
@@ -169,7 +169,7 @@ class TestHandleOutput:
         result = PipelineResult(
             resume_pdf=fake_pdf,
             analysis=analysis,
-            selection=None,  # type: ignore[arg-type]
+            selection=None,
         )
 
         handle_output(result, config)
