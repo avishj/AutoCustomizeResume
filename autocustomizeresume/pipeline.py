@@ -14,12 +14,14 @@ from autocustomizeresume import status
 from autocustomizeresume.analyzer import analyze_jd
 from autocustomizeresume.compiler import compile_with_enforcement
 from autocustomizeresume.config import Config
+from autocustomizeresume.cover_letter import build_cover_letter
 from autocustomizeresume.llm_client import LLMClient
 from autocustomizeresume.parser import parse_resume
 from autocustomizeresume.schemas import ContentSelection, JDAnalysis
 from autocustomizeresume.selector import select_content
 
-_TOTAL_STEPS = 5
+_STEPS_BASE = 5
+_STEPS_WITH_CL = 6
 
 
 @dataclass
@@ -57,14 +59,16 @@ def run_pipeline(
     PipelineResult
         Contains resume PDF path, JD analysis, and content selection.
     """
+    total = _STEPS_WITH_CL if config.cover_letter.enabled else _STEPS_BASE
+
     # 1. Parse master resume
-    status.step(1, _TOTAL_STEPS, "Parsing master resume…")
+    status.step(1, total, "Parsing master resume…")
     resume_path = Path(config.paths.master_resume)
     tex_content = resume_path.read_text(encoding="utf-8")
     parsed = parse_resume(tex_content)
 
     # 2. Analyze JD
-    status.step(2, _TOTAL_STEPS, "Analyzing job description…")
+    status.step(2, total, "Analyzing job description…")
     client = LLMClient(config)
     analysis = analyze_jd(jd_text, config=config, client=client)
 
@@ -80,20 +84,30 @@ def run_pipeline(
     status.info(f"Target: {analysis.role} at {analysis.company}")
 
     # 3. Select content
-    status.step(3, _TOTAL_STEPS, "Selecting resume content…")
+    status.step(3, total, "Selecting resume content…")
     selection = select_content(
         analysis, parsed, config=config, client=client,
     )
 
     # 4. Compile with 1-page enforcement
-    status.step(4, _TOTAL_STEPS, "Compiling resume PDF…")
+    status.step(4, total, "Compiling resume PDF…")
     resume_pdf, selection = compile_with_enforcement(parsed, selection)
 
-    # 5. Done (cover letter is added in a separate step)
-    status.step(5, _TOTAL_STEPS, "Resume complete.")
+    # 5. Cover letter (if enabled)
+    cover_letter_pdf: Path | None = None
+    if config.cover_letter.enabled:
+        status.step(5, total, "Generating cover letter…")
+        cover_letter_pdf = build_cover_letter(
+            analysis, parsed, selection,
+            config=config, client=client,
+        )
+
+    # Final step
+    status.step(total, total, "Done.")
 
     return PipelineResult(
         resume_pdf=resume_pdf,
         analysis=analysis,
         selection=selection,
+        cover_letter_pdf=cover_letter_pdf,
     )
