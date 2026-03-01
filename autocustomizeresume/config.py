@@ -5,6 +5,7 @@ Loads config.yaml and .env, provides typed access to all settings.
 
 from __future__ import annotations
 
+import math
 import os
 import shutil
 from dataclasses import dataclass
@@ -70,7 +71,7 @@ class PathsConfig:
 
 @dataclass(frozen=True)
 class WatcherConfig:
-    debounce_seconds: int
+    debounce_seconds: float
 
 
 @dataclass(frozen=True)
@@ -142,6 +143,17 @@ def _get_int(data: dict, key: str, section: str, default: Any = _MISSING) -> int
     except (ValueError, TypeError):
         raise ConfigError(
             f"{section}.{key} must be an integer, got {type(val).__name__}: {val!r}"
+        )
+
+
+def _get_float(data: dict, key: str, section: str, default: Any = _MISSING) -> float:
+    """Get a float value with a clear error on failure."""
+    val = _get(data, key, section, default)
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        raise ConfigError(
+            f"{section}.{key} must be a number, got {type(val).__name__}: {val!r}"
         )
 
 
@@ -231,8 +243,13 @@ def load_config(config_path: str = "config.yaml") -> Config:
     )
 
     watcher_raw = _get(raw, "watcher", "root")
+    debounce_seconds = _get_float(watcher_raw, "debounce_seconds", "watcher")
+    if not math.isfinite(debounce_seconds) or debounce_seconds <= 0:
+        raise ConfigError(
+            "watcher.debounce_seconds must be a positive finite number"
+        )
     watcher = WatcherConfig(
-        debounce_seconds=_get_int(watcher_raw, "debounce_seconds", "watcher"),
+        debounce_seconds=debounce_seconds,
     )
 
     config = Config(
