@@ -55,7 +55,16 @@ def build_name(template: str, variables: dict[str, str]) -> str:
     KeyError
         If the template references a variable not present in *variables*.
     """
-    return template.format(**variables)
+    result = template.format(**variables)
+    return _sanitize_filename(result)
+
+
+_INVALID_CHARS = frozenset('\\/:*?"<>|')
+
+
+def _sanitize_filename(name: str) -> str:
+    """Replace invalid filename characters with underscores."""
+    return "".join("_" if c in _INVALID_CHARS else c for c in name)
 
 
 def _copy(src: Path, dest_dir: Path, filename: str) -> Path:
