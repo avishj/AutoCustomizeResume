@@ -12,7 +12,7 @@
 10. MUST follow existing codebase patterns. No duplicated spaghetti with minor differences.
 
 ## Stack
-Python 3.14, uv, pytest, OpenAI SDK, LaTeX (tectonic)
+Python >=3.10 (recommended 3.14), uv, pytest, OpenAI SDK, LaTeX (tectonic)
 
 ## Project
 CLI tool that auto-customizes a tagged LaTeX resume + cover letter for job applications using LLM-powered content selection.
