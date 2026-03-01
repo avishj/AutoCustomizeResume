@@ -75,6 +75,19 @@ def _copy(src: Path, dest_dir: Path, filename: str) -> Path:
     return dest
 
 
+def _copy_to_dirs(
+    src: Path,
+    output_dir: Path,
+    history_dir: Path,
+    output_template: str,
+    history_template: str,
+    variables: dict[str, str],
+) -> None:
+    """Copy *src* to both output/ and history/ with template-derived names."""
+    _copy(src, output_dir, build_name(output_template, variables))
+    _copy(src, history_dir, build_name(history_template, variables))
+
+
 def handle_output(result: PipelineResult, config: Config) -> None:
     """Copy pipeline PDFs to output/ and history/ with configured names.
 
@@ -89,15 +102,19 @@ def handle_output(result: PipelineResult, config: Config) -> None:
     output_dir = Path(config.paths.output_dir)
     history_dir = Path(config.paths.history_dir)
 
-    # Resume
-    resume_out = build_name(config.naming.output_resume, variables)
-    resume_hist = build_name(config.naming.history_resume, variables)
-    _copy(result.resume_pdf, output_dir, resume_out)
-    _copy(result.resume_pdf, history_dir, resume_hist)
+    _copy_to_dirs(
+        result.resume_pdf,
+        output_dir, history_dir,
+        config.naming.output_resume,
+        config.naming.history_resume,
+        variables,
+    )
 
-    # Cover letter (if generated)
     if result.cover_letter_pdf is not None:
-        cl_out = build_name(config.naming.output_cover, variables)
-        cl_hist = build_name(config.naming.history_cover, variables)
-        _copy(result.cover_letter_pdf, output_dir, cl_out)
-        _copy(result.cover_letter_pdf, history_dir, cl_hist)
+        _copy_to_dirs(
+            result.cover_letter_pdf,
+            output_dir, history_dir,
+            config.naming.output_cover,
+            config.naming.history_cover,
+            variables,
+        )
