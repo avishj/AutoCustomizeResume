@@ -88,10 +88,18 @@ def watch(config: Config, *, company: str | None = None, role: str | None = None
         Optional role title override for every run.
     """
     jd_path = Path(config.paths.jd_file).resolve()
+    _run_lock = threading.Lock()
+    _running = False
 
     def _on_change() -> None:
-        status.info("Change detected, running pipeline…")
+        nonlocal _running
+        with _run_lock:
+            if _running:
+                status.info("Pipeline already running — skipping trigger.")
+                return
+            _running = True
         try:
+            status.info("Change detected, running pipeline…")
             jd_text = jd_path.read_text(encoding="utf-8").strip()
             if not jd_text:
                 status.info("JD file is empty — skipping.")
@@ -101,6 +109,9 @@ def watch(config: Config, *, company: str | None = None, role: str | None = None
             status.success(f"Output → {config.paths.output_dir}/")
         except Exception as exc:
             status.error(f"Pipeline failed: {exc}")
+        finally:
+            with _run_lock:
+                _running = False  # always release, even on early empty-file return
 
     handler = DebouncedHandler(jd_path, config.watcher.debounce_seconds, _on_change)
     observer = Observer()
