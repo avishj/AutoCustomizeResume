@@ -13,6 +13,7 @@ from autocustomizeresume import status
 from autocustomizeresume.config import ConfigError, load_config
 from autocustomizeresume.namer import handle_output
 from autocustomizeresume.pipeline import run_pipeline
+from autocustomizeresume.watcher import watch
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -67,9 +68,8 @@ def main(argv: list[str] | None = None) -> None:
         if args.jd:
             _run_oneshot(args.jd, company=args.company, role=args.role)
         else:
-            # Watch mode — added in a later commit
-            status.error("Watch mode not yet implemented. Use --jd for one-shot mode.")
-            sys.exit(1)
+            config = load_config()
+            watch(config, company=args.company, role=args.role)
     except ConfigError as exc:
         status.error(str(exc))
         sys.exit(1)

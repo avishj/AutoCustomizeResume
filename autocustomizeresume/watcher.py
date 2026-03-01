@@ -7,11 +7,18 @@ after a configurable debounce period.
 from __future__ import annotations
 
 import os
+import time
 import threading
 from pathlib import Path
 from typing import Callable
 
 from watchdog.events import FileModifiedEvent, FileSystemEventHandler
+from watchdog.observers import Observer
+
+from autocustomizeresume import status
+from autocustomizeresume.config import Config
+from autocustomizeresume.namer import handle_output
+from autocustomizeresume.pipeline import run_pipeline
 
 
 class DebouncedHandler(FileSystemEventHandler):
@@ -62,3 +69,51 @@ class DebouncedHandler(FileSystemEventHandler):
             self._timer = threading.Timer(self._debounce, self._callback)
             self._timer.daemon = True
             self._timer.start()
+
+
+def watch(config: Config, *, company: str | None = None, role: str | None = None) -> None:
+    """Start watching the JD file for changes.
+
+    Runs until interrupted with Ctrl+C.  Each detected change
+    triggers a full pipeline run; errors are printed but do not
+    stop the watcher.
+
+    Parameters
+    ----------
+    config:
+        Application configuration.
+    company:
+        Optional company name override for every run.
+    role:
+        Optional role title override for every run.
+    """
+    jd_path = Path(config.paths.jd_file).resolve()
+
+    def _on_change() -> None:
+        status.info("Change detected, running pipeline…")
+        try:
+            jd_text = jd_path.read_text(encoding="utf-8").strip()
+            if not jd_text:
+                status.info("JD file is empty — skipping.")
+                return
+            result = run_pipeline(jd_text, config, company=company, role=role)
+            handle_output(result, config)
+            status.success(f"Output → {config.paths.output_dir}/")
+        except Exception as exc:
+            status.error(f"Pipeline failed: {exc}")
+
+    handler = DebouncedHandler(jd_path, config.watcher.debounce_seconds, _on_change)
+    observer = Observer()
+    observer.schedule(handler, str(jd_path.parent), recursive=False)
+    observer.start()
+
+    status.info(f"Watching {config.paths.jd_file} for changes (Ctrl+C to stop)…")
+
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        observer.stop()
+        observer.join()
