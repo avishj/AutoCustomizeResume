@@ -1,39 +1,34 @@
 # AutoCustomizeResume
 
-Auto-customize a tagged LaTeX resume (and optional cover letter) for each job description using LLM-powered content selection, compiled to PDF with Tectonic.
+Customize your LaTeX resume and cover letter for every job application, automatically. Paste a job description, get a tailored and optimized one-page resume and matching cover letter as compiled PDFs.
 
 [![License: AGPL-3.0](https://img.shields.io/github/license/avishj/AutoCustomizeResume)](./LICENSE)
 [![Python >= 3.10](https://img.shields.io/badge/python-%3E%3D3.10-blue)](./pyproject.toml)
 [![Stars](https://img.shields.io/github/stars/avishj/AutoCustomizeResume)](https://github.com/avishj/AutoCustomizeResume/stargazers)
 [![Last commit](https://img.shields.io/github/last-commit/avishj/AutoCustomizeResume)](https://github.com/avishj/AutoCustomizeResume/commits/main)
 
-## How it works
+## What it does
 
-You tag your LaTeX resume with `pinned` (always keep) and `optional` (LLM decides) markers. Paste a job description, and the tool selects the most relevant content, reorders skills, and compiles a one-page PDF. If the result exceeds one page, it automatically drops the lowest-scored optional items and recompiles.
+You write one master resume in LaTeX with all your experience, projects, and skills. The tool reads a job description and uses an LLM to tailor your resume at every level:
 
-```mermaid
-flowchart LR
-  subgraph Inputs
-    R[resume.tex\ntagged LaTeX]
-    J[jd.txt\njob description]
-  end
+- **Sections** (Education, Experience, Projects, Research) are included or excluded based on relevance.
+- **Items** (individual jobs, projects, publications) are selected or dropped per role.
+- **Bullets** within each item are individually included or excluded, with minor keyword edits to match the JD language.
+- **Skills** are reordered by relevance, with new skills added and irrelevant ones removed per category.
+- **Cover letter** is generated from scratch using your selected resume content and the JD.
+- **One-page enforcement** automatically drops the lowest-scored optional content and recompiles until it fits.
 
-  R --> Parse
-  J --> Analyze[Analyze JD\nvia LLM]
-  Parse --> Select[Select content\nvia LLM]
-  Analyze --> Select
-  Select --> Assemble[Assemble\nLaTeX]
-  Assemble --> Compile[Compile\nTectonic]
-  Compile --> Check{≤ 1 page?}
-  Check -->|No| Drop[Drop lowest\nscored item] --> Assemble
-  Check -->|Yes| Out[output/\nResume PDF]
+The output is a compiled PDF ready to submit. Every run is archived with timestamps so you never lose a previous version.
 
-  Analyze --> CL{Cover letter\nenabled?}
-  Select --> CL
-  CL -->|Yes| Gen[Generate +\ncompile] --> OutCL[output/\nCover Letter PDF]
+## Quick start
+
+```bash
+git clone https://github.com/avishj/AutoCustomizeResume.git
+cd AutoCustomizeResume
+uv sync
 ```
 
-Both output files are also archived to `history/` with timestamps so previous runs are never overwritten.
+Then follow the setup instructions in [`examples/`](./examples/) to configure your resume, API key, and config file.
 
 ## Prerequisites
 
@@ -45,33 +40,6 @@ Both output files are also archived to `history/` with timestamps so previous ru
   - Cargo: `cargo install tectonic`
 - **LLM API key** for any OpenAI-compatible provider (or local Ollama)
 
-## Quick start
-
-```bash
-git clone https://github.com/avishj/AutoCustomizeResume.git
-cd AutoCustomizeResume
-
-# Install
-uv sync
-
-# Copy example config, env, and resume template
-cp examples/config.example.yaml config.yaml
-cp examples/.env.example .env
-cp examples/resume.simple.example.tex resume.tex
-# OR for a full-featured template:
-# cp examples/resume.advanced.example.tex resume.tex
-
-# Fill in config.yaml with your details and add your API key to .env
-
-# Paste a job description
-pbpaste > jd.txt   # or copy/create manually
-
-# Run
-uv run autocustomizeresume --jd jd.txt
-```
-
-Output lands in `output/`. See [`examples/`](./examples/) for all sample files and setup notes.
-
 ## Tagging your resume
 
 You mark sections, items, and bullets with LaTeX comment tags so the tool knows what it can include or exclude.
@@ -79,7 +47,7 @@ You mark sections, items, and bullets with LaTeX comment tags so the tool knows 
 ```latex
 %%% BEGIN:pinned:education        ← always included
 \section{Education}
-    %%% BEGIN:optional:state-u     ← LLM decides per job
+    %%% BEGIN:optional:state-u     ← LLM decides per section, per item, per bullet, and then can edit bullet too!
     \resumeSubheading{State University}{...}
     %%% END:optional:state-u
 %%% END:pinned:education
