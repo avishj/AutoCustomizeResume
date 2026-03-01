@@ -113,7 +113,7 @@ class TestRunPipeline:
     @patch("autocustomizeresume.pipeline.LLMClient")
     @patch("autocustomizeresume.pipeline.parse_resume")
     def test_resume_pipeline(
-        self, mock_parse, mock_llm_cls, mock_analyze, mock_select, mock_compile,
+        self, mock_parse, _mock_llm_cls, mock_analyze, mock_select, mock_compile,
         tmp_path, resume_config,
     ):
         parsed = MagicMock()
@@ -149,7 +149,7 @@ class TestRunPipeline:
     @patch("autocustomizeresume.pipeline.LLMClient")
     @patch("autocustomizeresume.pipeline.parse_resume")
     def test_cover_letter_enabled(
-        self, mock_parse, mock_llm_cls, mock_analyze, mock_select,
+        self, mock_parse, _mock_llm_cls, mock_analyze, mock_select,
         mock_compile, mock_build_cl, tmp_path, resume_config,
     ):
         config = replace(
@@ -181,7 +181,7 @@ class TestRunPipeline:
     @patch("autocustomizeresume.pipeline.LLMClient")
     @patch("autocustomizeresume.pipeline.parse_resume")
     def test_company_role_overrides(
-        self, mock_parse, mock_llm_cls, mock_analyze, mock_select, mock_compile,
+        self, mock_parse, _mock_llm_cls, mock_analyze, mock_select, mock_compile,
         tmp_path, resume_config,
     ):
         mock_parse.return_value = MagicMock()
@@ -206,7 +206,7 @@ class TestRunPipeline:
     @patch("autocustomizeresume.pipeline.LLMClient")
     @patch("autocustomizeresume.pipeline.parse_resume")
     def test_cover_letter_disabled(
-        self, mock_parse, mock_llm_cls, mock_analyze, mock_select, mock_compile,
+        self, mock_parse, _mock_llm_cls, mock_analyze, mock_select, mock_compile,
         tmp_path, resume_config,
     ):
         mock_parse.return_value = MagicMock()
