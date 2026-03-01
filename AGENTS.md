@@ -1,7 +1,7 @@
 ## Rules
 
 1. NEVER use more than one tool call per response. NEVER ever use parallel/stacked calls.
-2. NEVER create a file when edit_file can be used. NEVER use create_file unless file DOES NOT exist. edit_tool is MANDATORY.
+2. NEVER create a file when edit_file can be used. NEVER use create_file unless file DOES NOT exist. edit_file is MANDATORY.
 3. NEVER make multiple edits to one file unless the edits are unrelated work. Use a single edit_file call.
 4. NEVER auto-commit. User always commits. MUST only give a message.
 5. NEVER add tech debt or stupid hacks.
