@@ -5,6 +5,7 @@ Loads config.yaml and .env, provides typed access to all settings.
 
 from __future__ import annotations
 
+import math
 import os
 import shutil
 from dataclasses import dataclass
@@ -242,8 +243,13 @@ def load_config(config_path: str = "config.yaml") -> Config:
     )
 
     watcher_raw = _get(raw, "watcher", "root")
+    debounce_seconds = _get_float(watcher_raw, "debounce_seconds", "watcher")
+    if not math.isfinite(debounce_seconds) or debounce_seconds <= 0:
+        raise ConfigError(
+            "watcher.debounce_seconds must be a positive finite number"
+        )
     watcher = WatcherConfig(
-        debounce_seconds=_get_float(watcher_raw, "debounce_seconds", "watcher"),
+        debounce_seconds=debounce_seconds,
     )
 
     config = Config(
