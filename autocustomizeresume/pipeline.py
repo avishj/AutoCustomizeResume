@@ -30,7 +30,7 @@ class PipelineResult:
 
     resume_pdf: Path
     analysis: JDAnalysis
-    selection: ContentSelection
+    selection: ContentSelection | None = None
     cover_letter_pdf: Path | None = None
 
 
