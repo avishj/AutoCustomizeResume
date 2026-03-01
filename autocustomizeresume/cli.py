@@ -42,7 +42,7 @@ def _build_parser() -> argparse.ArgumentParser:
 def _run_oneshot(jd_path: str, *, company: str | None, role: str | None) -> None:
     """Execute a single pipeline run."""
     jd_file = Path(jd_path)
-    if not jd_file.exists():
+    if not jd_file.is_file():
         status.error(f"JD file not found: {jd_path}")
         sys.exit(1)
 
