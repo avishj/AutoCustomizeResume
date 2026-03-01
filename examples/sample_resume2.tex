@@ -1,0 +1,337 @@
+%-------------------------
+% Sample Tagged Resume — AutoCustomizeResume
+%
+% This is an anonymized example of a fully tagged resume showing every tag type:
+%   - pinned / optional sections
+%   - pinned / optional items
+%   - pinned / optional bullets
+%   - SKILLS categories
+%
+% See TAGS.md for the full specification.
+%-------------------------
+
+\documentclass[a4,10pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage{graphics}
+\usepackage{ragged2e}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\usepackage{fontawesome5}
+\usepackage{multicol}
+\setlength{\multicolsep}{-3.0pt}
+\setlength{\columnsep}{-1pt}
+\ifpdftex
+  \input{glyphtounicode}
+\fi
+
+
+%----------FONT OPTIONS----------
+% sans-serif
+\usepackage[sfdefault]{FiraSans}
+% \usepackage[sfdefault]{roboto}
+% \usepackage[sfdefault]{noto-sans}
+% \usepackage[default]{sourcesanspro}
+
+% serif
+% \usepackage{CormorantGaramond}
+% \usepackage{charter}
+
+
+\pagestyle{fancy}
+\fancyhf{} % clear all header and footer fields
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Adjust margins
+\addtolength{\oddsidemargin}{-0.6in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1.19in}
+\addtolength{\topmargin}{-.7in}
+\addtolength{\textheight}{1.4in}
+
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+% Sections formatting
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large\bfseries
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+% Ensure that generate pdf is machine readable/ATS parsable
+\ifpdftex
+  \pdfgentounicode=1
+\fi
+
+%-------------------------
+% Custom commands
+\newcommand{\resumeItem}[1]{
+  \item\small{\justifying #1 \vspace{-2pt}}
+}
+
+\newcommand{\classesList}[4]{
+    \item\small{
+        {#1 #2 #3 #4 \vspace{-2pt}}
+  }
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{1.0\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & \textbf{\small #2} \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-6pt}
+}
+
+\newcommand{\resumeResearchheading}[4]{
+  \vspace{-4pt}\item
+    \begin{tabular*}{1.0\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \small{#1} & \textbf{\small #2} \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubSubheading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \textit{\small#1} & \textit{\small #2} \\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+    \vspace{-2pt}\item
+    \begin{tabular*}{1\textwidth}{l@{\extracolsep{\fill}}r}
+      \small#1 & \textbf{\small #2}\\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubItem}[1]{\resumeItem{#1}\vspace{-4pt}}
+
+\renewcommand\labelitemi{$\vcenter{\hbox{\tiny$\bullet$}}$}
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.0in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+%-------------------------------------------
+%%%%%%  RESUME STARTS HERE  %%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{document}
+\begin{center}
+    {\huge \scshape Morgan R. Chen} \\ \vspace{3pt}
+    \small \raisebox{-0.1\height}\faPhone\ (555) 987-6543 ~ \href{mailto:mchen@example.edu}{\raisebox{-0.2\height}\faEnvelope\  \underline{morgan.chen@example.edu}} ~ 
+    \href{https://linkedin.com/in/mchen/}{\raisebox{-0.2\height}\faLinkedin\ \underline{linkedin.com/in/mchen}}  ~
+    \href{https://github.com/mchen}{\raisebox{-0.2\height}\faGithub\ \underline{github.com/mchen}} ~
+    \href{https://mchen.dev}{\raisebox{-0.2\height}\faGlobe\ \underline{mchen.dev}} ~
+    \href{https://scholar.google.com/citations?user=EXAMPLE}{\raisebox{-0.1\height}\faGoogle\ \underline{GScholar}}
+    \vspace{-4pt}
+\end{center}
+
+%%% BEGIN:pinned:education
+%-----------EDUCATION-----------
+\section{Education}
+    \resumeSubHeadingListStart
+        %%% BEGIN:pinned:westfield-u
+        \resumeSubheading
+        {Westfield University -- College of Engineering}
+        {Dec 2025}
+        {\href{https://morganchen.dev/view/westfield/}{Master of Science in Computer Engineering, \textbf{GPA: 3.95/4.00}~\scalebox{0.8}{\faLink}}}
+        {Portland, OR}
+        \resumeItemListStart
+            %%% BEGIN:pinned:westfield-u-1
+            \resumeItem{\textbf{Teaching Assistant}: CS-502 Operating Systems}
+            %%% END:pinned:westfield-u-1
+        \resumeItemListEnd
+        %%% END:pinned:westfield-u
+
+        %%% BEGIN:optional:lakewood-u
+        \resumeSubheading
+        {Lakewood College of Engineering}
+        {Jun 2023}
+        {\href{https://morganchen.dev/view/lakewood/}
+        {Bachelor of Engineering in Information Technology, \textbf{GPA: 3.70/4.00}~\scalebox{0.8}{\faLink}}}
+        {Melbourne, Australia}
+        %%% END:optional:lakewood-u
+  \resumeSubHeadingListEnd
+%%% END:pinned:education
+
+%%% BEGIN:optional:experience
+%-----------EXPERIENCE-----------
+\section{Industry Experience}
+  \resumeSubHeadingListStart
+
+    %%% BEGIN:pinned:orbiter
+    \resumeSubheading
+   {Orbiter Labs}{Aug 2025 -- Dec 2025}
+   {\href{https://morganchen.dev/view/orbiter/}{Software Engineering Intern (Capstone)~\scalebox{0.8}{\faLink}}}{Portland, OR}
+   \resumeItemListStart
+        %%% BEGIN:optional:orbiter-1
+        \resumeItem{Led a 4-person team designing a \textbf{real-time satellite telemetry dashboard} in \textbf{Rust/WebAssembly}, rendering \textbf{50k data points per second} with sub-16ms frame times in the browser using custom GPU-accelerated charting.}
+        %%% END:optional:orbiter-1
+        %%% BEGIN:optional:orbiter-2
+        \resumeItem{Reduced ground station data ingestion latency by \textbf{82\% (450ms to 80ms)} by replacing the legacy polling architecture with a \textbf{gRPC streaming pipeline} backed by \textbf{NATS JetStream} for durable message delivery.}
+        %%% END:optional:orbiter-2
+        %%% BEGIN:pinned:orbiter-3
+        \resumeItem{Implemented an \textbf{anomaly detection engine} using sliding-window statistics over telemetry streams, triggering automated alerts that caught \textbf{3 thermal exceedance events} during live satellite passes before operators noticed.}
+        %%% END:pinned:orbiter-3
+   \resumeItemListEnd
+   %%% END:pinned:orbiter
+   
+    %%% BEGIN:optional:finova
+    \resumeSubheading
+   {Finova Systems -- Trading Platform}{Jun 2025 -- Aug 2025}
+   {\href{https://morganchen.dev/view/finova/}{Backend Engineer Intern~\scalebox{0.8}{\faLink}}}{Chicago, IL}
+   \resumeItemListStart
+     %%% BEGIN:optional:finova-1
+     \resumeItem{Rebuilt the \textbf{order matching engine} in \textbf{Go}, replacing a monolithic Java service with a lock-free ring buffer design that handled \textbf{200k orders/sec} with \textbf{p99 latency under 12\textmu s} on commodity hardware.}
+     %%% END:optional:finova-1
+     %%% BEGIN:optional:finova-2
+     \resumeItem{Built a \textbf{market data replay system} ingesting \textbf{3TB of historical tick data} from S3, enabling deterministic backtesting of trading strategies with nanosecond-precision timestamp alignment.}
+     %%% END:optional:finova-2
+     %%% BEGIN:optional:finova-3
+     \resumeItem{Designed a \textbf{circuit-breaker middleware} for upstream exchange connections using adaptive thresholds, preventing \textbf{cascade failures} during 2 flash-crash simulations and reducing manual intervention by \textbf{90\%}.}
+     %%% END:optional:finova-3
+     %%% BEGIN:optional:finova-4
+     \resumeItem{Migrated \textbf{40+ integration tests} from Docker Compose to \textbf{Testcontainers}, cutting CI pipeline runtime from \textbf{18 minutes to 6 minutes} while improving test isolation and reproducibility.}
+     %%% END:optional:finova-4
+   \resumeItemListEnd
+    %%% END:optional:finova
+
+    %%% BEGIN:optional:gridware
+    \resumeSubheading
+   {Gridware Energy Solutions}{Jan 2023 -- Jul 2024}
+   {\href{https://morganchen.dev/view/gridware/}{Software Engineer -- Data Platform \& Analytics~\scalebox{0.8}{\faLink}}}{Austin, TX}
+   \resumeItemListStart
+        %%% BEGIN:optional:gridware-1
+        \resumeItem{Architected a \textbf{Django + Celery} pipeline ingesting smart meter readings from \textbf{50k+ IoT sensors}, normalizing heterogeneous protocols (Modbus, MQTT, REST) into a unified \textbf{TimescaleDB} schema for downstream forecasting.}
+        %%% END:optional:gridware-1
+        %%% BEGIN:optional:gridware-2
+        \resumeItem{Developed a \textbf{demand forecasting model} using \textbf{Prophet + XGBoost} ensembles trained on 4 years of load data, achieving \textbf{MAPE of 2.8\%} and saving the utility client an estimated \textbf{\$1.2M/year} in peak-hour procurement costs.}
+        %%% END:optional:gridware-2
+   \resumeItemListEnd
+    %%% END:optional:gridware
+
+    %%% BEGIN:optional:coastal-lab
+    \resumeSubheading
+      {Coastal Research Lab, New Zealand}{May 2022 -- Aug 2022}
+      {\href{https://morganchen.dev/view/coastal-lab/}{Research Software Intern~\scalebox{0.8}{\faLink}}}{Wellington, NZ}
+      \resumeItemListStart
+        %%% BEGIN:optional:coastal-lab-1
+        \resumeItem{Built a \textbf{geospatial pipeline} in \textbf{Python/GDAL} processing \textbf{200GB of LiDAR point clouds} to generate high-resolution coastal erosion maps, automating a workflow that previously took researchers \textbf{2 weeks of manual GIS work} per dataset.}
+        %%% END:optional:coastal-lab-1
+    \resumeItemListEnd
+    %%% END:optional:coastal-lab
+
+    %%% BEGIN:optional:brightpath
+     \resumeProjectHeading
+      {\href{https://morganchen.dev/view/brightpath/}{\textbf{BrightPath Analytics} $|$ \emph{Data Engineering Intern}~\scalebox{0.8}{\faLink}}}{Jan 2022 -- Apr 2022}
+    \vspace{-7pt}
+    %%% END:optional:brightpath
+    %%% BEGIN:optional:duramet
+    \resumeProjectHeading
+      {\href{https://morganchen.dev/view/duramet/}{\textbf{DuraMet Manufacturing} $|$ \emph{Intern / Quality Systems}~\scalebox{0.8}{\faLink}}}{Jun 2021 -- Aug 2021}    
+    %%% END:optional:duramet
+  \resumeSubHeadingListEnd
+%%% END:optional:experience
+
+%%% BEGIN:optional:research
+\section{Research Publications}
+
+    {\small \textbf{NOTE:} All publications are \textit{double blind peer-reviewed. Full list of 4 papers on \href{https://scholar.google.com/citations?user=EXAMPLE}{\textbf{Google Scholar}~\scalebox{0.8}{\faLink}}.}}
+    
+    \resumeSubHeadingListStart
+        
+        %%% BEGIN:optional:anomaly-paper
+        \resumeResearchheading
+        {\textbf{ACM SIGKDD, 2023} $|$ \emph{Python, PyTorch, Graph Neural Networks}}
+        {Mar 2023 - Sep 2023}
+        {\href{https://morganchen.dev/research/anomaly-paper/}{Temporal Graph Attention Networks for Real-Time Anomaly Detection in Streaming Sensor Data \scalebox{0.8}{\faLink}}}
+        {Melbourne, Australia}
+        %%% END:optional:anomaly-paper
+        
+        %%% BEGIN:optional:compression-paper
+        \resumeResearchheading
+        {\textbf{IEEE ICIP, 2023} $|$ \emph{Python, NumPy, FFT}}
+        {Jan 2023 - Sep 2023}
+        {\href{https://morganchen.dev/research/compression-paper/}{Adaptive Wavelet Quantization for Low-Bandwidth Satellite Image Compression \scalebox{0.8}{\faLink}}}
+        {Melbourne, Australia}
+        %%% END:optional:compression-paper
+        
+    \resumeSubHeadingListEnd
+%%% END:optional:research
+
+%%% BEGIN:optional:projects
+\vspace{-12pt}
+\section{Projects}
+
+    {\small \textbf{NOTE:} Selected projects, full list of 8+ projects on \href{https://morganchen.dev}{\textbf{morganchen.dev}~\scalebox{0.8}{\faLink}}.}
+    
+    \resumeSubHeadingListStart
+
+        %%% BEGIN:optional:terraviz
+        \resumeProjectHeading
+    {\href{https://terraviz.morganchen.dev}{\textbf{TerraViz} $|$ \emph{Rust, WebAssembly, MapLibre GL, D3.js} \scalebox{0.8}{\faLink}}}
+    {Nov 2025 -- Present}
+    \resumeItemListStart
+        %%% BEGIN:optional:terraviz-1
+        \resumeItem{Renders interactive 3D terrain maps from public elevation datasets, letting users overlay custom GeoJSON layers with real-time shading and contour generation entirely in the browser via WASM-compiled Rust.}
+        %%% END:optional:terraviz-1
+    \resumeItemListEnd
+        %%% END:optional:terraviz
+
+        %%% BEGIN:optional:pulsemon
+    \resumeProjectHeading
+    {\href{https://pulsemon.morganchen.dev}{\textbf{PulseMon} $|$ \emph{Go, eBPF, Prometheus} \scalebox{0.8}{\faLink}}}
+    {Jan 2025 -- Present}
+    \resumeItemListStart
+        %%% BEGIN:optional:pulsemon-1
+        \resumeItem{Lightweight Linux host monitor using eBPF probes to capture per-process network and syscall metrics with zero config, exporting to Prometheus and triggering PagerDuty alerts when latency thresholds breach SLOs.}
+        %%% END:optional:pulsemon-1
+    \resumeItemListEnd
+        %%% END:optional:pulsemon
+
+    \resumeSubHeadingListEnd
+%%% END:optional:projects
+
+%%% BEGIN:pinned:skills
+\section{Skills, Awards \& Roles}
+\vspace{-1pt}
+ \begin{itemize}[leftmargin=0in, label={}]
+    \small{\item{
+
+     %%% SKILLS:languages
+     \textbf{Languages}{: Rust, Go, Python, C, TypeScript, Java, SQL, Bash, Zig, HTML/CSS.} \\
+     %%% END:SKILLS:languages
+
+     %%% SKILLS:cloud-infra
+     \textbf{Cloud \& Infra}{: AWS, GCP, Docker, Kubernetes, Terraform, NATS, PostgreSQL, TimescaleDB, Redis, Linux, Git.} \\
+     %%% END:SKILLS:cloud-infra
+
+     %%% SKILLS:frameworks-tools
+     \textbf{Frameworks \& Tools}{: Django, FastAPI, gRPC, Prometheus, Grafana, MapLibre, D3.js, PyTorch, GDAL, eBPF.} \\
+     %%% END:SKILLS:frameworks-tools
+
+     %%% SKILLS:awards-roles
+     \textbf{Awards \& Roles}{: Best Capstone Project 2025, VP of Systems Engineering Club at Westfield.}
+     %%% END:SKILLS:awards-roles
+
+    }}
+ \end{itemize}
+%%% END:pinned:skills
+    
+\end{document}
