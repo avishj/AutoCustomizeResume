@@ -74,9 +74,9 @@ def run_pipeline(
 
     # Apply company/role overrides
     overrides: dict[str, str] = {}
-    if company:
+    if company is not None:
         overrides["company"] = company
-    if role:
+    if role is not None:
         overrides["role"] = role
     if overrides:
         analysis = replace(analysis, **overrides)
