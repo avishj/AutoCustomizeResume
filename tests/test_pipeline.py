@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -67,6 +68,22 @@ def _make_config(cover_letter_enabled=False) -> Config:
     )
 
 
+@pytest.fixture
+def resume_config(tmp_path):
+    """Config with master_resume pointing to a real file in tmp_path."""
+    resume_tex = tmp_path / "resume.tex"
+    resume_tex.write_text(r"\documentclass{article}")
+    return replace(
+        _make_config(),
+        paths=PathsConfig(
+            master_resume=str(resume_tex),
+            jd_file="jd.txt",
+            output_dir="output",
+            history_dir="history",
+        ),
+    )
+
+
 def _make_analysis() -> JDAnalysis:
     return JDAnalysis(
         company="Acme",
@@ -96,22 +113,9 @@ class TestRunPipeline:
     @patch("autocustomizeresume.pipeline.LLMClient")
     @patch("autocustomizeresume.pipeline.parse_resume")
     def test_resume_pipeline(
-        self, mock_parse, mock_llm_cls, mock_analyze, mock_select, mock_compile, tmp_path
+        self, mock_parse, mock_llm_cls, mock_analyze, mock_select, mock_compile,
+        tmp_path, resume_config,
     ):
-        # Setup
-        resume_tex = tmp_path / "resume.tex"
-        resume_tex.write_text(r"\documentclass{article}")
-        config = _make_config()
-        config = Config(
-            user=config.user, naming=config.naming, llm=config.llm,
-            cover_letter=config.cover_letter,
-            paths=PathsConfig(
-                master_resume=str(resume_tex), jd_file="jd.txt",
-                output_dir="output", history_dir="history",
-            ),
-            watcher=config.watcher,
-        )
-
         parsed = MagicMock()
         mock_parse.return_value = parsed
         analysis = _make_analysis()
@@ -124,7 +128,7 @@ class TestRunPipeline:
         mock_compile.return_value = (fake_pdf, selection)
 
         # Run
-        result = run_pipeline("Some JD text", config)
+        result = run_pipeline("Some JD text", resume_config)
 
         # Verify
         assert isinstance(result, PipelineResult)
@@ -146,19 +150,11 @@ class TestRunPipeline:
     @patch("autocustomizeresume.pipeline.parse_resume")
     def test_cover_letter_enabled(
         self, mock_parse, mock_llm_cls, mock_analyze, mock_select,
-        mock_compile, mock_build_cl, tmp_path,
+        mock_compile, mock_build_cl, tmp_path, resume_config,
     ):
-        resume_tex = tmp_path / "resume.tex"
-        resume_tex.write_text(r"\documentclass{article}")
-        config = _make_config(cover_letter_enabled=True)
-        config = Config(
-            user=config.user, naming=config.naming, llm=config.llm,
-            cover_letter=config.cover_letter,
-            paths=PathsConfig(
-                master_resume=str(resume_tex), jd_file="jd.txt",
-                output_dir="output", history_dir="history",
-            ),
-            watcher=config.watcher,
+        config = replace(
+            resume_config,
+            cover_letter=replace(resume_config.cover_letter, enabled=True),
         )
 
         mock_parse.return_value = MagicMock()
@@ -185,21 +181,9 @@ class TestRunPipeline:
     @patch("autocustomizeresume.pipeline.LLMClient")
     @patch("autocustomizeresume.pipeline.parse_resume")
     def test_company_role_overrides(
-        self, mock_parse, mock_llm_cls, mock_analyze, mock_select, mock_compile, tmp_path
+        self, mock_parse, mock_llm_cls, mock_analyze, mock_select, mock_compile,
+        tmp_path, resume_config,
     ):
-        resume_tex = tmp_path / "resume.tex"
-        resume_tex.write_text(r"\documentclass{article}")
-        config = _make_config()
-        config = Config(
-            user=config.user, naming=config.naming, llm=config.llm,
-            cover_letter=config.cover_letter,
-            paths=PathsConfig(
-                master_resume=str(resume_tex), jd_file="jd.txt",
-                output_dir="output", history_dir="history",
-            ),
-            watcher=config.watcher,
-        )
-
         mock_parse.return_value = MagicMock()
         mock_analyze.return_value = _make_analysis()
         selection = _make_selection()
@@ -210,7 +194,7 @@ class TestRunPipeline:
         mock_compile.return_value = (fake_pdf, selection)
 
         result = run_pipeline(
-            "Some JD text", config, company="Override Corp", role="Lead Dev"
+            "Some JD text", resume_config, company="Override Corp", role="Lead Dev"
         )
 
         assert result.analysis.company == "Override Corp"
@@ -222,21 +206,9 @@ class TestRunPipeline:
     @patch("autocustomizeresume.pipeline.LLMClient")
     @patch("autocustomizeresume.pipeline.parse_resume")
     def test_cover_letter_disabled(
-        self, mock_parse, mock_llm_cls, mock_analyze, mock_select, mock_compile, tmp_path
+        self, mock_parse, mock_llm_cls, mock_analyze, mock_select, mock_compile,
+        tmp_path, resume_config,
     ):
-        resume_tex = tmp_path / "resume.tex"
-        resume_tex.write_text(r"\documentclass{article}")
-        config = _make_config(cover_letter_enabled=False)
-        config = Config(
-            user=config.user, naming=config.naming, llm=config.llm,
-            cover_letter=config.cover_letter,
-            paths=PathsConfig(
-                master_resume=str(resume_tex), jd_file="jd.txt",
-                output_dir="output", history_dir="history",
-            ),
-            watcher=config.watcher,
-        )
-
         mock_parse.return_value = MagicMock()
         mock_analyze.return_value = _make_analysis()
         selection = _make_selection()
@@ -246,6 +218,6 @@ class TestRunPipeline:
         fake_pdf.write_text("pdf")
         mock_compile.return_value = (fake_pdf, selection)
 
-        result = run_pipeline("Some JD text", config)
+        result = run_pipeline("Some JD text", resume_config)
 
         assert result.cover_letter_pdf is None
