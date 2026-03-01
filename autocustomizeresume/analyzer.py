@@ -57,7 +57,10 @@ Rules:
 # Public API
 # ---------------------------------------------------------------------------
 
-def analyze_jd(jd_text: str, *, config: Config, client: LLMClient | None = None) -> JDAnalysis:
+
+def analyze_jd(
+    jd_text: str, *, config: Config, client: LLMClient | None = None
+) -> JDAnalysis:
     """Analyze a job description and return structured metadata.
 
     Parameters
@@ -81,7 +84,9 @@ def analyze_jd(jd_text: str, *, config: Config, client: LLMClient | None = None)
 
     raw = client.chat_json(
         system=_SYSTEM_PROMPT,
-        user=f"<jd>\n{re.sub(r'</?jd\s*>', '', jd_text, flags=re.IGNORECASE)}\n</jd>",
+        user="<jd>\n{}\n</jd>".format(
+            re.sub(r"</?jd\s*>", "", jd_text, flags=re.IGNORECASE)
+        ),
         temperature=0.1,
     )
 

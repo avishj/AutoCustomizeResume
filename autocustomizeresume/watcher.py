@@ -71,7 +71,9 @@ class DebouncedHandler(FileSystemEventHandler):
             self._timer.start()
 
 
-def watch(config: Config, *, company: str | None = None, role: str | None = None) -> None:
+def watch(
+    config: Config, *, company: str | None = None, role: str | None = None
+) -> None:
     """Start watching the JD file for changes.
 
     Runs until interrupted with Ctrl+C.  Each detected change

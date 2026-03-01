@@ -104,7 +104,8 @@ def handle_output(result: PipelineResult, config: Config) -> None:
 
     _copy_to_dirs(
         result.resume_pdf,
-        output_dir, history_dir,
+        output_dir,
+        history_dir,
         config.naming.output_resume,
         config.naming.history_resume,
         variables,
@@ -113,7 +114,8 @@ def handle_output(result: PipelineResult, config: Config) -> None:
     if result.cover_letter_pdf is not None:
         _copy_to_dirs(
             result.cover_letter_pdf,
-            output_dir, history_dir,
+            output_dir,
+            history_dir,
             config.naming.output_cover,
             config.naming.history_cover,
             variables,

@@ -21,7 +21,6 @@ from autocustomizeresume.assembler import (
 )
 from autocustomizeresume.models import (
     Bullet,
-    ParsedResume,
     ResumeItem,
     ResumeSection,
     SkillCategory,
@@ -47,44 +46,61 @@ def _load_fixture(name: str) -> str:
 # Helpers for building test data
 # ---------------------------------------------------------------------------
 
-def _make_bullet(tag_type: str = "optional", bullet_id: str = "b1",
-                 text: str = r"\resumeItem{Did something.}") -> Bullet:
+
+def _make_bullet(
+    tag_type: str = "optional",
+    bullet_id: str = "b1",
+    text: str = r"\resumeItem{Did something.}",
+) -> Bullet:
     return Bullet(tag_type=tag_type, id=bullet_id, text=text)
 
 
-def _make_item(tag_type: str = "optional", item_id: str = "it1",
-               heading: str = r"\resumeSubheading{Co}{2024}{Role}{City}",
-               bullets: list[Bullet] | None = None,
-               interstitial: list[tuple[int, str]] | None = None) -> ResumeItem:
+def _make_item(
+    tag_type: str = "optional",
+    item_id: str = "it1",
+    heading: str = r"\resumeSubheading{Co}{2024}{Role}{City}",
+    bullets: list[Bullet] | None = None,
+    interstitial: list[tuple[int, str]] | None = None,
+) -> ResumeItem:
     return ResumeItem(
-        tag_type=tag_type, id=item_id,
+        tag_type=tag_type,
+        id=item_id,
         heading_lines=heading,
         bullets=bullets or [],
         interstitial=interstitial or [],
     )
 
 
-def _make_item_decision(item_id: str = "it1", include: bool = True,
-                         score: int = 50,
-                         bullets: list[BulletDecision] | None = None) -> ItemDecision:
-    return ItemDecision(id=item_id, include=include,
-                        relevance_score=score, bullets=bullets or [])
+def _make_item_decision(
+    item_id: str = "it1",
+    include: bool = True,
+    score: int = 50,
+    bullets: list[BulletDecision] | None = None,
+) -> ItemDecision:
+    return ItemDecision(
+        id=item_id, include=include, relevance_score=score, bullets=bullets or []
+    )
 
 
-def _make_section_decision(section_id: str = "s1", include: bool = True,
-                            items: list[ItemDecision] | None = None) -> SectionDecision:
+def _make_section_decision(
+    section_id: str = "s1",
+    include: bool = True,
+    items: list[ItemDecision] | None = None,
+) -> SectionDecision:
     return SectionDecision(id=section_id, include=include, items=items or [])
 
 
-def _make_selection(sections: list[SectionDecision] | None = None,
-                    skill_cats: list[SkillCategoryDecision] | None = None) -> ContentSelection:
-    return ContentSelection(sections=sections or [],
-                            skill_categories=skill_cats or [])
+def _make_selection(
+    sections: list[SectionDecision] | None = None,
+    skill_cats: list[SkillCategoryDecision] | None = None,
+) -> ContentSelection:
+    return ContentSelection(sections=sections or [], skill_categories=skill_cats or [])
 
 
 # ---------------------------------------------------------------------------
 # Lookup helpers
 # ---------------------------------------------------------------------------
+
 
 class TestLookupHelpers:
     def test_section_decision_found(self):
@@ -119,6 +135,7 @@ class TestLookupHelpers:
 # Interstitial
 # ---------------------------------------------------------------------------
 
+
 class TestInterstitial:
     def test_found(self):
         inter = [(0, "before"), (2, "after")]
@@ -136,6 +153,7 @@ class TestInterstitial:
 # Bullet inclusion
 # ---------------------------------------------------------------------------
 
+
 class TestBulletInclusion:
     def test_pinned_always_included(self):
         b = _make_bullet(tag_type="pinned")
@@ -143,16 +161,20 @@ class TestBulletInclusion:
 
     def test_optional_included_by_decision(self):
         b = _make_bullet(bullet_id="b1")
-        itd = _make_item_decision(bullets=[
-            BulletDecision(id="b1", include=True),
-        ])
+        itd = _make_item_decision(
+            bullets=[
+                BulletDecision(id="b1", include=True),
+            ]
+        )
         assert _is_bullet_included(b, itd) is True
 
     def test_optional_excluded_by_decision(self):
         b = _make_bullet(bullet_id="b1")
-        itd = _make_item_decision(bullets=[
-            BulletDecision(id="b1", include=False),
-        ])
+        itd = _make_item_decision(
+            bullets=[
+                BulletDecision(id="b1", include=False),
+            ]
+        )
         assert _is_bullet_included(b, itd) is False
 
     def test_optional_no_decision_defaults_true(self):
@@ -167,29 +189,36 @@ class TestBulletText:
 
     def test_original_when_edited_text_empty(self):
         b = _make_bullet(bullet_id="b1", text="original")
-        itd = _make_item_decision(bullets=[
-            BulletDecision(id="b1", include=True, edited_text=""),
-        ])
+        itd = _make_item_decision(
+            bullets=[
+                BulletDecision(id="b1", include=True, edited_text=""),
+            ]
+        )
         assert _bullet_text(b, itd) == "original"
 
     def test_edited_text_when_present(self):
         b = _make_bullet(bullet_id="b1", text="original")
-        itd = _make_item_decision(bullets=[
-            BulletDecision(id="b1", include=True, edited_text="edited"),
-        ])
+        itd = _make_item_decision(
+            bullets=[
+                BulletDecision(id="b1", include=True, edited_text="edited"),
+            ]
+        )
         assert _bullet_text(b, itd) == "edited"
 
     def test_original_when_no_matching_bullet_decision(self):
         b = _make_bullet(bullet_id="b1", text="original")
-        itd = _make_item_decision(bullets=[
-            BulletDecision(id="other", include=True, edited_text="edited"),
-        ])
+        itd = _make_item_decision(
+            bullets=[
+                BulletDecision(id="other", include=True, edited_text="edited"),
+            ]
+        )
         assert _bullet_text(b, itd) == "original"
 
 
 # ---------------------------------------------------------------------------
 # Item assembly
 # ---------------------------------------------------------------------------
+
 
 class TestAssembleItem:
     def test_pinned_item_always_included(self):
@@ -208,13 +237,18 @@ class TestAssembleItem:
 
     def test_optional_included_with_bullets(self):
         item = _make_item(
-            item_id="it1", heading="heading",
+            item_id="it1",
+            heading="heading",
             bullets=[_make_bullet(bullet_id="b1", text="bullet1")],
             interstitial=[(0, "\\resumeItemListStart"), (1, "\\resumeItemListEnd")],
         )
-        itd = _make_item_decision(item_id="it1", include=True, bullets=[
-            BulletDecision(id="b1", include=True),
-        ])
+        itd = _make_item_decision(
+            item_id="it1",
+            include=True,
+            bullets=[
+                BulletDecision(id="b1", include=True),
+            ],
+        )
         result = _assemble_item(item, itd)
         assert "heading" in result
         assert "bullet1" in result
@@ -223,23 +257,34 @@ class TestAssembleItem:
 
     def test_all_bullets_excluded_drops_item(self):
         item = _make_item(
-            item_id="it1", heading="heading",
+            item_id="it1",
+            heading="heading",
             bullets=[_make_bullet(bullet_id="b1", text="bullet1")],
         )
-        itd = _make_item_decision(item_id="it1", include=True, bullets=[
-            BulletDecision(id="b1", include=False),
-        ])
+        itd = _make_item_decision(
+            item_id="it1",
+            include=True,
+            bullets=[
+                BulletDecision(id="b1", include=False),
+            ],
+        )
         assert _assemble_item(item, itd) is None
 
     def test_pinned_item_all_bullets_excluded_keeps_heading(self):
         """Pinned items should keep their heading even when all bullets are excluded."""
         item = _make_item(
-            tag_type="pinned", item_id="it1", heading="heading",
+            tag_type="pinned",
+            item_id="it1",
+            heading="heading",
             bullets=[_make_bullet(bullet_id="b1", text="bullet1")],
         )
-        itd = _make_item_decision(item_id="it1", include=True, bullets=[
-            BulletDecision(id="b1", include=False),
-        ])
+        itd = _make_item_decision(
+            item_id="it1",
+            include=True,
+            bullets=[
+                BulletDecision(id="b1", include=False),
+            ],
+        )
         result = _assemble_item(item, itd)
         assert result is not None
         assert "heading" in result
@@ -254,7 +299,8 @@ class TestAssembleItem:
     def test_first_bullet_excluded_preserves_interstitial(self):
         """Interstitial at position 0 should survive even if bullet 0 is excluded."""
         item = _make_item(
-            item_id="it1", heading="heading",
+            item_id="it1",
+            heading="heading",
             bullets=[
                 _make_bullet(bullet_id="b1", text="bullet1"),
                 _make_bullet(bullet_id="b2", text="bullet2"),
@@ -264,10 +310,14 @@ class TestAssembleItem:
                 (2, "\\resumeItemListEnd"),
             ],
         )
-        itd = _make_item_decision(item_id="it1", include=True, bullets=[
-            BulletDecision(id="b1", include=False),
-            BulletDecision(id="b2", include=True),
-        ])
+        itd = _make_item_decision(
+            item_id="it1",
+            include=True,
+            bullets=[
+                BulletDecision(id="b1", include=False),
+                BulletDecision(id="b2", include=True),
+            ],
+        )
         result = _assemble_item(item, itd)
         assert "\\resumeItemListStart" in result
         assert "bullet2" in result
@@ -279,21 +329,27 @@ class TestAssembleItem:
 # Skill category assembly
 # ---------------------------------------------------------------------------
 
+
 class TestAssembleRegularSectionPinned:
     """Tests for pinned sections that survive even when all items are excluded."""
 
     def test_pinned_section_empty_items_returns_header(self):
         """A pinned section with all items excluded still emits its header."""
         section = ResumeSection(
-            tag_type="pinned", id="edu",
+            tag_type="pinned",
+            id="edu",
             items=[
                 _make_item(tag_type="optional", item_id="it1", heading="Item1"),
             ],
             interstitial=[(0, r"\section{Education}")],
         )
-        sec_dec = _make_section_decision(section_id="edu", include=True, items=[
-            _make_item_decision(item_id="it1", include=False),
-        ])
+        sec_dec = _make_section_decision(
+            section_id="edu",
+            include=True,
+            items=[
+                _make_item_decision(item_id="it1", include=False),
+            ],
+        )
         result = _assemble_regular_section(section, sec_dec)
         assert result is not None
         assert r"\section{Education}" in result
@@ -302,15 +358,20 @@ class TestAssembleRegularSectionPinned:
     def test_optional_section_empty_items_returns_none(self):
         """An optional section with all items excluded returns None."""
         section = ResumeSection(
-            tag_type="optional", id="proj",
+            tag_type="optional",
+            id="proj",
             items=[
                 _make_item(tag_type="optional", item_id="it1", heading="Item1"),
             ],
             interstitial=[(0, r"\section{Projects}")],
         )
-        sec_dec = _make_section_decision(section_id="proj", include=True, items=[
-            _make_item_decision(item_id="it1", include=False),
-        ])
+        sec_dec = _make_section_decision(
+            section_id="proj",
+            include=True,
+            items=[
+                _make_item_decision(item_id="it1", include=False),
+            ],
+        )
         result = _assemble_regular_section(section, sec_dec)
         assert result is None
 
@@ -318,7 +379,8 @@ class TestAssembleRegularSectionPinned:
 class TestAssembleSkillCategory:
     def test_with_decision(self):
         cat = SkillCategory(
-            name="lang", display_name="Languages",
+            name="lang",
+            display_name="Languages",
             skills=["Python", "Java", "Go"],
             prefix=r"\textbf{Languages}{: ",
             suffix=r".} \\",
@@ -329,7 +391,8 @@ class TestAssembleSkillCategory:
 
     def test_without_decision_uses_original(self):
         cat = SkillCategory(
-            name="lang", display_name="Languages",
+            name="lang",
+            display_name="Languages",
             skills=["Python", "Java"],
             prefix=r"\textbf{Languages}{: ",
             suffix=r".}",
@@ -339,9 +402,11 @@ class TestAssembleSkillCategory:
 
     def test_empty_skills_returns_none(self):
         cat = SkillCategory(
-            name="lang", display_name="Languages",
+            name="lang",
+            display_name="Languages",
             skills=["Python"],
-            prefix="pre", suffix="suf",
+            prefix="pre",
+            suffix="suf",
         )
         dec = SkillCategoryDecision(name="lang", skills=[])
         assert _assemble_skill_category(cat, dec) is None
@@ -353,16 +418,24 @@ class TestAssembleSkillsSectionPinned:
     def test_pinned_skills_section_empty_cats_returns_header(self):
         """A pinned skills section with all categories empty still emits its header."""
         section = SkillsSection(
-            tag_type="pinned", id="skills",
+            tag_type="pinned",
+            id="skills",
             categories=[
-                SkillCategory(name="lang", display_name="Languages",
-                              skills=["Python"], prefix="pre", suffix="suf"),
+                SkillCategory(
+                    name="lang",
+                    display_name="Languages",
+                    skills=["Python"],
+                    prefix="pre",
+                    suffix="suf",
+                ),
             ],
             interstitial=[(0, r"\section{Technical Skills}")],
         )
-        sel = _make_selection(skill_cats=[
-            SkillCategoryDecision(name="lang", skills=[]),
-        ])
+        sel = _make_selection(
+            skill_cats=[
+                SkillCategoryDecision(name="lang", skills=[]),
+            ]
+        )
         result = _assemble_skills_section(section, sel)
         assert result is not None
         assert r"\section{Technical Skills}" in result
@@ -370,10 +443,16 @@ class TestAssembleSkillsSectionPinned:
     def test_optional_skills_section_empty_cats_returns_none(self):
         """An optional skills section with all categories empty returns None."""
         section = SkillsSection(
-            tag_type="optional", id="skills",
+            tag_type="optional",
+            id="skills",
             categories=[
-                SkillCategory(name="lang", display_name="Languages",
-                              skills=["Python"], prefix="pre", suffix="suf"),
+                SkillCategory(
+                    name="lang",
+                    display_name="Languages",
+                    skills=["Python"],
+                    prefix="pre",
+                    suffix="suf",
+                ),
             ],
             interstitial=[(0, r"\section{Technical Skills}")],
         )
@@ -389,35 +468,77 @@ class TestAssembleSkillsSectionPinned:
 # Full assembler (fixture-based)
 # ---------------------------------------------------------------------------
 
+
 class TestAssembleTexFixture:
     @pytest.fixture
     def parsed(self):
         return parse_resume(_load_fixture("sample_tagged.tex"))
 
     def test_include_all(self, parsed):
-        selection = ContentSelection.from_dict({
-            "sections": [
-                {"id": "experience", "include": True, "items": [
-                    {"id": "acme", "include": True, "relevance_score": 80, "bullets": [
-                        {"id": "acme-1", "include": True, "edited_text": ""},
-                        {"id": "acme-2", "include": True, "edited_text": ""},
-                    ]},
-                    {"id": "widgets", "include": True, "relevance_score": 60, "bullets": [
-                        {"id": "widgets-1", "include": True, "edited_text": ""},
-                    ]},
-                ]},
-                {"id": "projects", "include": True, "items": [
-                    {"id": "chatbot", "include": True, "relevance_score": 50, "bullets": [
-                        {"id": "chatbot-1", "include": True, "edited_text": ""},
-                    ]},
-                ]},
-            ],
-            "skill_categories": [
-                {"name": "languages", "skills": ["Python", "Java", "C++"]},
-                {"name": "cloud", "skills": ["AWS", "Docker"]},
-                {"name": "frameworks", "skills": ["FastAPI"]},
-            ],
-        })
+        selection = ContentSelection.from_dict(
+            {
+                "sections": [
+                    {
+                        "id": "experience",
+                        "include": True,
+                        "items": [
+                            {
+                                "id": "acme",
+                                "include": True,
+                                "relevance_score": 80,
+                                "bullets": [
+                                    {
+                                        "id": "acme-1",
+                                        "include": True,
+                                        "edited_text": "",
+                                    },
+                                    {
+                                        "id": "acme-2",
+                                        "include": True,
+                                        "edited_text": "",
+                                    },
+                                ],
+                            },
+                            {
+                                "id": "widgets",
+                                "include": True,
+                                "relevance_score": 60,
+                                "bullets": [
+                                    {
+                                        "id": "widgets-1",
+                                        "include": True,
+                                        "edited_text": "",
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                    {
+                        "id": "projects",
+                        "include": True,
+                        "items": [
+                            {
+                                "id": "chatbot",
+                                "include": True,
+                                "relevance_score": 50,
+                                "bullets": [
+                                    {
+                                        "id": "chatbot-1",
+                                        "include": True,
+                                        "edited_text": "",
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+                "skill_categories": [
+                    {"name": "languages", "skills": ["Python", "Java", "C++"]},
+                    {"name": "cloud", "skills": ["AWS", "Docker"]},
+                    {"name": "frameworks", "skills": ["FastAPI"]},
+                ],
+            }
+        )
         result = assemble_tex(parsed, selection)
         assert "Jane Doe" in result
         assert "MIT" in result
@@ -428,69 +549,145 @@ class TestAssembleTexFixture:
         assert r"\end{document}" in result
 
     def test_exclude_section(self, parsed):
-        selection = ContentSelection.from_dict({
-            "sections": [
-                {"id": "experience", "include": True, "items": [
-                    {"id": "acme", "include": True, "relevance_score": 80, "bullets": [
-                        {"id": "acme-1", "include": True, "edited_text": ""},
-                        {"id": "acme-2", "include": True, "edited_text": ""},
-                    ]},
-                    {"id": "widgets", "include": True, "relevance_score": 60, "bullets": [
-                        {"id": "widgets-1", "include": True, "edited_text": ""},
-                    ]},
-                ]},
-                {"id": "projects", "include": False, "items": []},
-            ],
-            "skill_categories": [
-                {"name": "languages", "skills": ["Python"]},
-                {"name": "cloud", "skills": ["AWS"]},
-                {"name": "frameworks", "skills": ["FastAPI"]},
-            ],
-        })
+        selection = ContentSelection.from_dict(
+            {
+                "sections": [
+                    {
+                        "id": "experience",
+                        "include": True,
+                        "items": [
+                            {
+                                "id": "acme",
+                                "include": True,
+                                "relevance_score": 80,
+                                "bullets": [
+                                    {
+                                        "id": "acme-1",
+                                        "include": True,
+                                        "edited_text": "",
+                                    },
+                                    {
+                                        "id": "acme-2",
+                                        "include": True,
+                                        "edited_text": "",
+                                    },
+                                ],
+                            },
+                            {
+                                "id": "widgets",
+                                "include": True,
+                                "relevance_score": 60,
+                                "bullets": [
+                                    {
+                                        "id": "widgets-1",
+                                        "include": True,
+                                        "edited_text": "",
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                    {"id": "projects", "include": False, "items": []},
+                ],
+                "skill_categories": [
+                    {"name": "languages", "skills": ["Python"]},
+                    {"name": "cloud", "skills": ["AWS"]},
+                    {"name": "frameworks", "skills": ["FastAPI"]},
+                ],
+            }
+        )
         result = assemble_tex(parsed, selection)
         assert "Acme Corp" in result
         assert "Chatbot" not in result
 
     def test_exclude_item(self, parsed):
-        selection = ContentSelection.from_dict({
-            "sections": [
-                {"id": "experience", "include": True, "items": [
-                    {"id": "acme", "include": True, "relevance_score": 80, "bullets": [
-                        {"id": "acme-1", "include": True, "edited_text": ""},
-                        {"id": "acme-2", "include": True, "edited_text": ""},
-                    ]},
-                    {"id": "widgets", "include": False, "relevance_score": 20, "bullets": []},
-                ]},
-                {"id": "projects", "include": False, "items": []},
-            ],
-            "skill_categories": [
-                {"name": "languages", "skills": ["Python"]},
-                {"name": "cloud", "skills": ["AWS"]},
-                {"name": "frameworks", "skills": ["FastAPI"]},
-            ],
-        })
+        selection = ContentSelection.from_dict(
+            {
+                "sections": [
+                    {
+                        "id": "experience",
+                        "include": True,
+                        "items": [
+                            {
+                                "id": "acme",
+                                "include": True,
+                                "relevance_score": 80,
+                                "bullets": [
+                                    {
+                                        "id": "acme-1",
+                                        "include": True,
+                                        "edited_text": "",
+                                    },
+                                    {
+                                        "id": "acme-2",
+                                        "include": True,
+                                        "edited_text": "",
+                                    },
+                                ],
+                            },
+                            {
+                                "id": "widgets",
+                                "include": False,
+                                "relevance_score": 20,
+                                "bullets": [],
+                            },
+                        ],
+                    },
+                    {"id": "projects", "include": False, "items": []},
+                ],
+                "skill_categories": [
+                    {"name": "languages", "skills": ["Python"]},
+                    {"name": "cloud", "skills": ["AWS"]},
+                    {"name": "frameworks", "skills": ["FastAPI"]},
+                ],
+            }
+        )
         result = assemble_tex(parsed, selection)
         assert "Acme Corp" in result
         assert "Widgets" not in result
 
     def test_exclude_bullet(self, parsed):
-        selection = ContentSelection.from_dict({
-            "sections": [
-                {"id": "experience", "include": True, "items": [
-                    {"id": "acme", "include": True, "relevance_score": 80, "bullets": [
-                        {"id": "acme-1", "include": True, "edited_text": ""},
-                        {"id": "acme-2", "include": False, "edited_text": ""},
-                    ]},
-                    {"id": "widgets", "include": False, "relevance_score": 20, "bullets": []},
-                ]},
-                {"id": "projects", "include": False, "items": []},
-            ],
-            "skill_categories": [
-                {"name": "languages", "skills": ["Python"]},
-                {"name": "cloud", "skills": ["AWS"]},
-                {"name": "frameworks", "skills": ["FastAPI"]},
-            ],
-        })
+        selection = ContentSelection.from_dict(
+            {
+                "sections": [
+                    {
+                        "id": "experience",
+                        "include": True,
+                        "items": [
+                            {
+                                "id": "acme",
+                                "include": True,
+                                "relevance_score": 80,
+                                "bullets": [
+                                    {
+                                        "id": "acme-1",
+                                        "include": True,
+                                        "edited_text": "",
+                                    },
+                                    {
+                                        "id": "acme-2",
+                                        "include": False,
+                                        "edited_text": "",
+                                    },
+                                ],
+                            },
+                            {
+                                "id": "widgets",
+                                "include": False,
+                                "relevance_score": 20,
+                                "bullets": [],
+                            },
+                        ],
+                    },
+                    {"id": "projects", "include": False, "items": []},
+                ],
+                "skill_categories": [
+                    {"name": "languages", "skills": ["Python"]},
+                    {"name": "cloud", "skills": ["AWS"]},
+                    {"name": "frameworks", "skills": ["FastAPI"]},
+                ],
+            }
+        )
         result = assemble_tex(parsed, selection)
         assert "REST API" in result
         assert "OAuth" not in result
@@ -498,46 +695,93 @@ class TestAssembleTexFixture:
         assert "p99 latency" in result
 
     def test_edited_text_substitution(self, parsed):
-        selection = ContentSelection.from_dict({
-            "sections": [
-                {"id": "experience", "include": True, "items": [
-                    {"id": "acme", "include": True, "relevance_score": 80, "bullets": [
-                        {"id": "acme-1", "include": True,
-                         "edited_text": r"\resumeItem{Built a RESTful microservice.}"},
-                        {"id": "acme-2", "include": True, "edited_text": ""},
-                    ]},
-                    {"id": "widgets", "include": False, "relevance_score": 20, "bullets": []},
-                ]},
-                {"id": "projects", "include": False, "items": []},
-            ],
-            "skill_categories": [
-                {"name": "languages", "skills": ["Python"]},
-                {"name": "cloud", "skills": ["AWS"]},
-                {"name": "frameworks", "skills": ["FastAPI"]},
-            ],
-        })
+        selection = ContentSelection.from_dict(
+            {
+                "sections": [
+                    {
+                        "id": "experience",
+                        "include": True,
+                        "items": [
+                            {
+                                "id": "acme",
+                                "include": True,
+                                "relevance_score": 80,
+                                "bullets": [
+                                    {
+                                        "id": "acme-1",
+                                        "include": True,
+                                        "edited_text": r"\resumeItem{Built a RESTful microservice.}",
+                                    },
+                                    {
+                                        "id": "acme-2",
+                                        "include": True,
+                                        "edited_text": "",
+                                    },
+                                ],
+                            },
+                            {
+                                "id": "widgets",
+                                "include": False,
+                                "relevance_score": 20,
+                                "bullets": [],
+                            },
+                        ],
+                    },
+                    {"id": "projects", "include": False, "items": []},
+                ],
+                "skill_categories": [
+                    {"name": "languages", "skills": ["Python"]},
+                    {"name": "cloud", "skills": ["AWS"]},
+                    {"name": "frameworks", "skills": ["FastAPI"]},
+                ],
+            }
+        )
         result = assemble_tex(parsed, selection)
         assert "RESTful microservice" in result
         assert "10k requests" not in result
 
     def test_skill_reordering(self, parsed):
-        selection = ContentSelection.from_dict({
-            "sections": [
-                {"id": "experience", "include": True, "items": [
-                    {"id": "acme", "include": True, "relevance_score": 80, "bullets": [
-                        {"id": "acme-1", "include": True, "edited_text": ""},
-                        {"id": "acme-2", "include": True, "edited_text": ""},
-                    ]},
-                    {"id": "widgets", "include": False, "relevance_score": 20, "bullets": []},
-                ]},
-                {"id": "projects", "include": False, "items": []},
-            ],
-            "skill_categories": [
-                {"name": "languages", "skills": ["Go", "Python"]},
-                {"name": "cloud", "skills": ["Kubernetes", "AWS"]},
-                {"name": "frameworks", "skills": ["React"]},
-            ],
-        })
+        selection = ContentSelection.from_dict(
+            {
+                "sections": [
+                    {
+                        "id": "experience",
+                        "include": True,
+                        "items": [
+                            {
+                                "id": "acme",
+                                "include": True,
+                                "relevance_score": 80,
+                                "bullets": [
+                                    {
+                                        "id": "acme-1",
+                                        "include": True,
+                                        "edited_text": "",
+                                    },
+                                    {
+                                        "id": "acme-2",
+                                        "include": True,
+                                        "edited_text": "",
+                                    },
+                                ],
+                            },
+                            {
+                                "id": "widgets",
+                                "include": False,
+                                "relevance_score": 20,
+                                "bullets": [],
+                            },
+                        ],
+                    },
+                    {"id": "projects", "include": False, "items": []},
+                ],
+                "skill_categories": [
+                    {"name": "languages", "skills": ["Go", "Python"]},
+                    {"name": "cloud", "skills": ["Kubernetes", "AWS"]},
+                    {"name": "frameworks", "skills": ["React"]},
+                ],
+            }
+        )
         result = assemble_tex(parsed, selection)
         assert "Go, Python" in result
         assert "Kubernetes, AWS" in result
@@ -546,29 +790,47 @@ class TestAssembleTexFixture:
 
     def test_pinned_section_always_present(self, parsed):
         """Education (pinned) appears even with empty selection."""
-        selection = ContentSelection.from_dict({
-            "sections": [],
-            "skill_categories": [],
-        })
+        selection = ContentSelection.from_dict(
+            {
+                "sections": [],
+                "skill_categories": [],
+            }
+        )
         result = assemble_tex(parsed, selection)
         assert "Education" in result
         assert "MIT" in result
 
     def test_empty_section_omitted(self, parsed):
         """Section with all items excluded is omitted entirely."""
-        selection = ContentSelection.from_dict({
-            "sections": [
-                {"id": "experience", "include": True, "items": [
-                    {"id": "acme", "include": False, "relevance_score": 0, "bullets": []},
-                    {"id": "widgets", "include": False, "relevance_score": 0, "bullets": []},
-                ]},
-                {"id": "projects", "include": False, "items": []},
-            ],
-            "skill_categories": [
-                {"name": "languages", "skills": ["Python"]},
-                {"name": "cloud", "skills": ["AWS"]},
-                {"name": "frameworks", "skills": ["FastAPI"]},
-            ],
-        })
+        selection = ContentSelection.from_dict(
+            {
+                "sections": [
+                    {
+                        "id": "experience",
+                        "include": True,
+                        "items": [
+                            {
+                                "id": "acme",
+                                "include": False,
+                                "relevance_score": 0,
+                                "bullets": [],
+                            },
+                            {
+                                "id": "widgets",
+                                "include": False,
+                                "relevance_score": 0,
+                                "bullets": [],
+                            },
+                        ],
+                    },
+                    {"id": "projects", "include": False, "items": []},
+                ],
+                "skill_categories": [
+                    {"name": "languages", "skills": ["Python"]},
+                    {"name": "cloud", "skills": ["AWS"]},
+                    {"name": "frameworks", "skills": ["FastAPI"]},
+                ],
+            }
+        )
         result = assemble_tex(parsed, selection)
         assert "Experience" not in result

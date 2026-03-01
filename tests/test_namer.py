@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -13,6 +12,7 @@ from autocustomizeresume.namer import build_name, build_variables, handle_output
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_config(
     first="Jane",
@@ -40,6 +40,7 @@ def _make_config(
 
 def _make_analysis(company="Google", role="SWE"):
     from autocustomizeresume.schemas import JDAnalysis
+
     return JDAnalysis(
         company=company,
         role=role,
@@ -54,6 +55,7 @@ def _make_analysis(company="Google", role="SWE"):
 # build_name
 # ---------------------------------------------------------------------------
 
+
 class TestBuildName:
     def test_basic_substitution(self):
         v = {"last": "Doe", "first": "Jane"}
@@ -61,9 +63,12 @@ class TestBuildName:
 
     def test_all_variables(self):
         v = {
-            "first": "Jane", "last": "Doe",
-            "company": "Acme", "role": "Dev",
-            "date": "2026-01-01", "timestamp": "2026-01-01_120000",
+            "first": "Jane",
+            "last": "Doe",
+            "company": "Acme",
+            "role": "Dev",
+            "date": "2026-01-01",
+            "timestamp": "2026-01-01_120000",
         }
         result = build_name("{company} - {role} - {timestamp}.pdf", v)
         assert result == "Acme - Dev - 2026-01-01_120000.pdf"
@@ -77,10 +82,12 @@ class TestBuildName:
 # build_variables
 # ---------------------------------------------------------------------------
 
+
 class TestBuildVariables:
     @patch("autocustomizeresume.namer.datetime")
     def test_all_keys_present(self, mock_dt):
         from datetime import datetime as real_dt
+
         fixed = real_dt(2026, 3, 15, 10, 30, 45)
         mock_dt.now.return_value = fixed
         mock_dt.side_effect = lambda *a, **kw: real_dt(*a, **kw)
@@ -100,6 +107,7 @@ class TestBuildVariables:
 # ---------------------------------------------------------------------------
 # handle_output
 # ---------------------------------------------------------------------------
+
 
 class TestHandleOutput:
     def test_copies_resume_to_output_and_history(self, tmp_path):

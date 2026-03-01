@@ -19,12 +19,17 @@ from autocustomizeresume.schemas import (
     ContentSelection,
     JDAnalysis,
 )
-from autocustomizeresume.selector import select_content, _serialize_resume, _latex_preview
+from autocustomizeresume.selector import (
+    select_content,
+    _serialize_resume,
+    _latex_preview,
+)
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_config() -> MagicMock:
     cfg = MagicMock()
@@ -177,8 +182,8 @@ def _make_client(response_dict: dict) -> MagicMock:
 # select_content() — happy path
 # ---------------------------------------------------------------------------
 
-class TestSelectContent:
 
+class TestSelectContent:
     def test_returns_content_selection(self):
         client = _make_client(_SAMPLE_SELECTION_DICT)
         result = select_content(
@@ -287,8 +292,8 @@ class TestSelectContent:
 # Prompt construction
 # ---------------------------------------------------------------------------
 
-class TestPromptConstruction:
 
+class TestPromptConstruction:
     def test_user_prompt_contains_jd_analysis(self):
         client = _make_client(_SAMPLE_SELECTION_DICT)
         select_content(
@@ -359,8 +364,8 @@ class TestPromptConstruction:
 # _serialize_resume()
 # ---------------------------------------------------------------------------
 
-class TestSerializeResume:
 
+class TestSerializeResume:
     def test_contains_section_ids(self):
         result = _serialize_resume(_make_parsed_resume())
         assert "education" in result
@@ -396,8 +401,8 @@ class TestSerializeResume:
 # _latex_preview()
 # ---------------------------------------------------------------------------
 
-class TestLatexPreview:
 
+class TestLatexPreview:
     def test_strips_resume_item(self):
         result = _latex_preview(r"\resumeItem{Built a REST API}")
         assert "Built a REST API" in result
@@ -430,8 +435,8 @@ class TestLatexPreview:
 # Error handling
 # ---------------------------------------------------------------------------
 
-class TestSelectContentErrors:
 
+class TestSelectContentErrors:
     def test_llm_error_propagates(self):
         client = MagicMock(spec=LLMClient)
         client.chat_json.side_effect = LLMError("boom")
@@ -465,8 +470,8 @@ class TestSelectContentErrors:
 # Empty / minimal inputs
 # ---------------------------------------------------------------------------
 
-class TestEdgeCases:
 
+class TestEdgeCases:
     def test_empty_resume(self):
         """Selector should handle a resume with no sections."""
         empty_resume = ParsedResume(
@@ -522,62 +527,72 @@ class TestEdgeCases:
         """LLM may return a float relevance_score — should be truncated to int."""
         from autocustomizeresume.schemas import ItemDecision
 
-        item = ItemDecision.from_dict({
-            "id": "acme",
-            "include": True,
-            "relevance_score": 85.7,
-            "bullets": [],
-        })
+        item = ItemDecision.from_dict(
+            {
+                "id": "acme",
+                "include": True,
+                "relevance_score": 85.7,
+                "bullets": [],
+            }
+        )
         assert item.relevance_score == 85
 
     def test_string_float_relevance_score(self):
         """LLM may return relevance_score as a string like '85.5'."""
         from autocustomizeresume.schemas import ItemDecision
 
-        item = ItemDecision.from_dict({
-            "id": "acme",
-            "include": True,
-            "relevance_score": "85.5",
-            "bullets": [],
-        })
+        item = ItemDecision.from_dict(
+            {
+                "id": "acme",
+                "include": True,
+                "relevance_score": "85.5",
+                "bullets": [],
+            }
+        )
         assert item.relevance_score == 85
 
     def test_null_relevance_score(self):
         """LLM may return relevance_score as null — should default to 50."""
         from autocustomizeresume.schemas import ItemDecision
 
-        item = ItemDecision.from_dict({
-            "id": "acme",
-            "include": True,
-            "relevance_score": None,
-            "bullets": [],
-        })
+        item = ItemDecision.from_dict(
+            {
+                "id": "acme",
+                "include": True,
+                "relevance_score": None,
+                "bullets": [],
+            }
+        )
         assert item.relevance_score == 50
 
     def test_zero_relevance_score_preserved(self):
         """A relevance_score of 0 is valid and must not become 50."""
         from autocustomizeresume.schemas import ItemDecision
 
-        item = ItemDecision.from_dict({
-            "id": "acme",
-            "include": True,
-            "relevance_score": 0,
-            "bullets": [],
-        })
+        item = ItemDecision.from_dict(
+            {
+                "id": "acme",
+                "include": True,
+                "relevance_score": 0,
+                "bullets": [],
+            }
+        )
         assert item.relevance_score == 0
 
     def test_null_jd_fields_default_gracefully(self):
         """LLM may return null for JDAnalysis fields — should use defaults."""
         from autocustomizeresume.schemas import JDAnalysis
 
-        analysis = JDAnalysis.from_dict({
-            "company": None,
-            "role": None,
-            "seniority": None,
-            "domain": None,
-            "key_skills": None,
-            "technologies": None,
-        })
+        analysis = JDAnalysis.from_dict(
+            {
+                "company": None,
+                "role": None,
+                "seniority": None,
+                "domain": None,
+                "key_skills": None,
+                "technologies": None,
+            }
+        )
         assert analysis.company == "Unknown"
         assert analysis.role == "Unknown"
         assert analysis.seniority == "unknown"
@@ -588,25 +603,37 @@ class TestEdgeCases:
     def test_null_lists_default_to_empty(self):
         """LLM may return null for list fields — should not crash."""
         from autocustomizeresume.schemas import (
-            ContentSelection, ItemDecision, SectionDecision,
+            ContentSelection,
+            ItemDecision,
+            SectionDecision,
         )
 
-        sel = ContentSelection.from_dict({
-            "sections": None,
-            "skill_categories": None,
-        })
+        sel = ContentSelection.from_dict(
+            {
+                "sections": None,
+                "skill_categories": None,
+            }
+        )
         assert sel.sections == []
         assert sel.skill_categories == []
 
-        sec = SectionDecision.from_dict({
-            "id": "exp", "include": True, "items": None,
-        })
+        sec = SectionDecision.from_dict(
+            {
+                "id": "exp",
+                "include": True,
+                "items": None,
+            }
+        )
         assert sec.items == []
 
-        item = ItemDecision.from_dict({
-            "id": "acme", "include": True,
-            "relevance_score": 80, "bullets": None,
-        })
+        item = ItemDecision.from_dict(
+            {
+                "id": "acme",
+                "include": True,
+                "relevance_score": 80,
+                "bullets": None,
+            }
+        )
         assert item.bullets == []
 
     def test_missing_include_warns_and_defaults_true(self, caplog):
@@ -614,6 +641,7 @@ class TestEdgeCases:
         from autocustomizeresume.schemas import BulletDecision
 
         import logging
+
         with caplog.at_level(logging.WARNING, logger="autocustomizeresume.schemas"):
             bullet = BulletDecision.from_dict({"id": "b1"})
 

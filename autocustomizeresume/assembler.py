@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 # Lookup helpers
 # ---------------------------------------------------------------------------
 
+
 def _section_decision(
     selection: ContentSelection, section_id: str
 ) -> SectionDecision | None:
@@ -37,9 +38,7 @@ def _section_decision(
     return next((sd for sd in selection.sections if sd.id == section_id), None)
 
 
-def _item_decision(
-    section_dec: SectionDecision, item_id: str
-) -> ItemDecision | None:
+def _item_decision(section_dec: SectionDecision, item_id: str) -> ItemDecision | None:
     """Find the ItemDecision for *item_id* within a section decision."""
     return next((itd for itd in section_dec.items if itd.id == item_id), None)
 
@@ -67,9 +66,8 @@ def _bullet_text(bullet: Bullet, item_dec: ItemDecision | None) -> str:
 # Interstitial helpers
 # ---------------------------------------------------------------------------
 
-def _get_interstitial(
-    interstitial: list[tuple[int, str]], position: int
-) -> str | None:
+
+def _get_interstitial(interstitial: list[tuple[int, str]], position: int) -> str | None:
     """Return interstitial content for the given *position*, or None."""
     return next((text for pos, text in interstitial if pos == position), None)
 
@@ -78,9 +76,8 @@ def _get_interstitial(
 # Item-level assembly
 # ---------------------------------------------------------------------------
 
-def _is_bullet_included(
-    bullet: Bullet, item_dec: ItemDecision | None
-) -> bool:
+
+def _is_bullet_included(bullet: Bullet, item_dec: ItemDecision | None) -> bool:
     """Determine if a bullet should be included."""
     # Pinned bullets always included
     if bullet.tag_type == "pinned":
@@ -155,6 +152,7 @@ def _assemble_item(
 # ---------------------------------------------------------------------------
 # Section-level assembly
 # ---------------------------------------------------------------------------
+
 
 def _assemble_regular_section(
     section: ResumeSection,
@@ -269,6 +267,7 @@ def _assemble_skills_section(
 # Top-level assembly
 # ---------------------------------------------------------------------------
 
+
 def assemble_tex(
     parsed: ParsedResume,
     selection: ContentSelection,
@@ -318,9 +317,7 @@ def assemble_tex(
         parts.extend(assembled_sections)
 
     # Trailing interstitial after last section
-    trailing = _get_interstitial(
-        parsed.interstitial, len(parsed.sections)
-    )
+    trailing = _get_interstitial(parsed.interstitial, len(parsed.sections))
     if trailing is not None:
         parts.append(trailing)
 

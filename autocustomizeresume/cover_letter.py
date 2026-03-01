@@ -14,7 +14,7 @@ import tempfile
 from datetime import date
 from pathlib import Path
 
-from autocustomizeresume.compiler import CompileError, compile_tex
+from autocustomizeresume.compiler import compile_tex
 from autocustomizeresume.config import Config
 from autocustomizeresume.llm_client import LLMClient
 from autocustomizeresume.models import (
@@ -130,6 +130,7 @@ the template already has one.
 # Resume context serializer — builds a text summary of selected content
 # ---------------------------------------------------------------------------
 
+
 def _summarize_selected_content(
     parsed: ParsedResume,
     selection: ContentSelection,
@@ -218,9 +219,7 @@ def _summarize_regular_section(
                     lines.append(f"  * {text}")
             elif item_dec is not None:
                 # Check if this optional bullet is included
-                bd = next(
-                    (b for b in item_dec.bullets if b.id == bullet.id), None
-                )
+                bd = next((b for b in item_dec.bullets if b.id == bullet.id), None)
                 if bd is not None and bd.include:
                     # Use edited text if present
                     raw = bd.edited_text if bd.edited_text else bullet.text
@@ -263,6 +262,7 @@ def _summarize_skills_section(
 # ---------------------------------------------------------------------------
 # Body generation via LLM
 # ---------------------------------------------------------------------------
+
 
 def generate_cover_letter_body(
     jd_analysis: JDAnalysis,
@@ -429,6 +429,7 @@ def inject_template(
 # Cover letter compilation
 # ---------------------------------------------------------------------------
 
+
 def compile_cover_letter(
     filled_tex: str,
     *,
@@ -490,9 +491,7 @@ def compile_cover_letter(
                     shutil.copy2(sig_src, sig_dst)
                 logger.debug("Copied signature to %s", sig_dst)
             else:
-                logger.warning(
-                    "Signature file not found: %s — skipping", sig_path
-                )
+                logger.warning("Signature file not found: %s — skipping", sig_path)
 
         # Compile (compile_tex handles writing the .tex and invoking tectonic)
         pdf_path = compile_tex(filled_tex, keep_dir=work)
@@ -508,6 +507,7 @@ def compile_cover_letter(
 # ---------------------------------------------------------------------------
 # Top-level orchestration
 # ---------------------------------------------------------------------------
+
 
 def build_cover_letter(
     jd_analysis: JDAnalysis,
@@ -557,9 +557,7 @@ def build_cover_letter(
     # Validate template exists
     template_path = Path(config.cover_letter.template)
     if not template_path.exists():
-        raise FileNotFoundError(
-            f"Cover letter template not found: {template_path}"
-        )
+        raise FileNotFoundError(f"Cover letter template not found: {template_path}")
 
     # 1. Generate body text via LLM
     body_plain = generate_cover_letter_body(
