@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import logging
+import re
 import shutil
+import tempfile as _tempfile
 from datetime import date
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -46,6 +49,18 @@ from autocustomizeresume.schemas import (
     JDAnalysis,
     SectionDecision,
     SkillCategoryDecision,
+)
+
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+# Minimal valid 1x1 RGB PNG (avoids struct/zlib at runtime).
+_MINIMAL_PNG = (
+    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00"
+    b"\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\xf8"
+    b"\xff\xff?\x00\x05\xfe\x02\xfe\r\xefF\xb8\x00\x00\x00\x00IEND\xaeB`\x82"
 )
 
 
@@ -717,7 +732,6 @@ class TestInjectTemplate:
 
     def test_warns_on_unreplaced_placeholders(self, caplog):
         template = "{{FIRST_NAME}} {{UNKNOWN_THING}}"
-        import logging
         with caplog.at_level(logging.WARNING):
             inject_template(
                 template, config=_make_config(), body_text="Body."
@@ -737,7 +751,6 @@ class TestInjectTemplate:
             mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
             result = inject_template(template, config=cfg, body_text="Body text.")
 
-        import re
         remaining = re.findall(r"\{\{[A-Z_]+\}\}", result)
         # {{PLACEHOLDER}} in a comment is expected — filter it out
         remaining = [p for p in remaining if p != "{{PLACEHOLDER}}"]
@@ -810,7 +823,6 @@ class TestCompileCoverLetter:
         work = tmp_path / "work"
         mock_compile.return_value = work / "resume.pdf"
 
-        import logging
         with caplog.at_level(logging.WARNING):
             compile_cover_letter(r"\documentclass{}", config=cfg, keep_dir=work)
 
@@ -827,7 +839,6 @@ class TestCompileCoverLetter:
 
         mock_compile.side_effect = CompileError("boom")
 
-        import tempfile as _tempfile
         td = _tempfile.mkdtemp(prefix="test_acr_cl_")
         td_path = Path(td)
 
@@ -1050,28 +1061,8 @@ class TestCoverLetterIntegration:
         if not template_path.exists():
             pytest.skip("Template not available")
 
-        # Create a minimal valid PNG (1x1 transparent pixel)
-        # This is the smallest valid PNG file
-        import struct
-        import zlib
-
-        def _make_minimal_png() -> bytes:
-            sig = b"\x89PNG\r\n\x1a\n"
-            # IHDR chunk
-            ihdr_data = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
-            ihdr_crc = zlib.crc32(b"IHDR" + ihdr_data) & 0xFFFFFFFF
-            ihdr = struct.pack(">I", 13) + b"IHDR" + ihdr_data + struct.pack(">I", ihdr_crc)
-            # IDAT chunk
-            raw = zlib.compress(b"\x00\xff\xff\xff")
-            idat_crc = zlib.crc32(b"IDAT" + raw) & 0xFFFFFFFF
-            idat = struct.pack(">I", len(raw)) + b"IDAT" + raw + struct.pack(">I", idat_crc)
-            # IEND chunk
-            iend_crc = zlib.crc32(b"IEND") & 0xFFFFFFFF
-            iend = struct.pack(">I", 0) + b"IEND" + struct.pack(">I", iend_crc)
-            return sig + ihdr + idat + iend
-
         sig_file = tmp_path / "signature.png"
-        sig_file.write_bytes(_make_minimal_png())
+        sig_file.write_bytes(_MINIMAL_PNG)
 
         cfg = _make_config(
             cover_letter={
