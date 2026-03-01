@@ -82,8 +82,10 @@ Return this exact JSON structure (no markdown, no commentary, no extra keys):
 }
 
 Rules:
-- Only optional elements appear in your output.  Pinned sections, items, \
-and bullets are always included automatically — do NOT list them.
+- Pinned sections, items, and bullets are always included automatically — \
+do NOT list them.  However, if a pinned section contains optional items \
+or bullets, you MUST still include that section in your output (with \
+"include": true) so you can list the optional elements within it.
 - Every optional section, item, and bullet from the input MUST appear in \
 your output with an explicit include decision.
 - "relevance_score" should reflect how relevant the item is to the \
