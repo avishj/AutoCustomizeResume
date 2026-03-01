@@ -6,9 +6,12 @@ history/ (permanent archive with timestamps).
 
 from __future__ import annotations
 
+import shutil
 from datetime import datetime
+from pathlib import Path
 
 from autocustomizeresume.config import Config
+from autocustomizeresume.pipeline import PipelineResult
 from autocustomizeresume.schemas import JDAnalysis
 
 
@@ -53,3 +56,39 @@ def build_name(template: str, variables: dict[str, str]) -> str:
         If the template references a variable not present in *variables*.
     """
     return template.format(**variables)
+
+
+def _copy(src: Path, dest_dir: Path, filename: str) -> Path:
+    """Copy *src* to *dest_dir/filename*, creating dirs as needed."""
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / filename
+    shutil.copy2(src, dest)
+    return dest
+
+
+def handle_output(result: PipelineResult, config: Config) -> None:
+    """Copy pipeline PDFs to output/ and history/ with configured names.
+
+    Parameters
+    ----------
+    result:
+        The completed pipeline result with PDF paths.
+    config:
+        Application configuration with naming templates and paths.
+    """
+    variables = build_variables(config, result.analysis)
+    output_dir = Path(config.paths.output_dir)
+    history_dir = Path(config.paths.history_dir)
+
+    # Resume
+    resume_out = build_name(config.naming.output_resume, variables)
+    resume_hist = build_name(config.naming.history_resume, variables)
+    _copy(result.resume_pdf, output_dir, resume_out)
+    _copy(result.resume_pdf, history_dir, resume_hist)
+
+    # Cover letter (if generated)
+    if result.cover_letter_pdf is not None:
+        cl_out = build_name(config.naming.output_cover, variables)
+        cl_hist = build_name(config.naming.history_cover, variables)
+        _copy(result.cover_letter_pdf, output_dir, cl_out)
+        _copy(result.cover_letter_pdf, history_dir, cl_hist)
