@@ -181,7 +181,7 @@ def load_config(config_path: str = "config.yaml") -> Config:
     if not path.exists():
         raise ConfigError(
             f"Config file not found: {config_path}\n"
-            f"Copy config.example.yaml to config.yaml and fill in your details."
+            f"Copy examples/config.example.yaml to config.yaml and fill in your details."
         )
 
     try:

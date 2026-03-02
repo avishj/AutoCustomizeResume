@@ -1,0 +1,216 @@
+%-------------------------
+% Sample Tagged Resume — AutoCustomizeResume
+%
+% This is an anonymized example showing every tag type:
+%   - pinned / optional sections
+%   - pinned / optional items
+%   - pinned / optional bullets
+%   - SKILLS categories
+%
+% See docs/TAGS.md for the full specification.
+%-------------------------
+
+\documentclass[a4paper,10pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\usepackage{multicol}
+\setlength{\multicolsep}{-3.0pt}
+\setlength{\columnsep}{-1pt}
+
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\addtolength{\oddsidemargin}{-0.6in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1.19in}
+\addtolength{\topmargin}{-.7in}
+\addtolength{\textheight}{1.4in}
+
+\urlstyle{same}
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+\titleformat{\section}{
+  \vspace{-4pt}\scshape\raggedright\large\bfseries
+}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+
+%-------------------------
+% Custom commands
+\newcommand{\resumeItem}[1]{
+  \item\small{#1 \vspace{-2pt}}
+}
+
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{1.0\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & \textbf{\small #2} \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-6pt}
+}
+
+\newcommand{\resumeProjectHeading}[2]{
+    \vspace{-2pt}\item
+    \begin{tabular*}{1\textwidth}{l@{\extracolsep{\fill}}r}
+      \small#1 & \textbf{\small #2}\\
+    \end{tabular*}\vspace{-7pt}
+}
+
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.0in, label={}]}
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}}
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+%-------------------------------------------
+
+\begin{document}
+\begin{center}
+    {\huge \scshape Jane Doe} \\ \vspace{3pt}
+    \small (555) 123-4567 ~
+    \href{mailto:jane.doe@example.com}{\underline{jane.doe@example.com}} ~
+    \href{https://linkedin.com/in/janedoe}{\underline{linkedin.com/in/janedoe}} ~
+    \href{https://github.com/janedoe}{\underline{github.com/janedoe}}
+    \vspace{-4pt}
+\end{center}
+
+%%% BEGIN:pinned:education
+\section{Education}
+    \resumeSubHeadingListStart
+        %%% BEGIN:pinned:sample-u
+        \resumeSubheading
+        {Sample University -- School of Engineering}
+        {May 2025}
+        {Master of Science in Computer Science, \textbf{GPA: 3.90/4.00}}
+        {Anytown, USA}
+        \resumeItemListStart
+            %%% BEGIN:pinned:sample-u-1
+            \resumeItem{\textbf{Teaching Assistant}: Introduction to Distributed Systems}
+            %%% END:pinned:sample-u-1
+        \resumeItemListEnd
+        %%% END:pinned:sample-u
+
+        %%% BEGIN:optional:state-u
+        \resumeSubheading
+        {State University}
+        {May 2023}
+        {Bachelor of Science in Computer Science, \textbf{GPA: 3.75/4.00}}
+        {Springfield, USA}
+        %%% END:optional:state-u
+    \resumeSubHeadingListEnd
+%%% END:pinned:education
+
+%%% BEGIN:optional:experience
+\section{Industry Experience}
+  \resumeSubHeadingListStart
+
+    %%% BEGIN:pinned:bigcorp
+    \resumeSubheading
+    {BigCorp Inc.}{Jun 2024 -- Aug 2024}
+    {Software Engineering Intern}{San Francisco, CA}
+    \resumeItemListStart
+        %%% BEGIN:optional:bigcorp-1
+        \resumeItem{Designed and deployed a \textbf{RESTful microservice} handling 10k requests/sec with sub-50ms p99 latency, using \textbf{Go} and \textbf{gRPC} behind an Envoy service mesh.}
+        %%% END:optional:bigcorp-1
+        %%% BEGIN:optional:bigcorp-2
+        \resumeItem{Migrated legacy authentication from session cookies to \textbf{OAuth 2.0 / OIDC}, reducing support tickets related to auth failures by \textbf{65\%}.}
+        %%% END:optional:bigcorp-2
+        %%% BEGIN:pinned:bigcorp-3
+        \resumeItem{Reduced p99 query latency by \textbf{40\%} through index optimization and query plan analysis on a \textbf{PostgreSQL} cluster serving 2TB of operational data.}
+        %%% END:pinned:bigcorp-3
+    \resumeItemListEnd
+    %%% END:pinned:bigcorp
+
+    %%% BEGIN:optional:widgets
+    \resumeSubheading
+    {Widgets Inc.}{Jan 2024 -- May 2024}
+    {Data Engineering Intern}{Remote}
+    \resumeItemListStart
+        %%% BEGIN:optional:widgets-1
+        \resumeItem{Built \textbf{ETL pipelines} processing 5TB daily using \textbf{Apache Spark} and \textbf{Airflow}, cutting batch processing time by \textbf{3x}.}
+        %%% END:optional:widgets-1
+        %%% BEGIN:optional:widgets-2
+        \resumeItem{Designed a \textbf{data quality framework} with automated anomaly detection, catching schema drift issues before they reached downstream dashboards.}
+        %%% END:optional:widgets-2
+    \resumeItemListEnd
+    %%% END:optional:widgets
+
+    %%% BEGIN:optional:startup
+    \resumeSubheading
+    {StartupXYZ}{May 2023 -- Dec 2023}
+    {Full Stack Developer}{Remote}
+    \resumeItemListStart
+        %%% BEGIN:optional:startup-1
+        \resumeItem{Shipped a \textbf{React + TypeScript} dashboard with real-time WebSocket updates, serving 500+ daily active users with \textbf{99.9\% uptime}.}
+        %%% END:optional:startup-1
+        %%% BEGIN:optional:startup-2
+        \resumeItem{Implemented \textbf{CI/CD pipelines} with GitHub Actions and Docker, reducing deployment time from 45 minutes to \textbf{under 5 minutes}.}
+        %%% END:optional:startup-2
+    \resumeItemListEnd
+    %%% END:optional:startup
+
+  \resumeSubHeadingListEnd
+%%% END:optional:experience
+
+%%% BEGIN:optional:projects
+\section{Projects}
+    \resumeSubHeadingListStart
+
+        %%% BEGIN:optional:chatbot
+        \resumeProjectHeading
+        {\textbf{SmartChat} $|$ \emph{Python, FastAPI, LangChain}}{2024}
+        \resumeItemListStart
+            %%% BEGIN:optional:chatbot-1
+            \resumeItem{Built an NLP chatbot with intent classification and RAG-based retrieval, achieving \textbf{92\% accuracy} on a custom evaluation set.}
+            %%% END:optional:chatbot-1
+        \resumeItemListEnd
+        %%% END:optional:chatbot
+
+        %%% BEGIN:optional:monitoring
+        \resumeProjectHeading
+        {\textbf{InfraWatch} $|$ \emph{Go, Prometheus, Grafana}}{2023}
+        \resumeItemListStart
+            %%% BEGIN:optional:monitoring-1
+            \resumeItem{Designed a lightweight infrastructure monitoring agent collecting CPU, memory, and disk metrics with \textbf{<1\% overhead}, deployed across 200+ nodes.}
+            %%% END:optional:monitoring-1
+        \resumeItemListEnd
+        %%% END:optional:monitoring
+
+    \resumeSubHeadingListEnd
+%%% END:optional:projects
+
+%%% BEGIN:pinned:skills
+\section{Technical Skills}
+\vspace{-1pt}
+ \begin{itemize}[leftmargin=0in, label={}]
+    \small{\item{
+
+     %%% SKILLS:languages
+     \textbf{Languages}{: Python, Java, Go, C++, TypeScript, JavaScript, SQL, Rust, HTML/CSS.} \\
+     %%% END:SKILLS:languages
+
+     %%% SKILLS:cloud-infra
+     \textbf{Cloud \& Infra}{: AWS, GCP, Docker, Kubernetes, Kafka, Redis, PostgreSQL, MongoDB, Linux, Git.} \\
+     %%% END:SKILLS:cloud-infra
+
+     %%% SKILLS:frameworks-tools
+     \textbf{Frameworks \& Tools}{: FastAPI, Spring Boot, React, TensorFlow, Spark, Airflow, Prometheus, Grafana.}
+     %%% END:SKILLS:frameworks-tools
+
+    }}
+ \end{itemize}
+%%% END:pinned:skills
+
+\end{document}

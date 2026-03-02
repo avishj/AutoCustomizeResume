@@ -1,17 +1,20 @@
 # ──────────────────────────────────────────────
-# AutoCustomizeResume — Configuration
+# AutoCustomizeResume — Sample Configuration
+#
+# Copy this to config.yaml in the project root and
+# replace the values with your own details.
 # ──────────────────────────────────────────────
 
 # Your personal info (used for file naming and cover letter header)
 user:
-  first_name: ""
-  last_name: ""
-  phone: ""
-  email: ""
-  linkedin: ""     # e.g., "linkedin.com/in/yourname"
-  website: ""      # e.g., "yourname.dev"
-  degree: ""       # e.g., "Master of Software Engineering"
-  university: ""   # e.g., "Carnegie Mellon University"
+  first_name: "Morgan"
+  last_name: "Chen"
+  phone: "(555) 987-6543"
+  email: "morgan.chen@example.edu"
+  linkedin: "linkedin.com/in/mchen"
+  website: "mchen.dev"
+  degree: "Master of Science in Computer Engineering"
+  university: "Westfield University"
 
 # File naming templates
 # Variables: {first}, {last}, {company}, {role}, {date}, {timestamp}
@@ -21,10 +24,11 @@ naming:
   history_resume: "{company} - {role} - Resume - {timestamp}.pdf"
   history_cover: "{company} - {role} - Cover Letter - {timestamp}.pdf"
 
-# LLM backend (OpenAI-compatible API)
+# LLM backend (any OpenAI-compatible API)
+# Supports: NVIDIA NIM, Groq, Together, Ollama, OpenAI, etc.
 llm:
   base_url: "https://integrate.api.nvidia.com/v1"
-  model: "meta/llama-3.1-70b-instruct"
+  model: "z-ai/glm5"
   api_key_env: "LLM_API_KEY"  # Name of the env var holding the API key
 
 # Cover letter settings
