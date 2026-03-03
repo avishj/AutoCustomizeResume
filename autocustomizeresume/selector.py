@@ -104,6 +104,7 @@ are clearly irrelevant, but err on the side of inclusion.
 # Resume serialisation helpers
 # ---------------------------------------------------------------------------
 
+
 def _serialize_resume(parsed: ParsedResume) -> str:
     """Serialize resume structure into a compact text format for the LLM.
 
@@ -124,14 +125,10 @@ def _serialize_resume(parsed: ParsedResume) -> str:
 
 def _serialize_regular_section(section: ResumeSection) -> str:
     """Serialize a regular (non-skills) section."""
-    lines: list[str] = [
-        f"SECTION: id={section.id}, tag={section.tag_type}"
-    ]
+    lines: list[str] = [f"SECTION: id={section.id}, tag={section.tag_type}"]
 
     for item in section.items:
-        lines.append(
-            f"  ITEM: id={item.id}, tag={item.tag_type}"
-        )
+        lines.append(f"  ITEM: id={item.id}, tag={item.tag_type}")
         # Include a brief summary from heading lines (strip LaTeX noise)
         heading_preview = _latex_preview(item.heading_lines)
         if heading_preview:
@@ -139,9 +136,7 @@ def _serialize_regular_section(section: ResumeSection) -> str:
 
         for bullet in item.bullets:
             bullet_text = _latex_preview(bullet.text)
-            lines.append(
-                f"    BULLET: id={bullet.id}, tag={bullet.tag_type}"
-            )
+            lines.append(f"    BULLET: id={bullet.id}, tag={bullet.tag_type}")
             if bullet_text:
                 lines.append(f"      text: {bullet_text}")
 
@@ -150,9 +145,7 @@ def _serialize_regular_section(section: ResumeSection) -> str:
 
 def _serialize_skills_section(section: SkillsSection) -> str:
     """Serialize the skills section."""
-    lines: list[str] = [
-        f"SKILLS SECTION: id={section.id}, tag={section.tag_type}"
-    ]
+    lines: list[str] = [f"SKILLS SECTION: id={section.id}, tag={section.tag_type}"]
 
     for cat in section.categories:
         skills_str = ", ".join(cat.skills)
@@ -197,6 +190,7 @@ def _latex_preview(text: str) -> str:
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def select_content(
     jd_analysis: JDAnalysis,
@@ -270,10 +264,7 @@ def select_content(
 
     # Log summary
     included_items = sum(
-        1
-        for sec in selection.sections
-        for it in sec.items
-        if it.include
+        1 for sec in selection.sections for it in sec.items if it.include
     )
     total_items = sum(len(sec.items) for sec in selection.sections)
     logger.info(

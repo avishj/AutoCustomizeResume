@@ -54,9 +54,7 @@ def _run_oneshot(jd_path: str, *, company: str | None, role: str | None) -> None
     config = load_config()
     result = run_pipeline(jd_text, config, company=company, role=role)
     handle_output(result, config)
-    status.success(
-        f"Output → {config.paths.output_dir}/"
-    )
+    status.success(f"Output → {config.paths.output_dir}/")
 
 
 def main(argv: list[str] | None = None) -> None:

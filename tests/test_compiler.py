@@ -21,27 +21,23 @@ from autocustomizeresume.models import (
     ParsedResume,
     ResumeItem,
     ResumeSection,
-    SkillCategory,
-    SkillsSection,
 )
 from autocustomizeresume.schemas import (
-    BulletDecision,
     ContentSelection,
-    ItemDecision,
-    SectionDecision,
-    SkillCategoryDecision,
 )
 
 
 def _tectonic_available() -> bool:
     """Check if tectonic is available on PATH."""
     import shutil
+
     return shutil.which("tectonic") is not None
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_selection(**overrides) -> ContentSelection:
     """Build a ContentSelection from a dict, with defaults."""
@@ -118,30 +114,39 @@ def _make_parsed() -> ParsedResume:
 
 def _full_selection() -> ContentSelection:
     """Selection that includes everything in _make_parsed()."""
-    return _make_selection(sections=[
-        {
-            "id": "experience", "include": True, "items": [
-                {
-                    "id": "acme", "include": True, "relevance_score": 80,
-                    "bullets": [
-                        {"id": "acme-1", "include": True, "edited_text": ""},
-                        {"id": "acme-2", "include": True, "edited_text": ""},
-                    ],
-                },
-                {
-                    "id": "widgets", "include": True, "relevance_score": 30,
-                    "bullets": [
-                        {"id": "widgets-1", "include": True, "edited_text": ""},
-                    ],
-                },
-            ],
-        },
-    ])
+    return _make_selection(
+        sections=[
+            {
+                "id": "experience",
+                "include": True,
+                "items": [
+                    {
+                        "id": "acme",
+                        "include": True,
+                        "relevance_score": 80,
+                        "bullets": [
+                            {"id": "acme-1", "include": True, "edited_text": ""},
+                            {"id": "acme-2", "include": True, "edited_text": ""},
+                        ],
+                    },
+                    {
+                        "id": "widgets",
+                        "include": True,
+                        "relevance_score": 30,
+                        "bullets": [
+                            {"id": "widgets-1", "include": True, "edited_text": ""},
+                        ],
+                    },
+                ],
+            },
+        ]
+    )
 
 
 # ---------------------------------------------------------------------------
 # _find_droppables
 # ---------------------------------------------------------------------------
+
 
 class TestFindDroppables:
     def test_returns_bullets_before_items(self):
@@ -156,20 +161,26 @@ class TestFindDroppables:
         last_bullet_idx = max(
             i for i, d in enumerate(droppables) if d.bullet_id is not None
         )
-        first_item_idx = min(
-            i for i, d in enumerate(droppables) if d.bullet_id is None
-        )
+        first_item_idx = min(i for i, d in enumerate(droppables) if d.bullet_id is None)
         assert last_bullet_idx < first_item_idx
 
     def test_excludes_already_excluded(self):
-        sel = _make_selection(sections=[{
-            "id": "exp", "include": True, "items": [
+        sel = _make_selection(
+            sections=[
                 {
-                    "id": "acme", "include": False,
-                    "relevance_score": 80, "bullets": [],
-                },
-            ],
-        }])
+                    "id": "exp",
+                    "include": True,
+                    "items": [
+                        {
+                            "id": "acme",
+                            "include": False,
+                            "relevance_score": 80,
+                            "bullets": [],
+                        },
+                    ],
+                }
+            ]
+        )
         assert _find_droppables(sel) == []
 
     def test_sorts_by_score_ascending(self):
@@ -185,15 +196,22 @@ class TestFindDroppables:
         assert scores == sorted(scores)
 
     def test_excluded_section_skipped(self):
-        sel = _make_selection(sections=[{
-            "id": "exp", "include": False, "items": [
+        sel = _make_selection(
+            sections=[
                 {
-                    "id": "acme", "include": True,
-                    "relevance_score": 80,
-                    "bullets": [{"id": "b1", "include": True}],
-                },
-            ],
-        }])
+                    "id": "exp",
+                    "include": False,
+                    "items": [
+                        {
+                            "id": "acme",
+                            "include": True,
+                            "relevance_score": 80,
+                            "bullets": [{"id": "b1", "include": True}],
+                        },
+                    ],
+                }
+            ]
+        )
         assert _find_droppables(sel) == []
 
     def test_empty_selection(self):
@@ -205,12 +223,15 @@ class TestFindDroppables:
 # _drop_element
 # ---------------------------------------------------------------------------
 
+
 class TestDropElement:
     def test_drop_bullet(self):
         sel = _full_selection()
         droppable = _Droppable(
-            section_id="experience", item_id="acme",
-            bullet_id="acme-1", score=80,
+            section_id="experience",
+            item_id="acme",
+            bullet_id="acme-1",
+            score=80,
         )
         new_sel = _drop_element(sel, droppable)
         acme = next(it for it in new_sel.sections[0].items if it.id == "acme")
@@ -220,20 +241,22 @@ class TestDropElement:
     def test_drop_item(self):
         sel = _full_selection()
         droppable = _Droppable(
-            section_id="experience", item_id="widgets",
-            bullet_id=None, score=30,
+            section_id="experience",
+            item_id="widgets",
+            bullet_id=None,
+            score=30,
         )
         new_sel = _drop_element(sel, droppable)
-        widgets = next(
-            it for it in new_sel.sections[0].items if it.id == "widgets"
-        )
+        widgets = next(it for it in new_sel.sections[0].items if it.id == "widgets")
         assert widgets.include is False
 
     def test_drop_nonexistent_is_noop(self):
         sel = _full_selection()
         droppable = _Droppable(
-            section_id="experience", item_id="nonexistent",
-            bullet_id=None, score=0,
+            section_id="experience",
+            item_id="nonexistent",
+            bullet_id=None,
+            score=0,
         )
         # Should not raise; returns unchanged selection
         new_sel = _drop_element(sel, droppable)
@@ -242,8 +265,10 @@ class TestDropElement:
     def test_drop_bullet_leaves_other_bullets(self):
         sel = _full_selection()
         droppable = _Droppable(
-            section_id="experience", item_id="acme",
-            bullet_id="acme-1", score=80,
+            section_id="experience",
+            item_id="acme",
+            bullet_id="acme-1",
+            score=80,
         )
         new_sel = _drop_element(sel, droppable)
         acme = next(it for it in new_sel.sections[0].items if it.id == "acme")
@@ -254,8 +279,10 @@ class TestDropElement:
         """_drop_element must not mutate the original selection."""
         sel = _full_selection()
         droppable = _Droppable(
-            section_id="experience", item_id="acme",
-            bullet_id="acme-1", score=80,
+            section_id="experience",
+            item_id="acme",
+            bullet_id="acme-1",
+            score=80,
         )
         _drop_element(sel, droppable)
         # Original should still have acme-1 included
@@ -267,6 +294,7 @@ class TestDropElement:
 # ---------------------------------------------------------------------------
 # compile_tex (unit tests with mocked subprocess)
 # ---------------------------------------------------------------------------
+
 
 class TestCompileTex:
     @patch("autocustomizeresume.compiler.subprocess.run")
@@ -302,6 +330,7 @@ class TestCompileTex:
 
         # Create a real temp dir, then patch mkdtemp to return it.
         import tempfile as _tempfile
+
         td = _tempfile.mkdtemp(prefix="test_acr_")
         (Path(td) / "resume.pdf").write_bytes(b"%PDF-1.4 fake")
 
@@ -323,9 +352,8 @@ class TestCompileTex:
     @patch("autocustomizeresume.compiler.subprocess.run")
     def test_timeout_raises_compile_error(self, mock_run, tmp_path):
         import subprocess as _subprocess
-        mock_run.side_effect = _subprocess.TimeoutExpired(
-            cmd=["tectonic"], timeout=120
-        )
+
+        mock_run.side_effect = _subprocess.TimeoutExpired(cmd=["tectonic"], timeout=120)
         with pytest.raises(CompileError, match="timed out"):
             compile_tex(r"\documentclass{article}", keep_dir=tmp_path)
 
@@ -334,6 +362,7 @@ class TestCompileTex:
         """Temp dir is removed when compile_tex raises CompileError (no keep_dir)."""
         mock_run.return_value = MagicMock(returncode=1, stderr="error")
         import tempfile as _tempfile
+
         td = _tempfile.mkdtemp(prefix="test_acr_leak_")
         td_path = Path(td)
 
@@ -349,9 +378,8 @@ class TestCompileTex:
         """Temp dir is removed when compile_tex raises CompileError on timeout."""
         import subprocess as _subprocess
         import tempfile as _tempfile
-        mock_run.side_effect = _subprocess.TimeoutExpired(
-            cmd=["tectonic"], timeout=120
-        )
+
+        mock_run.side_effect = _subprocess.TimeoutExpired(cmd=["tectonic"], timeout=120)
         td = _tempfile.mkdtemp(prefix="test_acr_leak_")
         td_path = Path(td)
 
@@ -367,6 +395,7 @@ class TestCompileTex:
         """Temp dir is removed when tectonic succeeds but no PDF is produced."""
         mock_run.return_value = MagicMock(returncode=0, stderr="")
         import tempfile as _tempfile
+
         td = _tempfile.mkdtemp(prefix="test_acr_leak_")
         td_path = Path(td)
 
@@ -375,12 +404,15 @@ class TestCompileTex:
             with pytest.raises(CompileError, match="no PDF was produced"):
                 compile_tex(r"\documentclass{article}")
 
-        assert not td_path.exists(), "temp dir should be cleaned up when no PDF produced"
+        assert not td_path.exists(), (
+            "temp dir should be cleaned up when no PDF produced"
+        )
 
 
 # ---------------------------------------------------------------------------
 # get_page_count (unit tests with real tiny PDFs)
 # ---------------------------------------------------------------------------
+
 
 class TestGetPageCount:
     def test_invalid_file_raises(self, tmp_path):
@@ -392,6 +424,7 @@ class TestGetPageCount:
     def test_real_pdf(self, tmp_path):
         """Create a minimal valid PDF via pypdf and verify page count."""
         from pypdf import PdfWriter
+
         writer = PdfWriter()
         writer.add_blank_page(width=612, height=792)
         pdf_path = tmp_path / "test.pdf"
@@ -401,6 +434,7 @@ class TestGetPageCount:
 
     def test_multi_page_pdf(self, tmp_path):
         from pypdf import PdfWriter
+
         writer = PdfWriter()
         writer.add_blank_page(width=612, height=792)
         writer.add_blank_page(width=612, height=792)
@@ -414,6 +448,7 @@ class TestGetPageCount:
 # ---------------------------------------------------------------------------
 # compile_with_enforcement (mocked compile_tex + get_page_count)
 # ---------------------------------------------------------------------------
+
 
 class TestCompileWithEnforcement:
     """Test the enforcement loop with mocked compilation."""
@@ -436,7 +471,9 @@ class TestCompileWithEnforcement:
 
         return (
             patch("autocustomizeresume.compiler.compile_tex", side_effect=mock_compile),
-            patch("autocustomizeresume.compiler.get_page_count", side_effect=mock_pages),
+            patch(
+                "autocustomizeresume.compiler.get_page_count", side_effect=mock_pages
+            ),
         )
 
     def test_fits_first_try(self):
@@ -463,13 +500,14 @@ class TestCompileWithEnforcement:
         # The lowest scored item is widgets (30), so its bullet should be
         # dropped first (bullets come before items)
         widgets_bullets = final_sel.sections[0].items[1].bullets
-        widgets_1 = next(
-            (b for b in widgets_bullets if b.id == "widgets-1"), None
-        )
+        widgets_1 = next((b for b in widgets_bullets if b.id == "widgets-1"), None)
         # Either the bullet was dropped or the item itself
         # (depends on ordering — widgets bullet at score=30 is first droppable)
-        assert widgets_1 is None or widgets_1.include is False or \
-            final_sel.sections[0].items[1].include is False
+        assert (
+            widgets_1 is None
+            or widgets_1.include is False
+            or final_sel.sections[0].items[1].include is False
+        )
 
     def test_multiple_retries(self):
         """Needs 3 drops (all 3 retries) to fit."""
@@ -489,24 +527,32 @@ class TestCompileWithEnforcement:
         p1, p2 = self._patch_compile([2] * 12)
         with p1, p2:
             with pytest.raises(CompileError, match="still exceeds 1 page"):
-                compile_with_enforcement(
-                    _make_parsed(), _full_selection()
-                )
+                compile_with_enforcement(_make_parsed(), _full_selection())
 
     def test_nothing_to_drop(self):
         """All items already excluded — raises immediately."""
-        sel = _make_selection(sections=[{
-            "id": "experience", "include": True, "items": [
+        sel = _make_selection(
+            sections=[
                 {
-                    "id": "acme", "include": False, "relevance_score": 80,
-                    "bullets": [],
-                },
-                {
-                    "id": "widgets", "include": False, "relevance_score": 30,
-                    "bullets": [],
-                },
-            ],
-        }])
+                    "id": "experience",
+                    "include": True,
+                    "items": [
+                        {
+                            "id": "acme",
+                            "include": False,
+                            "relevance_score": 80,
+                            "bullets": [],
+                        },
+                        {
+                            "id": "widgets",
+                            "include": False,
+                            "relevance_score": 30,
+                            "bullets": [],
+                        },
+                    ],
+                }
+            ]
+        )
         p1, p2 = self._patch_compile([2])
         with p1, p2:
             with pytest.raises(CompileError, match="still exceeds 1 page"):
@@ -540,13 +586,18 @@ class TestCompileWithEnforcement:
         def mock_pages(pdf_path):
             return next(page_calls)
 
-        with patch("autocustomizeresume.compiler.compile_tex", side_effect=mock_compile), \
-             patch("autocustomizeresume.compiler.get_page_count", side_effect=mock_pages), \
-             patch("autocustomizeresume.assembler.assemble_tex") as mock_assemble:
+        with (
+            patch("autocustomizeresume.compiler.compile_tex", side_effect=mock_compile),
+            patch(
+                "autocustomizeresume.compiler.get_page_count", side_effect=mock_pages
+            ),
+            patch("autocustomizeresume.assembler.assemble_tex") as mock_assemble,
+        ):
             # Track the selection passed to assemble_tex
             def capture_assemble(parsed, sel):
                 call_log.append(sel)
                 return r"\documentclass{article}\begin{document}x\end{document}"
+
             mock_assemble.side_effect = capture_assemble
 
             compile_with_enforcement(_make_parsed(), _full_selection())
@@ -563,6 +614,7 @@ class TestCompileWithEnforcement:
 # ---------------------------------------------------------------------------
 # Integration test (requires tectonic)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.skipif(
     not _tectonic_available(),

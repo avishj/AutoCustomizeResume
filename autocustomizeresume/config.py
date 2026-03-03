@@ -98,7 +98,9 @@ def _get(data: dict, key: str, section: str, default: Any = _MISSING) -> Any:
     If no default was provided, raises ConfigError.
     """
     if not isinstance(data, dict):
-        raise ConfigError(f"Expected '{section}' to be a YAML mapping, got {type(data).__name__}")
+        raise ConfigError(
+            f"Expected '{section}' to be a YAML mapping, got {type(data).__name__}"
+        )
     val = data.get(key, _MISSING)
     if val is _MISSING or val is None:
         if default is _MISSING:
@@ -191,7 +193,9 @@ def load_config(config_path: str = "config.yaml") -> Config:
         raise ConfigError(f"Invalid YAML in {config_path}: {e}") from e
 
     if not isinstance(raw, dict):
-        raise ConfigError(f"Config file must be a YAML mapping, got {type(raw).__name__}")
+        raise ConfigError(
+            f"Config file must be a YAML mapping, got {type(raw).__name__}"
+        )
 
     # Parse sections
     user_raw = _get(raw, "user", "root")
@@ -245,9 +249,7 @@ def load_config(config_path: str = "config.yaml") -> Config:
     watcher_raw = _get(raw, "watcher", "root")
     debounce_seconds = _get_float(watcher_raw, "debounce_seconds", "watcher")
     if not math.isfinite(debounce_seconds) or debounce_seconds <= 0:
-        raise ConfigError(
-            "watcher.debounce_seconds must be a positive finite number"
-        )
+        raise ConfigError("watcher.debounce_seconds must be a positive finite number")
     watcher = WatcherConfig(
         debounce_seconds=debounce_seconds,
     )

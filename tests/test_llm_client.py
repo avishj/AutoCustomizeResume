@@ -13,6 +13,7 @@ from autocustomizeresume.llm_client import LLMClient, LLMError
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_config() -> MagicMock:
     """Build a minimal mock Config for LLMClient."""
     cfg = MagicMock()
@@ -38,8 +39,8 @@ def _mock_response(content: str | None) -> MagicMock:
 # Construction
 # ---------------------------------------------------------------------------
 
-class TestInit:
 
+class TestInit:
     @patch("autocustomizeresume.llm_client.OpenAI")
     def test_reads_config(self, mock_openai_cls: MagicMock):
         cfg = _make_config()
@@ -56,8 +57,8 @@ class TestInit:
 # chat() — plain text
 # ---------------------------------------------------------------------------
 
-class TestChat:
 
+class TestChat:
     @patch("autocustomizeresume.llm_client.OpenAI")
     def test_returns_content(self, mock_openai_cls: MagicMock):
         mock_client = mock_openai_cls.return_value
@@ -131,8 +132,8 @@ class TestChat:
 # chat() — error handling
 # ---------------------------------------------------------------------------
 
-class TestChatErrors:
 
+class TestChatErrors:
     @patch("autocustomizeresume.llm_client.OpenAI")
     def test_auth_error(self, mock_openai_cls: MagicMock):
         from openai import AuthenticationError
@@ -210,8 +211,8 @@ class TestChatErrors:
 # chat_json()
 # ---------------------------------------------------------------------------
 
-class TestChatJson:
 
+class TestChatJson:
     @patch("autocustomizeresume.llm_client.OpenAI")
     def test_returns_parsed_dict(self, mock_openai_cls: MagicMock):
         mock_client = mock_openai_cls.return_value

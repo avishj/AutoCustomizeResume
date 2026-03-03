@@ -47,39 +47,30 @@ TAG_TYPES = {PINNED, OPTIONAL}
 
 # Matches: %%% BEGIN:pinned:section-id  or  %%% BEGIN:optional:item-id
 # Groups:  (1) type = pinned|optional   (2) id = identifier
-TAG_BEGIN_RE = re.compile(
-    r"^%%% BEGIN:(pinned|optional):(\S+)\s*$"
-)
+TAG_BEGIN_RE = re.compile(r"^%%% BEGIN:(pinned|optional):(\S+)\s*$")
 
 # Matches: %%% END:pinned:section-id  or  %%% END:optional:item-id
 # Groups:  (1) type = pinned|optional   (2) id = identifier
-TAG_END_RE = re.compile(
-    r"^%%% END:(pinned|optional):(\S+)\s*$"
-)
+TAG_END_RE = re.compile(r"^%%% END:(pinned|optional):(\S+)\s*$")
 
 # Matches: %%% SKILLS:category-name
 # Groups:  (1) category name
-SKILLS_BEGIN_RE = re.compile(
-    r"^%%% SKILLS:(\S+)\s*$"
-)
+SKILLS_BEGIN_RE = re.compile(r"^%%% SKILLS:(\S+)\s*$")
 
 # Matches: %%% END:SKILLS:category-name
 # Groups:  (1) category name
-SKILLS_END_RE = re.compile(
-    r"^%%% END:SKILLS:(\S+)\s*$"
-)
+SKILLS_END_RE = re.compile(r"^%%% END:SKILLS:(\S+)\s*$")
 
 # Catches any line that looks like a tag directive (starts with %%% followed
 # by a keyword) but doesn't match any of the valid tag patterns above.
 # Used to warn about typos in tag markup.
-_TAG_LIKE_RE = re.compile(
-    r"^%%% (?:BEGIN|END|SKILLS)\b"
-)
+_TAG_LIKE_RE = re.compile(r"^%%% (?:BEGIN|END|SKILLS)\b")
 
 
 # ---------------------------------------------------------------------------
 # Errors
 # ---------------------------------------------------------------------------
+
 
 class ParseError(Exception):
     """Raised when the tagged resume has structural errors."""
@@ -115,6 +106,7 @@ def _warn_malformed_tags(tex_content: str) -> None:
 # Core parser
 # ---------------------------------------------------------------------------
 
+
 def parse_resume(tex_content: str) -> ParsedResume:
     """Parse a tagged LaTeX resume into structured data.
 
@@ -137,8 +129,8 @@ def parse_resume(tex_content: str) -> ParsedResume:
     if idx == -1:
         raise ParseError(r"No \begin{document} found in resume")
 
-    preamble = tex_content[:idx + len(marker)]
-    body = tex_content[idx + len(marker):]
+    preamble = tex_content[: idx + len(marker)]
+    body = tex_content[idx + len(marker) :]
 
     # --- 2. Walk lines, split into header / sections / postamble ---
     lines = body.split("\n")
@@ -168,18 +160,18 @@ def parse_resume(tex_content: str) -> ParsedResume:
                 in_section = True
                 section_depth_type = cast(TagType, m.group(1))
                 section_depth_id = m.group(2)
-                section_chunks.append({
-                    "type": section_depth_type,
-                    "id": section_depth_id,
-                    "lines": [],
-                })
+                section_chunks.append(
+                    {
+                        "type": section_depth_type,
+                        "id": section_depth_id,
+                        "lines": [],
+                    }
+                )
                 i += 1
                 continue
             # Reject stray END tags before any section opens
             if TAG_END_RE.match(stripped):
-                raise ParseError(
-                    f"Unexpected END tag before any section: {stripped}"
-                )
+                raise ParseError(f"Unexpected END tag before any section: {stripped}")
             header_lines.append(line)
             i += 1
             continue
@@ -197,25 +189,29 @@ def parse_resume(tex_content: str) -> ParsedResume:
                 in_section = True
                 section_depth_type = cast(TagType, m.group(1))
                 section_depth_id = m.group(2)
-                section_chunks.append({
-                    "type": section_depth_type,
-                    "id": section_depth_id,
-                    "lines": [],
-                })
+                section_chunks.append(
+                    {
+                        "type": section_depth_type,
+                        "id": section_depth_id,
+                        "lines": [],
+                    }
+                )
                 i += 1
                 continue
             # Reject stray END tags between sections
             if TAG_END_RE.match(stripped):
-                raise ParseError(
-                    f"Unexpected END tag between sections: {stripped}"
-                )
+                raise ParseError(f"Unexpected END tag between sections: {stripped}")
             interstitial_lines.append(line)
             i += 1
             continue
 
         # Inside a section — look for the matching END
         m_end = TAG_END_RE.match(stripped)
-        if m_end and m_end.group(1) == section_depth_type and m_end.group(2) == section_depth_id:
+        if (
+            m_end
+            and m_end.group(1) == section_depth_type
+            and m_end.group(2) == section_depth_id
+        ):
             in_section = False
             section_depth_type = None
             section_depth_id = None
@@ -279,7 +275,9 @@ def _validate_unique_ids(
 
         if isinstance(section, SkillsSection):
             for cat in section.categories:
-                _check(cat.name, f"skill category '{cat.name}' in section '{section.id}'")
+                _check(
+                    cat.name, f"skill category '{cat.name}' in section '{section.id}'"
+                )
         else:
             for item in section.items:
                 _check(item.id, f"item '{item.id}' in section '{section.id}'")
@@ -358,9 +356,7 @@ def _parse_regular_section(
         item_lines.append(line)
 
     if in_item:
-        raise ParseError(
-            f"Unclosed item tag: %%% BEGIN:{item_type}:{item_id}"
-        )
+        raise ParseError(f"Unclosed item tag: %%% BEGIN:{item_type}:{item_id}")
 
     # Trailing interstitial
     if buffer:
@@ -374,9 +370,7 @@ def _parse_regular_section(
     )
 
 
-def _parse_item(
-    tag_type: TagType, tag_id: str, lines: list[str]
-) -> ResumeItem:
+def _parse_item(tag_type: TagType, tag_id: str, lines: list[str]) -> ResumeItem:
     """Parse a single item's lines into heading + bullets."""
     bullets: list[Bullet] = []
     interstitial: list[tuple[int, str]] = []
@@ -423,11 +417,13 @@ def _parse_item(
         m_end = TAG_END_RE.match(stripped)
         if m_end and m_end.group(1) == bullet_type and m_end.group(2) == bullet_id:
             assert bullet_type is not None and bullet_id is not None
-            bullets.append(Bullet(
-                tag_type=bullet_type,
-                id=bullet_id,
-                text="\n".join(bullet_lines),
-            ))
+            bullets.append(
+                Bullet(
+                    tag_type=bullet_type,
+                    id=bullet_id,
+                    text="\n".join(bullet_lines),
+                )
+            )
             in_bullet = False
             bullet_type = None
             bullet_id = None
@@ -437,9 +433,7 @@ def _parse_item(
         bullet_lines.append(line)
 
     if in_bullet:
-        raise ParseError(
-            f"Unclosed bullet tag: %%% BEGIN:{bullet_type}:{bullet_id}"
-        )
+        raise ParseError(f"Unclosed bullet tag: %%% BEGIN:{bullet_type}:{bullet_id}")
 
     # Trailing interstitial
     if buffer:
@@ -506,9 +500,7 @@ def _parse_skills_section(
         cat_lines.append(line)
 
     if in_category:
-        raise ParseError(
-            f"Unclosed skills tag: %%% SKILLS:{cat_name}"
-        )
+        raise ParseError(f"Unclosed skills tag: %%% SKILLS:{cat_name}")
 
     # Trailing interstitial
     if buffer:
@@ -530,8 +522,8 @@ def _parse_skills_section(
 #         (4) trailing suffix (e.g. ".} \\" or "}")
 _SKILL_LINE_RE = re.compile(
     r"^(.*\\textbf\{([^}]+)\}\{:\s*)"  # prefix + display name
-    r"(.+?)"                             # skills (greedy-minimal)
-    r"(\.\}.*|\}.*)$",                   # suffix: ".} \\" or "} \\" or "}"
+    r"(.+?)"  # skills (greedy-minimal)
+    r"(\.\}.*|\}.*)$",  # suffix: ".} \\" or "} \\" or "}"
     re.DOTALL,
 )
 

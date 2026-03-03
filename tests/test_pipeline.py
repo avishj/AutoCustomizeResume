@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -28,6 +27,7 @@ from autocustomizeresume.schemas import (
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_config(cover_letter_enabled=False) -> Config:
     return Config(
@@ -106,6 +106,7 @@ def _make_selection() -> ContentSelection:
 # Tests
 # ---------------------------------------------------------------------------
 
+
 class TestRunPipeline:
     @patch("autocustomizeresume.pipeline.compile_with_enforcement")
     @patch("autocustomizeresume.pipeline.select_content")
@@ -113,8 +114,14 @@ class TestRunPipeline:
     @patch("autocustomizeresume.pipeline.LLMClient")
     @patch("autocustomizeresume.pipeline.parse_resume")
     def test_resume_pipeline(
-        self, mock_parse, _mock_llm_cls, mock_analyze, mock_select, mock_compile,
-        tmp_path, resume_config,
+        self,
+        mock_parse,
+        _mock_llm_cls,
+        mock_analyze,
+        mock_select,
+        mock_compile,
+        tmp_path,
+        resume_config,
     ):
         parsed = MagicMock()
         mock_parse.return_value = parsed
@@ -149,8 +156,15 @@ class TestRunPipeline:
     @patch("autocustomizeresume.pipeline.LLMClient")
     @patch("autocustomizeresume.pipeline.parse_resume")
     def test_cover_letter_enabled(
-        self, mock_parse, _mock_llm_cls, mock_analyze, mock_select,
-        mock_compile, mock_build_cl, tmp_path, resume_config,
+        self,
+        mock_parse,
+        _mock_llm_cls,
+        mock_analyze,
+        mock_select,
+        mock_compile,
+        mock_build_cl,
+        tmp_path,
+        resume_config,
     ):
         config = replace(
             resume_config,
@@ -181,8 +195,14 @@ class TestRunPipeline:
     @patch("autocustomizeresume.pipeline.LLMClient")
     @patch("autocustomizeresume.pipeline.parse_resume")
     def test_company_role_overrides(
-        self, mock_parse, _mock_llm_cls, mock_analyze, mock_select, mock_compile,
-        tmp_path, resume_config,
+        self,
+        mock_parse,
+        _mock_llm_cls,
+        mock_analyze,
+        mock_select,
+        mock_compile,
+        tmp_path,
+        resume_config,
     ):
         mock_parse.return_value = MagicMock()
         mock_analyze.return_value = _make_analysis()
@@ -206,8 +226,14 @@ class TestRunPipeline:
     @patch("autocustomizeresume.pipeline.LLMClient")
     @patch("autocustomizeresume.pipeline.parse_resume")
     def test_cover_letter_disabled(
-        self, mock_parse, _mock_llm_cls, mock_analyze, mock_select, mock_compile,
-        tmp_path, resume_config,
+        self,
+        mock_parse,
+        _mock_llm_cls,
+        mock_analyze,
+        mock_select,
+        mock_compile,
+        tmp_path,
+        resume_config,
     ):
         mock_parse.return_value = MagicMock()
         mock_analyze.return_value = _make_analysis()

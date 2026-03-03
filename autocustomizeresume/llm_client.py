@@ -12,7 +12,13 @@ import json
 import logging
 from typing import Any
 
-from openai import APIConnectionError, APITimeoutError, AuthenticationError, OpenAI, RateLimitError
+from openai import (
+    APIConnectionError,
+    APITimeoutError,
+    AuthenticationError,
+    OpenAI,
+    RateLimitError,
+)
 
 from autocustomizeresume.config import Config
 

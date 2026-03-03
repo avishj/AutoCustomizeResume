@@ -85,15 +85,12 @@ def compile_tex(tex_content: str, *, keep_dir: Path | None = None) -> Path:
 
         if result.returncode != 0:
             raise CompileError(
-                f"tectonic failed (exit {result.returncode}):\n"
-                f"{result.stderr.strip()}"
+                f"tectonic failed (exit {result.returncode}):\n{result.stderr.strip()}"
             )
 
         pdf_path = tex_path.with_suffix(".pdf")
         if not pdf_path.exists():
-            raise CompileError(
-                "tectonic exited successfully but no PDF was produced"
-            )
+            raise CompileError("tectonic exited successfully but no PDF was produced")
     except Exception:
         if owns_dir:
             shutil.rmtree(work, ignore_errors=True)
@@ -120,14 +117,13 @@ def get_page_count(pdf_path: Path) -> int:
         reader = PdfReader(pdf_path)
         return len(reader.pages)
     except Exception as exc:
-        raise CompileError(
-            f"Failed to read page count from {pdf_path}: {exc}"
-        ) from exc
+        raise CompileError(f"Failed to read page count from {pdf_path}: {exc}") from exc
 
 
 # ---------------------------------------------------------------------------
 # Droppable-element search
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class _Droppable:
@@ -158,19 +154,23 @@ def _find_droppables(selection: ContentSelection) -> list[_Droppable]:
             # Collect droppable bullets within this item
             for bd in it.bullets:
                 if bd.include:
-                    bullets.append(_Droppable(
-                        section_id=sec.id,
-                        item_id=it.id,
-                        bullet_id=bd.id,
-                        score=it.relevance_score,
-                    ))
+                    bullets.append(
+                        _Droppable(
+                            section_id=sec.id,
+                            item_id=it.id,
+                            bullet_id=bd.id,
+                            score=it.relevance_score,
+                        )
+                    )
             # The item itself is droppable
-            items.append(_Droppable(
-                section_id=sec.id,
-                item_id=it.id,
-                bullet_id=None,
-                score=it.relevance_score,
-            ))
+            items.append(
+                _Droppable(
+                    section_id=sec.id,
+                    item_id=it.id,
+                    bullet_id=None,
+                    score=it.relevance_score,
+                )
+            )
 
     # Sort each group by score ascending (drop lowest first)
     bullets.sort(key=lambda d: d.score)
@@ -278,7 +278,9 @@ def compile_with_enforcement(
 
             logger.warning(
                 "PDF has %d pages (attempt %d/%d), dropping content",
-                pages, attempt + 1, _MAX_RETRIES + 1,
+                pages,
+                attempt + 1,
+                _MAX_RETRIES + 1,
             )
 
             if attempt == _MAX_RETRIES:
@@ -290,10 +292,16 @@ def compile_with_enforcement(
                 break
 
             target = droppables[0]
-            kind = f"bullet '{target.bullet_id}'" if target.bullet_id else f"item '{target.item_id}'"
+            kind = (
+                f"bullet '{target.bullet_id}'"
+                if target.bullet_id
+                else f"item '{target.item_id}'"
+            )
             logger.info(
                 "Dropping %s (score=%d) from section '%s'",
-                kind, target.score, target.section_id,
+                kind,
+                target.score,
+                target.section_id,
             )
 
             current_sel = _drop_element(current_sel, target)
@@ -306,6 +314,4 @@ def compile_with_enforcement(
     # Still exceeds 1 page — clean up and raise
     if owns_dir:
         shutil.rmtree(work_dir, ignore_errors=True)
-    raise CompileError(
-        f"Resume still exceeds 1 page after {attempt + 1} attempts"
-    )
+    raise CompileError(f"Resume still exceeds 1 page after {attempt + 1} attempts")

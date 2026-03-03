@@ -7,11 +7,8 @@ from pathlib import Path
 import pytest
 
 from autocustomizeresume.models import (
-    Bullet,
     ParsedResume,
-    ResumeItem,
     ResumeSection,
-    SkillCategory,
     SkillsSection,
 )
 from autocustomizeresume.parser import ParseError, parse_resume
@@ -22,6 +19,7 @@ FIXTURES = Path(__file__).parent / "fixtures"
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _load_fixture(name: str) -> str:
     return (FIXTURES / name).read_text()
@@ -41,8 +39,8 @@ def minimal_resume() -> ParsedResume:
 # Preamble / header / postamble extraction
 # ---------------------------------------------------------------------------
 
-class TestStructuralSplit:
 
+class TestStructuralSplit:
     def test_preamble_contains_documentclass(self, sample_resume: ParsedResume):
         assert r"\documentclass" in sample_resume.preamble
 
@@ -63,8 +61,8 @@ class TestStructuralSplit:
 # Section-level parsing
 # ---------------------------------------------------------------------------
 
-class TestSections:
 
+class TestSections:
     def test_section_count(self, sample_resume: ParsedResume):
         assert len(sample_resume.sections) == 4
 
@@ -96,8 +94,8 @@ class TestSections:
 # Item-level parsing
 # ---------------------------------------------------------------------------
 
-class TestItems:
 
+class TestItems:
     def test_education_items(self, sample_resume: ParsedResume):
         edu = sample_resume.sections[0]
         assert isinstance(edu, ResumeSection)
@@ -133,8 +131,8 @@ class TestItems:
 # Bullet-level parsing
 # ---------------------------------------------------------------------------
 
-class TestBullets:
 
+class TestBullets:
     def test_bullet_count(self, sample_resume: ParsedResume):
         exp = sample_resume.sections[1]
         assert isinstance(exp, ResumeSection)
@@ -182,8 +180,8 @@ class TestBullets:
 # Skills parsing
 # ---------------------------------------------------------------------------
 
-class TestSkills:
 
+class TestSkills:
     def test_category_count(self, sample_resume: ParsedResume):
         skills = sample_resume.sections[3]
         assert isinstance(skills, SkillsSection)
@@ -225,15 +223,18 @@ class TestSkills:
 # Interstitial content preservation
 # ---------------------------------------------------------------------------
 
-class TestInterstitial:
 
+class TestInterstitial:
     def test_section_interstitial(self, sample_resume: ParsedResume):
         """Section header and list wrappers should be in interstitial."""
         edu = sample_resume.sections[0]
         assert isinstance(edu, ResumeSection)
         # There should be interstitial content (section header, list start, etc.)
         all_text = " ".join(t for _, t in edu.interstitial)
-        assert r"\section{Education}" in all_text or r"\resumeSubHeadingListStart" in all_text
+        assert (
+            r"\section{Education}" in all_text
+            or r"\resumeSubHeadingListStart" in all_text
+        )
 
     def test_item_interstitial(self, sample_resume: ParsedResume):
         """Bullet list wrappers should be in item interstitial."""
@@ -242,15 +243,18 @@ class TestInterstitial:
         acme = exp.items[0]
         all_text = " ".join(t for _, t in acme.interstitial)
         # resumeItemListStart/End should be captured
-        assert r"\resumeItemListStart" in acme.heading_lines or r"\resumeItemListStart" in all_text
+        assert (
+            r"\resumeItemListStart" in acme.heading_lines
+            or r"\resumeItemListStart" in all_text
+        )
 
 
 # ---------------------------------------------------------------------------
 # Error cases
 # ---------------------------------------------------------------------------
 
-class TestErrors:
 
+class TestErrors:
     def test_no_begin_document(self):
         with pytest.raises(ParseError, match=r"No \\begin\{document\}"):
             parse_resume(r"\documentclass{article} \section{Foo}")
@@ -376,6 +380,7 @@ class TestErrors:
     def test_valid_tags_no_warning(self):
         """The sample fixture should produce no warnings."""
         import warnings as _warnings
+
         with _warnings.catch_warnings():
             _warnings.simplefilter("error")
             # Re-parse — if any warning fires, this will raise
@@ -452,13 +457,16 @@ class TestErrors:
 %%% END:pinned:skills
 \end{document}
 """
-        with pytest.raises(ParseError, match="Unexpected END:SKILLS tag outside any category"):
+        with pytest.raises(
+            ParseError, match="Unexpected END:SKILLS tag outside any category"
+        ):
             parse_resume(tex)
 
 
 # ---------------------------------------------------------------------------
 # Minimal fixture tests
 # ---------------------------------------------------------------------------
+
 
 class TestMinimalFixture:
     """Tests using the minimal single-section fixture."""
@@ -491,8 +499,8 @@ class TestMinimalFixture:
 # Edge cases
 # ---------------------------------------------------------------------------
 
-class TestEdgeCases:
 
+class TestEdgeCases:
     def test_empty_section_no_items(self):
         """A section with content but no tagged items."""
         tex = r"""\documentclass{article}

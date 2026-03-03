@@ -68,6 +68,7 @@ _MINIMAL_PNG = (
 # Shared helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_config(**overrides) -> Config:
     """Build a Config with sensible defaults for testing."""
     user_kw = overrides.pop("user", {})
@@ -235,23 +236,17 @@ class TestSummarizeSelectedContent:
     """Tests for _summarize_selected_content()."""
 
     def test_includes_pinned_section(self):
-        summary = _summarize_selected_content(
-            _make_parsed_resume(), _make_selection()
-        )
+        summary = _summarize_selected_content(_make_parsed_resume(), _make_selection())
         assert "Education" in summary
         assert "MIT" in summary
 
     def test_includes_pinned_bullets(self):
-        summary = _summarize_selected_content(
-            _make_parsed_resume(), _make_selection()
-        )
+        summary = _summarize_selected_content(_make_parsed_resume(), _make_selection())
         # Pinned bullet text should appear (LaTeX stripped by _latex_preview)
         assert "TA for Distributed Systems" in summary
 
     def test_includes_optional_section_when_selected(self):
-        summary = _summarize_selected_content(
-            _make_parsed_resume(), _make_selection()
-        )
+        summary = _summarize_selected_content(_make_parsed_resume(), _make_selection())
         assert "Experience" in summary
         assert "Acme" in summary
 
@@ -266,9 +261,7 @@ class TestSummarizeSelectedContent:
         assert "Experience" not in summary
 
     def test_includes_selected_optional_bullet(self):
-        summary = _summarize_selected_content(
-            _make_parsed_resume(), _make_selection()
-        )
+        summary = _summarize_selected_content(_make_parsed_resume(), _make_selection())
         # acme-2 is optional and included
         assert "unit tests" in summary or "coverage" in summary
 
@@ -326,18 +319,14 @@ class TestSummarizeSelectedContent:
         assert "95" in summary
 
     def test_includes_skills_section(self):
-        summary = _summarize_selected_content(
-            _make_parsed_resume(), _make_selection()
-        )
+        summary = _summarize_selected_content(_make_parsed_resume(), _make_selection())
         assert "Languages" in summary
         assert "Python" in summary
         assert "Go" in summary
 
     def test_skills_respects_selection(self):
         """Selected skills list is used, not the original full list."""
-        summary = _summarize_selected_content(
-            _make_parsed_resume(), _make_selection()
-        )
+        summary = _summarize_selected_content(_make_parsed_resume(), _make_selection())
         # "Java" is in the original but not in the selection
         assert "Java" not in summary
         # "FastAPI" is selected
@@ -636,59 +625,43 @@ class TestInjectTemplate:
 
     def test_replaces_first_name(self):
         template = "Hello {{FIRST_NAME}}!"
-        result = inject_template(
-            template, config=_make_config(), body_text="Body."
-        )
+        result = inject_template(template, config=_make_config(), body_text="Body.")
         assert "Jane" in result
         assert "{{FIRST_NAME}}" not in result
 
     def test_replaces_last_name(self):
         template = "Hello {{LAST_NAME}}!"
-        result = inject_template(
-            template, config=_make_config(), body_text="Body."
-        )
+        result = inject_template(template, config=_make_config(), body_text="Body.")
         assert "Doe" in result
 
     def test_replaces_phone(self):
         template = "Phone: {{PHONE}}"
-        result = inject_template(
-            template, config=_make_config(), body_text="Body."
-        )
+        result = inject_template(template, config=_make_config(), body_text="Body.")
         assert "555-123-4567" in result
 
     def test_replaces_email(self):
         template = "Email: {{EMAIL}}"
-        result = inject_template(
-            template, config=_make_config(), body_text="Body."
-        )
+        result = inject_template(template, config=_make_config(), body_text="Body.")
         assert "jane@example.com" in result
 
     def test_replaces_linkedin(self):
         template = "{{LINKEDIN}}"
-        result = inject_template(
-            template, config=_make_config(), body_text="Body."
-        )
+        result = inject_template(template, config=_make_config(), body_text="Body.")
         assert "linkedin.com/in/janedoe" in result
 
     def test_replaces_website(self):
         template = "{{WEBSITE}}"
-        result = inject_template(
-            template, config=_make_config(), body_text="Body."
-        )
+        result = inject_template(template, config=_make_config(), body_text="Body.")
         assert "janedoe.dev" in result
 
     def test_replaces_degree(self):
         template = "{{DEGREE}}"
-        result = inject_template(
-            template, config=_make_config(), body_text="Body."
-        )
+        result = inject_template(template, config=_make_config(), body_text="Body.")
         assert "MS Computer Science" in result
 
     def test_replaces_university(self):
         template = "{{UNIVERSITY}}"
-        result = inject_template(
-            template, config=_make_config(), body_text="Body."
-        )
+        result = inject_template(template, config=_make_config(), body_text="Body.")
         assert "MIT" in result
 
     def test_replaces_body(self):
@@ -704,9 +677,7 @@ class TestInjectTemplate:
         with patch("autocustomizeresume.cover_letter.date") as mock_date:
             mock_date.today.return_value = date(2026, 3, 15)
             mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
-            result = inject_template(
-                template, config=_make_config(), body_text="Body."
-            )
+            result = inject_template(template, config=_make_config(), body_text="Body.")
         assert "March 15, 2026" in result
 
     def test_replaces_signature_block(self):
@@ -732,9 +703,7 @@ class TestInjectTemplate:
     def test_warns_on_unreplaced_placeholders(self, caplog):
         template = "{{FIRST_NAME}} {{UNKNOWN_THING}}"
         with caplog.at_level(logging.WARNING):
-            inject_template(
-                template, config=_make_config(), body_text="Body."
-            )
+            inject_template(template, config=_make_config(), body_text="Body.")
         assert "UNKNOWN_THING" in caplog.text
 
     def test_full_template(self):
@@ -930,9 +899,7 @@ class TestBuildCoverLetter:
         template = tmp_path / "template.tex"
         template.write_text("{{BODY}}", encoding="utf-8")
 
-        cfg = _make_config(
-            cover_letter={"enabled": True, "template": str(template)}
-        )
+        cfg = _make_config(cover_letter={"enabled": True, "template": str(template)})
 
         client = MagicMock(spec=LLMClient)
         mock_gen.return_value = "Body."
@@ -956,9 +923,7 @@ class TestBuildCoverLetter:
         template = tmp_path / "template.tex"
         template.write_text("{{BODY}}", encoding="utf-8")
 
-        cfg = _make_config(
-            cover_letter={"enabled": True, "template": str(template)}
-        )
+        cfg = _make_config(cover_letter={"enabled": True, "template": str(template)})
 
         keep = tmp_path / "keep"
         mock_gen.return_value = "Body."
@@ -982,9 +947,7 @@ class TestBuildCoverLetter:
         template = tmp_path / "template.tex"
         template.write_text("{{BODY}}", encoding="utf-8")
 
-        cfg = _make_config(
-            cover_letter={"enabled": True, "template": str(template)}
-        )
+        cfg = _make_config(cover_letter={"enabled": True, "template": str(template)})
 
         # Body with special chars + paragraph break
         mock_gen.return_value = "100% of $20.\n\nA & B."
@@ -1007,6 +970,7 @@ class TestBuildCoverLetter:
 # ===========================================================================
 # 5.4d — Integration test (requires tectonic)
 # ===========================================================================
+
 
 def _tectonic_available() -> bool:
     return shutil.which("tectonic") is not None
@@ -1044,9 +1008,7 @@ class TestCoverLetterIntegration:
                 body_text="This is a test cover letter body paragraph.",
             )
 
-        pdf_path = compile_cover_letter(
-            filled_tex, config=cfg, keep_dir=tmp_path
-        )
+        pdf_path = compile_cover_letter(filled_tex, config=cfg, keep_dir=tmp_path)
 
         assert pdf_path.exists()
         assert pdf_path.suffix == ".pdf"
@@ -1083,9 +1045,7 @@ class TestCoverLetterIntegration:
             )
 
         work = tmp_path / "build"
-        pdf_path = compile_cover_letter(
-            filled_tex, config=cfg, keep_dir=work
-        )
+        pdf_path = compile_cover_letter(filled_tex, config=cfg, keep_dir=work)
 
         assert pdf_path.exists()
         assert pdf_path.suffix == ".pdf"
@@ -1118,13 +1078,9 @@ class TestCoverLetterIntegration:
         with patch("autocustomizeresume.cover_letter.date") as mock_date:
             mock_date.today.return_value = date(2026, 2, 28)
             mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
-            filled_tex = inject_template(
-                template_tex, config=cfg, body_text=body_latex
-            )
+            filled_tex = inject_template(template_tex, config=cfg, body_text=body_latex)
 
-        pdf_path = compile_cover_letter(
-            filled_tex, config=cfg, keep_dir=tmp_path
-        )
+        pdf_path = compile_cover_letter(filled_tex, config=cfg, keep_dir=tmp_path)
 
         assert pdf_path.exists()
         assert pdf_path.suffix == ".pdf"

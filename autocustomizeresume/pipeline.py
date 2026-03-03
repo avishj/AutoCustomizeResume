@@ -86,7 +86,10 @@ def run_pipeline(
     # 3. Select content
     status.step(3, total, "Selecting resume content…")
     selection = select_content(
-        analysis, parsed, config=config, client=client,
+        analysis,
+        parsed,
+        config=config,
+        client=client,
     )
 
     # 4. Compile with 1-page enforcement
@@ -98,8 +101,11 @@ def run_pipeline(
     if config.cover_letter.enabled:
         status.step(5, total, "Generating cover letter…")
         cover_letter_pdf = build_cover_letter(
-            analysis, parsed, selection,
-            config=config, client=client,
+            analysis,
+            parsed,
+            selection,
+            config=config,
+            client=client,
         )
 
     # Final step

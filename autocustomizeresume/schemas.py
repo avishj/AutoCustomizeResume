@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 # JD analysis schema
 # ---------------------------------------------------------------------------
 
+
 @dataclass(frozen=True)
 class JDAnalysis:
     """Structured metadata extracted from a job description.
@@ -62,6 +63,7 @@ class JDAnalysis:
 # ---------------------------------------------------------------------------
 # Content selection schema
 # ---------------------------------------------------------------------------
+
 
 @dataclass(frozen=True)
 class BulletDecision:
@@ -131,8 +133,7 @@ class ItemDecision:
             include=_coerce_bool(data.get("include", True)),
             relevance_score=_coerce_score(data.get("relevance_score")),
             bullets=[
-                BulletDecision.from_dict(b)
-                for b in _dict_list(data.get("bullets"))
+                BulletDecision.from_dict(b) for b in _dict_list(data.get("bullets"))
             ],
         )
 
@@ -166,10 +167,7 @@ class SectionDecision:
         return cls(
             id=str(data.get("id", "")),
             include=_coerce_bool(data.get("include", True)),
-            items=[
-                ItemDecision.from_dict(it)
-                for it in _dict_list(data.get("items"))
-            ],
+            items=[ItemDecision.from_dict(it) for it in _dict_list(data.get("items"))],
         )
 
 
@@ -214,8 +212,7 @@ class ContentSelection:
     def from_dict(cls, data: dict) -> ContentSelection:
         return cls(
             sections=[
-                SectionDecision.from_dict(s)
-                for s in _dict_list(data.get("sections"))
+                SectionDecision.from_dict(s) for s in _dict_list(data.get("sections"))
             ],
             skill_categories=[
                 SkillCategoryDecision.from_dict(sc)
@@ -227,6 +224,7 @@ class ContentSelection:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _coerce_bool(val: object, *, default: bool = True) -> bool:
     """Coerce a value to bool, handling string 'false'/'true'."""

@@ -57,7 +57,10 @@ Rules:
 # Public API
 # ---------------------------------------------------------------------------
 
-def analyze_jd(jd_text: str, *, config: Config, client: LLMClient | None = None) -> JDAnalysis:
+
+def analyze_jd(
+    jd_text: str, *, config: Config, client: LLMClient | None = None
+) -> JDAnalysis:
     """Analyze a job description and return structured metadata.
 
     Parameters

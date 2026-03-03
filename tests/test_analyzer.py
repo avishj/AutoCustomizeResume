@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -32,7 +31,15 @@ _SAMPLE_ANALYSIS_DICT = {
     "seniority": "senior",
     "domain": "platform engineering",
     "key_skills": ["distributed systems", "microservices", "CI/CD", "observability"],
-    "technologies": ["Python", "Go", "Kubernetes", "PostgreSQL", "Redis", "Prometheus", "Grafana"],
+    "technologies": [
+        "Python",
+        "Go",
+        "Kubernetes",
+        "PostgreSQL",
+        "Redis",
+        "Prometheus",
+        "Grafana",
+    ],
 }
 
 
@@ -55,8 +62,8 @@ def _make_client(response_dict: dict) -> LLMClient:
 # Happy path
 # ---------------------------------------------------------------------------
 
-class TestAnalyzeJD:
 
+class TestAnalyzeJD:
     def test_returns_jd_analysis(self):
         client = _make_client(_SAMPLE_ANALYSIS_DICT)
         result = analyze_jd(_SAMPLE_JD, config=_make_config(), client=client)
@@ -100,8 +107,8 @@ class TestAnalyzeJD:
 # Missing / edge-case fields
 # ---------------------------------------------------------------------------
 
-class TestAnalyzeJDEdgeCases:
 
+class TestAnalyzeJDEdgeCases:
     def test_missing_company_defaults_unknown(self):
         data = {**_SAMPLE_ANALYSIS_DICT, "company": ""}
         client = _make_client(data)
@@ -134,8 +141,8 @@ class TestAnalyzeJDEdgeCases:
 # Error propagation
 # ---------------------------------------------------------------------------
 
-class TestAnalyzeJDErrors:
 
+class TestAnalyzeJDErrors:
     def test_llm_error_propagates(self):
         client = MagicMock(spec=LLMClient)
         client.chat_json.side_effect = LLMError("boom")
