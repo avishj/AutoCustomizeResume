@@ -548,8 +548,13 @@ def _parse_skill_line(cat_name: str, lines: list[str]) -> SkillCategory:
     raw_skills = m.group(3)
     suffix = m.group(4)
 
-    # Split on commas, strip whitespace, filter empties
-    skills = [s.strip() for s in raw_skills.split(",") if s.strip()]
+    # Split on commas that are NOT inside parentheses, so grouped
+    # skills like "AWS (EC2, S3, EKS)" stay as a single token.
+    skills = [
+        s.strip()
+        for s in re.split(r",\s*(?![^()]*\))", raw_skills)
+        if s.strip()
+    ]
 
     return SkillCategory(
         name=cat_name,
