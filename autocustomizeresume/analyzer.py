@@ -86,6 +86,7 @@ def analyze_jd(
         system=_SYSTEM_PROMPT,
         user=f"<jd>\n{re.sub(r'</?jd\s*>', '', jd_text, flags=re.IGNORECASE)}\n</jd>",
         temperature=0.1,
+        stream=True,
         extra_body={"chat_template_kwargs": {"enable_thinking": True}},
     )
 
