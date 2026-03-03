@@ -61,10 +61,14 @@ SKILLS_BEGIN_RE = re.compile(r"^%%% SKILLS:(\S+)\s*$")
 # Groups:  (1) category name
 SKILLS_END_RE = re.compile(r"^%%% END:SKILLS:(\S+)\s*$")
 
+# Matches: %%% COMPACT: <LaTeX one-liner>
+# Groups:  (1) the compact heading content (everything after "%%% COMPACT: ")
+COMPACT_RE = re.compile(r"^%%% COMPACT:\s*(.+)$")
+
 # Catches any line that looks like a tag directive (starts with %%% followed
 # by a keyword) but doesn't match any of the valid tag patterns above.
 # Used to warn about typos in tag markup.
-_TAG_LIKE_RE = re.compile(r"^%%% (?:BEGIN|END|SKILLS)\b")
+_TAG_LIKE_RE = re.compile(r"^%%% (?:BEGIN|END|SKILLS|COMPACT)\b")
 
 
 # ---------------------------------------------------------------------------
@@ -80,7 +84,7 @@ class ParseError(Exception):
 # Tag validation helpers
 # ---------------------------------------------------------------------------
 
-_VALID_TAG_RES = (TAG_BEGIN_RE, TAG_END_RE, SKILLS_BEGIN_RE, SKILLS_END_RE)
+_VALID_TAG_RES = (TAG_BEGIN_RE, TAG_END_RE, SKILLS_BEGIN_RE, SKILLS_END_RE, COMPACT_RE)
 
 
 def _warn_malformed_tags(tex_content: str) -> None:
@@ -376,6 +380,7 @@ def _parse_item(tag_type: TagType, tag_id: str, lines: list[str]) -> ResumeItem:
     interstitial: list[tuple[int, str]] = []
     heading_lines: list[str] = []
     buffer: list[str] = []  # interstitial between bullets
+    compact_heading: str | None = None
 
     in_bullet = False
     bullet_type: TagType | None = None
@@ -387,6 +392,12 @@ def _parse_item(tag_type: TagType, tag_id: str, lines: list[str]) -> ResumeItem:
         stripped = line.strip()
 
         if not in_bullet:
+            # Check for %%% COMPACT: tag (must appear before first bullet)
+            m_compact = COMPACT_RE.match(stripped)
+            if m_compact and not found_first_bullet_tag:
+                compact_heading = m_compact.group(1)
+                continue
+
             m = TAG_BEGIN_RE.match(stripped)
             if m:
                 found_first_bullet_tag = True
@@ -445,6 +456,7 @@ def _parse_item(tag_type: TagType, tag_id: str, lines: list[str]) -> ResumeItem:
         heading_lines="\n".join(heading_lines),
         bullets=bullets,
         interstitial=interstitial,
+        compact_heading=compact_heading,
     )
 
 

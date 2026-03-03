@@ -548,3 +548,102 @@ Some content
         result = parse_resume(tex)
         assert len(result.sections) == 0
         assert "Education" in result.header or "Education" in result.postamble
+
+
+# ---------------------------------------------------------------------------
+# Compact heading
+# ---------------------------------------------------------------------------
+
+
+class TestCompactHeading:
+    def test_compact_heading_parsed(self):
+        """COMPACT tag is extracted and stored on the item."""
+        tex = r"""\documentclass{article}
+\begin{document}
+%%% BEGIN:pinned:exp
+\section{Experience}
+    %%% BEGIN:optional:ey
+%%% COMPACT: \resumeProjectHeading{\textbf{Ernst \& Young}}{Jan 2022 -- Apr 2022}
+    \resumeSubheading{Ernst \& Young}{Jan 2022 -- Apr 2022}{Intern}{Kolkata}
+    \resumeItemListStart
+        %%% BEGIN:optional:ey-1
+        \resumeItem{Did consulting work.}
+        %%% END:optional:ey-1
+    \resumeItemListEnd
+    %%% END:optional:ey
+%%% END:pinned:exp
+\end{document}
+"""
+        result = parse_resume(tex)
+        exp = result.sections[0]
+        assert isinstance(exp, ResumeSection)
+        ey = exp.items[0]
+        assert ey.compact_heading is not None
+        assert r"\resumeProjectHeading" in ey.compact_heading
+        assert "Ernst" in ey.compact_heading
+
+    def test_compact_heading_absent(self):
+        """Items without COMPACT tag have compact_heading=None."""
+        tex = r"""\documentclass{article}
+\begin{document}
+%%% BEGIN:pinned:exp
+\section{Experience}
+    %%% BEGIN:pinned:snap
+    \resumeSubheading{Snap}{2025}{SWE}{PA}
+    \resumeItemListStart
+        %%% BEGIN:pinned:snap-1
+        \resumeItem{Built stuff.}
+        %%% END:pinned:snap-1
+    \resumeItemListEnd
+    %%% END:pinned:snap
+%%% END:pinned:exp
+\end{document}
+"""
+        result = parse_resume(tex)
+        exp = result.sections[0]
+        assert isinstance(exp, ResumeSection)
+        assert exp.items[0].compact_heading is None
+
+    def test_compact_heading_not_in_heading_lines(self):
+        """COMPACT tag line should not appear in heading_lines."""
+        tex = r"""\documentclass{article}
+\begin{document}
+%%% BEGIN:pinned:exp
+\section{Experience}
+    %%% BEGIN:optional:tata
+%%% COMPACT: \resumeProjectHeading{\textbf{Tata Steel}}{Jun 2021 -- Aug 2021}
+    \resumeSubheading{Tata Steel}{Jun 2021}{Intern}{India}
+    \resumeItemListStart
+        %%% BEGIN:optional:tata-1
+        \resumeItem{Built dashboard.}
+        %%% END:optional:tata-1
+    \resumeItemListEnd
+    %%% END:optional:tata
+%%% END:pinned:exp
+\end{document}
+"""
+        result = parse_resume(tex)
+        exp = result.sections[0]
+        assert isinstance(exp, ResumeSection)
+        tata = exp.items[0]
+        assert "COMPACT" not in tata.heading_lines
+        assert r"\resumeSubheading" in tata.heading_lines
+
+    def test_compact_heading_no_malformed_warning(self):
+        """COMPACT tag should not trigger a malformed-tag warning."""
+        import warnings as _warnings
+
+        tex = r"""\documentclass{article}
+\begin{document}
+%%% BEGIN:pinned:exp
+\section{Experience}
+    %%% BEGIN:optional:ey
+%%% COMPACT: \resumeProjectHeading{\textbf{EY}}{2022}
+    \resumeSubheading{EY}{2022}{Intern}{India}
+    %%% END:optional:ey
+%%% END:pinned:exp
+\end{document}
+"""
+        with _warnings.catch_warnings():
+            _warnings.simplefilter("error")
+            parse_resume(tex)
