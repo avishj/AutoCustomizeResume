@@ -12,6 +12,7 @@ import json
 import logging
 from typing import Any
 
+import httpx
 from openai import (
     APIConnectionError,
     APITimeoutError,
@@ -39,12 +40,20 @@ class LLMClient:
         ``model``, ``api_key``) are read from ``config.llm``.
     """
 
-    def __init__(self, config: Config) -> None:
+    DEFAULT_TIMEOUT = 120.0  # seconds
+
+    def __init__(
+        self,
+        config: Config,
+        timeout: float | None = None,
+    ) -> None:
         self._model = config.llm.model
         self._api_key_env = config.llm.api_key_env
+        self._timeout = timeout if timeout is not None else self.DEFAULT_TIMEOUT
         self._client = OpenAI(
             base_url=config.llm.base_url,
             api_key=config.llm.api_key,
+            timeout=httpx.Timeout(self._timeout),
         )
 
     # ------------------------------------------------------------------
@@ -113,21 +122,36 @@ class LLMClient:
 
         request_kwargs.update(kwargs)
 
+        logger.info(
+            "LLM request: model=%s, stream=%s, json_response=%s, extra_body=%s",
+            self._model,
+            stream,
+            json_response,
+            extra_body,
+        )
+        logger.debug("LLM request kwargs: %s", request_kwargs)
+
         try:
             if stream:
+                logger.info("Starting streaming request...")
                 response = self._client.chat.completions.create(
                     **request_kwargs, stream=True
                 )
                 chunks: list[str] = []
-                for chunk in response:
+                for i, chunk in enumerate(response):
+                    logger.debug("Stream chunk %d: %s", i, chunk)
                     if not chunk.choices:
                         continue
                     delta = chunk.choices[0].delta
                     if delta and delta.content:
                         chunks.append(delta.content)
-                return "".join(chunks)
+                result = "".join(chunks)
+                logger.info("Streaming complete, got %d chars", len(result))
+                return result
 
+            logger.info("Starting non-streaming request...")
             response = self._client.chat.completions.create(**request_kwargs)
+            logger.info("Non-streaming request complete")
         except AuthenticationError as exc:
             raise LLMError(
                 f"LLM authentication failed — check your API key "
@@ -141,6 +165,10 @@ class LLMClient:
             ) from exc
         except RateLimitError as exc:
             raise LLMError(f"LLM API rate limit exceeded: {exc}") from exc
+        except httpx.TimeoutException as exc:
+            raise LLMError(
+                f"LLM API request timed out after {self._timeout}s: {exc}"
+            ) from exc
         except Exception as exc:
             raise LLMError(f"LLM API call failed: {exc}") from exc
 
