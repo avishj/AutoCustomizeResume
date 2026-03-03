@@ -396,6 +396,18 @@ class TestSerializeResume:
         assert "Python" in result
         assert "Kubernetes" in result
 
+    def test_compact_flag_shown_when_set(self):
+        parsed = _make_parsed_resume()
+        exp = parsed.sections[1]
+        assert isinstance(exp, ResumeSection)
+        exp.items[0].compact_heading = r"\resumeProjectHeading{\textbf{Acme}}{2024}"
+        result = _serialize_resume(parsed)
+        assert "has_compact=yes" in result
+
+    def test_compact_flag_absent_when_not_set(self):
+        result = _serialize_resume(_make_parsed_resume())
+        assert "has_compact" not in result
+
 
 # ---------------------------------------------------------------------------
 # _latex_preview()

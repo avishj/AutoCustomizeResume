@@ -96,6 +96,10 @@ meaning.  Never add information that isn't in the original bullet.
 - For skills: include only skills from the original list.  Order them by \
 relevance to the JD (most relevant first).  You may exclude skills that \
 are clearly irrelevant, but err on the side of inclusion.
+- Items marked "has_compact=yes" have a compact one-liner fallback.  You \
+may safely exclude ALL their bullets — the item will still appear as a \
+single-line entry.  For items WITHOUT has_compact, excluding all bullets \
+will drop the item entirely.
 - Return ONLY the JSON object.  No explanation, no markdown fences.\
 """
 
@@ -128,7 +132,8 @@ def _serialize_regular_section(section: ResumeSection) -> str:
     lines: list[str] = [f"SECTION: id={section.id}, tag={section.tag_type}"]
 
     for item in section.items:
-        lines.append(f"  ITEM: id={item.id}, tag={item.tag_type}")
+        compact_flag = ", has_compact=yes" if item.compact_heading else ""
+        lines.append(f"  ITEM: id={item.id}, tag={item.tag_type}{compact_flag}")
         # Include a brief summary from heading lines (strip LaTeX noise)
         heading_preview = _latex_preview(item.heading_lines)
         if heading_preview:
