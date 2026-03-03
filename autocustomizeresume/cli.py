@@ -6,6 +6,7 @@ Handles argument parsing, dispatches to pipeline or watcher.
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 from pathlib import Path
 
@@ -36,6 +37,12 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="TITLE",
         help="Override LLM-extracted role title.",
     )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Enable verbose debug logging.",
+    )
     return parser
 
 
@@ -61,6 +68,13 @@ def main(argv: list[str] | None = None) -> None:
     """CLI entry point."""
     parser = _build_parser()
     args = parser.parse_args(argv)
+
+    if args.verbose:
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%H:%M:%S",
+        )
 
     try:
         if args.jd:
