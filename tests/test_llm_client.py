@@ -46,11 +46,21 @@ class TestInit:
         cfg = _make_config()
         client = LLMClient(cfg)
 
-        mock_openai_cls.assert_called_once_with(
-            base_url="https://api.example.com/v1",
-            api_key="test-key-123",
-        )
+        mock_openai_cls.assert_called_once()
+        call_kwargs = mock_openai_cls.call_args.kwargs
+        assert call_kwargs["base_url"] == "https://api.example.com/v1"
+        assert call_kwargs["api_key"] == "test-key-123"
+        assert "timeout" in call_kwargs
         assert client._model == "test-model"
+
+    @patch("autocustomizeresume.llm_client.OpenAI")
+    def test_custom_timeout(self, mock_openai_cls: MagicMock):
+        cfg = _make_config()
+        client = LLMClient(cfg, timeout=60.0)
+
+        mock_openai_cls.assert_called_once()
+        call_kwargs = mock_openai_cls.call_args.kwargs
+        assert "timeout" in call_kwargs
 
 
 # ---------------------------------------------------------------------------
