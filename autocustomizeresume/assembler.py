@@ -88,7 +88,7 @@ def _is_bullet_included(bullet: Bullet, item_dec: ItemDecision | None) -> bool:
             if bd.id == bullet.id:
                 return bd.include
     # No decision found — include by default (defensive)
-    logger.warning(
+    logger.debug(
         "No bullet decision for optional bullet '%s', including by default",
         bullet.id,
     )
