@@ -333,6 +333,8 @@ def generate_cover_letter_body(
         system=_BODY_SYSTEM_PROMPT,
         user=user_prompt,
         temperature=0.4,
+        stream=True,
+        extra_body={"chat_template_kwargs": {"enable_thinking": True}},
     )
 
     logger.info("Cover letter body generated (%d chars)", len(body))

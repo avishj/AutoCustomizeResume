@@ -263,6 +263,7 @@ def select_content(
         system=_SYSTEM_PROMPT,
         user=user_prompt,
         temperature=0.1,
+        extra_body={"chat_template_kwargs": {"enable_thinking": True}},
     )
 
     selection = ContentSelection.from_dict(raw)

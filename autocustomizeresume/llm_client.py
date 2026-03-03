@@ -58,6 +58,9 @@ class LLMClient:
         user: str,
         temperature: float = 0.2,
         json_response: bool = False,
+        stream: bool = False,
+        extra_body: dict[str, Any] | None = None,
+        **kwargs: Any,
     ) -> str:
         """Send a chat completion request and return the assistant reply.
 
@@ -72,6 +75,13 @@ class LLMClient:
         json_response:
             If ``True``, requests ``response_format={"type": "json_object"}``
             so the model is constrained to produce valid JSON.
+        stream:
+            If ``True``, stream the response and return concatenated content.
+        extra_body:
+            Extra body parameters to pass to the API (e.g., for NVIDIA NIM
+            chat template kwargs).
+        **kwargs:
+            Additional parameters to pass to the chat completion API.
 
         Returns
         -------
@@ -89,17 +99,35 @@ class LLMClient:
             {"role": "user", "content": user},
         ]
 
-        kwargs: dict[str, Any] = {
+        request_kwargs: dict[str, Any] = {
             "model": self._model,
             "messages": messages,
             "temperature": temperature,
         }
 
         if json_response:
-            kwargs["response_format"] = {"type": "json_object"}
+            request_kwargs["response_format"] = {"type": "json_object"}
+
+        if extra_body:
+            request_kwargs["extra_body"] = extra_body
+
+        request_kwargs.update(kwargs)
 
         try:
-            response = self._client.chat.completions.create(**kwargs)
+            if stream:
+                response = self._client.chat.completions.create(
+                    **request_kwargs, stream=True
+                )
+                chunks: list[str] = []
+                for chunk in response:
+                    if not chunk.choices:
+                        continue
+                    delta = chunk.choices[0].delta
+                    if delta and delta.content:
+                        chunks.append(delta.content)
+                return "".join(chunks)
+
+            response = self._client.chat.completions.create(**request_kwargs)
         except AuthenticationError as exc:
             raise LLMError(
                 f"LLM authentication failed — check your API key "
@@ -133,11 +161,26 @@ class LLMClient:
         system: str,
         user: str,
         temperature: float = 0.2,
+        extra_body: dict[str, Any] | None = None,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         """Send a chat request and parse the response as JSON.
 
         Convenience wrapper around :meth:`chat` that sets
         ``json_response=True`` and parses the result.
+
+        Parameters
+        ----------
+        system:
+            The system prompt.
+        user:
+            The user message.
+        temperature:
+            Sampling temperature.
+        extra_body:
+            Extra body parameters for the API.
+        **kwargs:
+            Additional parameters to pass to the chat API.
 
         Returns
         -------
@@ -154,6 +197,8 @@ class LLMClient:
             user=user,
             temperature=temperature,
             json_response=True,
+            extra_body=extra_body,
+            **kwargs,
         )
 
         try:
