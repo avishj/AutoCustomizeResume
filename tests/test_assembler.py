@@ -61,6 +61,7 @@ def _make_item(
     heading: str = r"\resumeSubheading{Co}{2024}{Role}{City}",
     bullets: list[Bullet] | None = None,
     interstitial: list[tuple[int, str]] | None = None,
+    compact_heading: str | None = None,
 ) -> ResumeItem:
     return ResumeItem(
         tag_type=tag_type,
@@ -68,6 +69,7 @@ def _make_item(
         heading_lines=heading,
         bullets=bullets or [],
         interstitial=interstitial or [],
+        compact_heading=compact_heading,
     )
 
 
@@ -834,3 +836,71 @@ class TestAssembleTexFixture:
         )
         result = assemble_tex(parsed, selection)
         assert "Experience" not in result
+
+
+# ---------------------------------------------------------------------------
+# Compact heading fallback
+# ---------------------------------------------------------------------------
+
+
+class TestCompactHeadingAssembly:
+    def test_compact_used_when_all_bullets_excluded(self):
+        """When all bullets are excluded, compact_heading is emitted."""
+        compact = r"\resumeProjectHeading{\textbf{EY} $|$ \emph{SAP}}{2022}"
+        item = _make_item(
+            item_id="ey",
+            bullets=[_make_bullet(bullet_id="ey-1")],
+            interstitial=[(0, r"\resumeItemListStart"), (1, r"\resumeItemListEnd")],
+            compact_heading=compact,
+        )
+        dec = _make_item_decision(item_id="ey", bullets=[
+            BulletDecision(id="ey-1", include=False),
+        ])
+        result = _assemble_item(item, dec)
+        assert result == compact
+
+    def test_compact_ignored_when_bullets_included(self):
+        """When bullets survive, full heading + bullets are used, not compact."""
+        compact = r"\resumeProjectHeading{\textbf{EY}}{2022}"
+        item = _make_item(
+            item_id="ey",
+            bullets=[_make_bullet(bullet_id="ey-1")],
+            interstitial=[(0, r"\resumeItemListStart"), (1, r"\resumeItemListEnd")],
+            compact_heading=compact,
+        )
+        dec = _make_item_decision(item_id="ey", bullets=[
+            BulletDecision(id="ey-1", include=True),
+        ])
+        result = _assemble_item(item, dec)
+        assert result is not None
+        assert r"\resumeSubheading" in result
+        assert r"\resumeProjectHeading" not in result
+
+    def test_no_compact_optional_item_excluded_when_no_bullets(self):
+        """Without compact_heading, optional item with 0 bullets returns None."""
+        item = _make_item(
+            item_id="ey",
+            bullets=[_make_bullet(bullet_id="ey-1")],
+            interstitial=[(0, r"\resumeItemListStart"), (1, r"\resumeItemListEnd")],
+        )
+        dec = _make_item_decision(item_id="ey", bullets=[
+            BulletDecision(id="ey-1", include=False),
+        ])
+        result = _assemble_item(item, dec)
+        assert result is None
+
+    def test_compact_on_pinned_item_all_optional_bullets_excluded(self):
+        """Pinned item with compact_heading uses it when all bullets excluded."""
+        compact = r"\resumeProjectHeading{\textbf{Addverb}}{2023 -- 2024}"
+        item = _make_item(
+            tag_type="pinned",
+            item_id="addverb",
+            bullets=[_make_bullet(bullet_id="addverb-1")],
+            interstitial=[(0, r"\resumeItemListStart"), (1, r"\resumeItemListEnd")],
+            compact_heading=compact,
+        )
+        dec = _make_item_decision(item_id="addverb", bullets=[
+            BulletDecision(id="addverb-1", include=False),
+        ])
+        result = _assemble_item(item, dec)
+        assert result == compact
