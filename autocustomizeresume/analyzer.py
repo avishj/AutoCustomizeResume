@@ -84,9 +84,7 @@ def analyze_jd(
 
     raw = client.chat_json(
         system=_SYSTEM_PROMPT,
-        user="<jd>\n{}\n</jd>".format(
-            re.sub(r"</?jd\s*>", "", jd_text, flags=re.IGNORECASE)
-        ),
+        user=f"<jd>\n{re.sub(r'</?jd\s*>', '', jd_text, flags=re.IGNORECASE)}\n</jd>",
         temperature=0.1,
     )
 
