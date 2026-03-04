@@ -43,10 +43,17 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Enable verbose debug logging.",
     )
+    parser.add_argument(
+        "--keep-dir",
+        metavar="PATH",
+        help="Keep build artifacts (tex, pdf) in this directory.",
+    )
     return parser
 
 
-def _run_oneshot(jd_path: str, *, company: str | None, role: str | None) -> None:
+def _run_oneshot(
+    jd_path: str, *, company: str | None, role: str | None, keep_dir: Path | None
+) -> None:
     """Execute a single pipeline run."""
     jd_file = Path(jd_path)
     if not jd_file.is_file():
@@ -59,7 +66,9 @@ def _run_oneshot(jd_path: str, *, company: str | None, role: str | None) -> None
         sys.exit(1)
 
     config = load_config()
-    result = run_pipeline(jd_text, config, company=company, role=role)
+    result = run_pipeline(
+        jd_text, config, company=company, role=role, keep_dir=keep_dir
+    )
     handle_output(result, config)
     status.success(f"Output → {config.paths.output_dir}/")
 
@@ -78,7 +87,10 @@ def main(argv: list[str] | None = None) -> None:
 
     try:
         if args.jd:
-            _run_oneshot(args.jd, company=args.company, role=args.role)
+            keep_dir = Path(args.keep_dir) if args.keep_dir else None
+            _run_oneshot(
+                args.jd, company=args.company, role=args.role, keep_dir=keep_dir
+            )
         else:
             config = load_config()
             watch(config, company=args.company, role=args.role)
