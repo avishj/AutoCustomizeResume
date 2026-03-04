@@ -367,7 +367,7 @@ class TestGenerateCoverLetterBody:
 
     def test_returns_llm_response_stripped(self):
         client = MagicMock(spec=LLMClient)
-        client.chat.return_value = "  Body text here.  \n"
+        client.chat.return_value = {"body": "  Body text here.  \n"}
 
         result = generate_cover_letter_body(
             _make_jd_analysis(),
@@ -380,7 +380,7 @@ class TestGenerateCoverLetterBody:
 
     def test_prompt_contains_jd_analysis(self):
         client = MagicMock(spec=LLMClient)
-        client.chat.return_value = "Body."
+        client.chat.return_value = {"body": "Body."}
 
         generate_cover_letter_body(
             _make_jd_analysis(),
@@ -398,7 +398,7 @@ class TestGenerateCoverLetterBody:
 
     def test_prompt_contains_resume_summary(self):
         client = MagicMock(spec=LLMClient)
-        client.chat.return_value = "Body."
+        client.chat.return_value = {"body": "Body."}
 
         generate_cover_letter_body(
             _make_jd_analysis(),
@@ -416,7 +416,7 @@ class TestGenerateCoverLetterBody:
 
     def test_prompt_contains_style(self):
         client = MagicMock(spec=LLMClient)
-        client.chat.return_value = "Body."
+        client.chat.return_value = {"body": "Body."}
 
         cfg = _make_config(cover_letter={"style": "Casual and friendly."})
         generate_cover_letter_body(
@@ -434,7 +434,7 @@ class TestGenerateCoverLetterBody:
 
     def test_default_style_when_empty(self):
         client = MagicMock(spec=LLMClient)
-        client.chat.return_value = "Body."
+        client.chat.return_value = {"body": "Body."}
 
         cfg = _make_config(cover_letter={"style": ""})
         generate_cover_letter_body(
@@ -451,7 +451,7 @@ class TestGenerateCoverLetterBody:
 
     def test_uses_temperature_04(self):
         client = MagicMock(spec=LLMClient)
-        client.chat.return_value = "Body."
+        client.chat.return_value = {"body": "Body."}
 
         generate_cover_letter_body(
             _make_jd_analysis(),
@@ -467,7 +467,7 @@ class TestGenerateCoverLetterBody:
     def test_creates_client_from_config_when_none(self):
         with patch("autocustomizeresume.cover_letter.LLMClient") as mock_cls:
             mock_instance = MagicMock(spec=LLMClient)
-            mock_instance.chat.return_value = "Body."
+            mock_instance.chat.return_value = {"body": "Body."}
             mock_cls.return_value = mock_instance
 
             cfg = _make_config()
@@ -482,7 +482,7 @@ class TestGenerateCoverLetterBody:
 
     def test_system_prompt_mentions_rules(self):
         client = MagicMock(spec=LLMClient)
-        client.chat.return_value = "Body."
+        client.chat.return_value = {"body": "Body."}
 
         generate_cover_letter_body(
             _make_jd_analysis(),
