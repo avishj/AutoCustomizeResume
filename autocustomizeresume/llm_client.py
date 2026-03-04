@@ -81,23 +81,20 @@ class LLMClient:
     # Public API
     # ------------------------------------------------------------------
 
-    _DEFAULT_EXTRA_BODY: dict[str, Any] = {
-        "chat_template_kwargs": {"enable_thinking": True},
-    }
-
     def chat(
         self,
         *,
         system: str,
         user: str,
-        temperature: float = 0.2,
+        temperature: float | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Send a chat completion request and return parsed JSON.
 
         Always requests ``response_format={"type": "json_object"}``,
-        enables thinking via ``extra_body``, strips any ``<think>``
-        blocks, and parses the response as JSON.
+        strips any ``<think>`` blocks, and parses the response as JSON.
+        Sampling parameters are resolved from the model registry profile;
+        an explicit *temperature* overrides the profile value.
 
         Parameters
         ----------
@@ -106,7 +103,8 @@ class LLMClient:
         user:
             The user prompt.
         temperature:
-            Sampling temperature (default 0.2 for deterministic-ish output).
+            Sampling temperature override.  When ``None`` (default) the
+            value from the model registry profile is used.
         **kwargs:
             Additional parameters to pass to the chat completion API.
 
@@ -126,14 +124,16 @@ class LLMClient:
             {"role": "user", "content": user},
         ]
 
+        extra_params = dict(self._profile.get("extra_params", {}))
+
         request_kwargs: dict[str, Any] = {
             "model": self._model,
             "messages": messages,
-            "temperature": temperature,
-            "top_p": 0.95,
-            "max_tokens": 65536,
+            "temperature": temperature if temperature is not None else self._profile["temperature"],
+            "top_p": self._profile["top_p"],
+            "max_tokens": self._profile["max_tokens"],
             "response_format": {"type": "json_object"},
-            "extra_body": self._DEFAULT_EXTRA_BODY,
+            **extra_params,
         }
 
         request_kwargs.update(kwargs)
