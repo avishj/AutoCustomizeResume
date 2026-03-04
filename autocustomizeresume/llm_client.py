@@ -128,6 +128,8 @@ class LLMClient:
             "model": self._model,
             "messages": messages,
             "temperature": temperature,
+            "top_p": 0.95,
+            "max_tokens": 65536,
             "response_format": {"type": "json_object"},
             "extra_body": self._DEFAULT_EXTRA_BODY,
         }
