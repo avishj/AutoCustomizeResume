@@ -124,19 +124,19 @@ class LLMClient:
             {"role": "user", "content": user},
         ]
 
-        extra_params = dict(self._profile.get("extra_params", {}))
+        if temperature is None:
+            temperature = self._profile["temperature"]
 
         request_kwargs: dict[str, Any] = {
             "model": self._model,
             "messages": messages,
-            "temperature": temperature if temperature is not None else self._profile["temperature"],
+            "temperature": temperature,
             "top_p": self._profile["top_p"],
             "max_tokens": self._profile["max_tokens"],
             "response_format": {"type": "json_object"},
-            **extra_params,
+            **self._profile.get("extra_params", {}),
+            **kwargs,
         }
-
-        request_kwargs.update(kwargs)
 
         logger.info("LLM request: model=%s", self._model)
         logger.debug("LLM request kwargs: %s", request_kwargs)
@@ -147,12 +147,11 @@ class LLMClient:
             if not response.choices:
                 raise LLMError("LLM returned no choices (empty choices list)")
 
-            content = response.choices[0].message.content
-            if content is None:
+            raw = response.choices[0].message.content
+            if raw is None:
                 raise LLMError(
                     "LLM returned an empty response (content is None)"
                 )
-            raw = content
         except AuthenticationError as exc:
             raise LLMError(
                 f"LLM authentication failed — check your API key "
