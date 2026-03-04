@@ -23,6 +23,7 @@ from openai import (
 )
 
 from autocustomizeresume.config import Config
+from autocustomizeresume.model_registry import get_model_params
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +70,7 @@ class LLMClient:
         self._model = config.llm.model
         self._api_key_env = config.llm.api_key_env
         self._timeout = timeout if timeout is not None else self.DEFAULT_TIMEOUT
+        self._profile = get_model_params(self._model)
         self._client = OpenAI(
             base_url=config.llm.base_url,
             api_key=config.llm.api_key,
