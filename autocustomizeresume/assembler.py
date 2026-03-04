@@ -7,6 +7,8 @@ LaTeX document with only the selected items included.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable, Sequence
+from typing import TypeVar
 
 from autocustomizeresume.models import (
     Bullet,
@@ -24,6 +26,8 @@ from autocustomizeresume.schemas import (
 )
 
 logger = logging.getLogger(__name__)
+
+_T = TypeVar("_T")
 
 
 # ---------------------------------------------------------------------------
@@ -48,6 +52,47 @@ def _bullet_text(bullet: Bullet, item_dec: ItemDecision | None) -> str:
 def _get_interstitial(interstitial: list[tuple[int, str]], position: int) -> str | None:
     """Return interstitial content for the given *position*, or None."""
     return next((text for pos, text in interstitial if pos == position), None)
+
+
+def _assemble_with_interstitials(
+    elements: Sequence[_T],
+    interstitials: list[tuple[int, str]],
+    assemble_fn: Callable[[_T], str | None],
+    *,
+    keep_trailing_pending: bool = False,
+) -> list[str]:
+    """Assemble *elements* with interstitial content interleaved.
+
+    For each element, *assemble_fn* is called and may return ``None`` to
+    exclude it.  Interstitials at excluded positions are deferred and
+    flushed before the next included element.
+
+    When *keep_trailing_pending* is ``True``, any pending interstitials
+    from excluded elements at the tail are flushed (useful for pinned
+    sections that keep their structure even when all children are
+    excluded).
+
+    The trailing interstitial (at position ``len(elements)``) is **not**
+    handled here — callers manage it because the append conditions vary
+    (e.g. unconditional vs only-when-content-exists).
+    """
+    assembled: list[str] = []
+    pending: list[str] = []
+    for idx, element in enumerate(elements):
+        inter = _get_interstitial(interstitials, idx)
+        if inter is not None:
+            pending.append(inter)
+
+        result = assemble_fn(element)
+        if result is not None:
+            assembled.extend(pending)
+            pending.clear()
+            assembled.append(result)
+
+    if keep_trailing_pending and pending:
+        assembled.extend(pending)
+
+    return assembled
 
 
 # ---------------------------------------------------------------------------
@@ -145,33 +190,22 @@ def _assemble_regular_section(
         if section_dec is None or not section_dec.include:
             return None
 
-    assembled_items: list[str] = []
-    pending_interstitials: list[str] = []
-    for idx, item in enumerate(section.items):
-        item_dec = None
-        if section_dec is not None:
-            item_dec = section_dec.find_item(item.id)
+    def _assemble(item: ResumeItem) -> str | None:
+        item_dec = section_dec.find_item(item.id) if section_dec is not None else None
+        return _assemble_item(item, item_dec)
 
-        # Collect interstitial at this position
-        inter = _get_interstitial(section.interstitial, idx)
-        if inter is not None:
-            pending_interstitials.append(inter)
-
-        assembled = _assemble_item(item, item_dec)
-        if assembled is not None:
-            # Flush pending interstitials before this item
-            assembled_items.extend(pending_interstitials)
-            pending_interstitials = []
-            assembled_items.append(assembled)
+    is_pinned = section.tag_type == "pinned"
+    assembled_items = _assemble_with_interstitials(
+        section.items,
+        section.interstitial,
+        _assemble,
+        keep_trailing_pending=is_pinned,
+    )
 
     # If all items were excluded, omit optional sections entirely.
     # Pinned sections keep their header even with no items.
-    if not assembled_items and section.tag_type == "optional":
+    if not assembled_items and not is_pinned:
         return None
-
-    # Flush any remaining interstitials (for pinned sections with no items)
-    if pending_interstitials:
-        assembled_items.extend(pending_interstitials)
 
     # Trailing interstitial (after last item)
     trailing = _get_interstitial(section.interstitial, len(section.items))
@@ -213,30 +247,24 @@ def _assemble_skills_section(
         if sd is None or not sd.include:
             return None
 
-    assembled_cats: list[str] = []
-    pending_interstitials: list[str] = []
-    for idx, cat in enumerate(section.categories):
+    def _assemble(cat: SkillCategory) -> str | None:
         cat_dec = selection.find_skill_category(cat.name)
+        return _assemble_skill_category(cat, cat_dec)
 
-        inter = _get_interstitial(section.interstitial, idx)
-        if inter is not None:
-            pending_interstitials.append(inter)
-
-        assembled_cat = _assemble_skill_category(cat, cat_dec)
-        if assembled_cat is not None:
-            assembled_cats.extend(pending_interstitials)
-            pending_interstitials = []
-            assembled_cats.append(assembled_cat)
+    is_pinned = section.tag_type == "pinned"
+    assembled_cats = _assemble_with_interstitials(
+        section.categories,
+        section.interstitial,
+        _assemble,
+        keep_trailing_pending=is_pinned,
+    )
 
     # If all categories were empty, omit optional sections entirely.
     # Pinned sections keep their header even with no categories.
-    if not assembled_cats and section.tag_type == "optional":
+    if not assembled_cats and not is_pinned:
         return None
 
-    # Flush any remaining interstitials (for pinned sections with no categories)
-    if pending_interstitials:
-        assembled_cats.extend(pending_interstitials)
-
+    # Trailing interstitial (after last category)
     trailing = _get_interstitial(section.interstitial, len(section.categories))
     if trailing is not None:
         assembled_cats.append(trailing)
@@ -276,23 +304,17 @@ def assemble_tex(
     parts.append(parsed.header)
 
     # 3. Sections
-    assembled_sections: list[str] = []
-    pending_interstitials: list[str] = []
-    for idx, section in enumerate(parsed.sections):
+    def _assemble_section(section: ResumeSection | SkillsSection) -> str | None:
         if isinstance(section, SkillsSection):
-            assembled = _assemble_skills_section(section, selection)
-        else:
-            section_dec = selection.find_section(section.id)
-            assembled = _assemble_regular_section(section, section_dec)
+            return _assemble_skills_section(section, selection)
+        section_dec = selection.find_section(section.id)
+        return _assemble_regular_section(section, section_dec)
 
-        inter = _get_interstitial(parsed.interstitial, idx)
-        if inter is not None:
-            pending_interstitials.append(inter)
-
-        if assembled is not None:
-            assembled_sections.extend(pending_interstitials)
-            pending_interstitials = []
-            assembled_sections.append(assembled)
+    assembled_sections = _assemble_with_interstitials(
+        parsed.sections,
+        parsed.interstitial,
+        _assemble_section,
+    )
 
     if assembled_sections:
         parts.extend(assembled_sections)
