@@ -56,7 +56,7 @@ class TestInit:
     @patch("autocustomizeresume.llm_client.OpenAI")
     def test_custom_timeout(self, mock_openai_cls: MagicMock):
         cfg = _make_config()
-        client = LLMClient(cfg, timeout=60.0)
+        LLMClient(cfg, timeout=60.0)
 
         mock_openai_cls.assert_called_once()
         call_kwargs = mock_openai_cls.call_args.kwargs
