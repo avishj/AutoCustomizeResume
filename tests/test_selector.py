@@ -22,8 +22,8 @@ from autocustomizeresume.schemas import (
 from autocustomizeresume.selector import (
     select_content,
     _serialize_resume,
-    _latex_preview,
 )
+from autocustomizeresume.utils import latex_preview
 
 
 # ---------------------------------------------------------------------------
@@ -410,37 +410,37 @@ class TestSerializeResume:
 
 
 # ---------------------------------------------------------------------------
-# _latex_preview()
+# latex_preview()
 # ---------------------------------------------------------------------------
 
 
 class TestLatexPreview:
     def test_strips_resume_item(self):
-        result = _latex_preview(r"\resumeItem{Built a REST API}")
+        result = latex_preview(r"\resumeItem{Built a REST API}")
         assert "Built a REST API" in result
         assert r"\resumeItem" not in result
 
     def test_strips_textbf(self):
-        result = _latex_preview(r"\textbf{Languages}{: Python, Java}")
+        result = latex_preview(r"\textbf{Languages}{: Python, Java}")
         assert "Languages" in result
         assert r"\textbf" not in result
 
     def test_strips_href(self):
-        result = _latex_preview(r"\href{https://example.com}{My Site}")
+        result = latex_preview(r"\href{https://example.com}{My Site}")
         assert "My Site" in result
         assert "https://example.com" not in result
 
     def test_truncates_long_text(self):
         long_text = "x" * 400
-        result = _latex_preview(long_text)
+        result = latex_preview(long_text)
         assert len(result) <= 300
 
     def test_collapses_whitespace(self):
-        result = _latex_preview("hello   \n  world")
+        result = latex_preview("hello   \n  world")
         assert result == "hello world"
 
     def test_empty_input(self):
-        assert _latex_preview("") == ""
+        assert latex_preview("") == ""
 
 
 # ---------------------------------------------------------------------------

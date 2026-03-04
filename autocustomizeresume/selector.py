@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 
 from autocustomizeresume.config import Config
 from autocustomizeresume.llm_client import LLMClient
@@ -20,6 +19,7 @@ from autocustomizeresume.models import (
     SkillsSection,
 )
 from autocustomizeresume.schemas import ContentSelection, JDAnalysis
+from autocustomizeresume.utils import latex_preview
 
 logger = logging.getLogger(__name__)
 
@@ -155,12 +155,12 @@ def _serialize_regular_section(section: ResumeSection) -> str:
         compact_flag = ", has_compact=yes" if item.compact_heading else ""
         lines.append(f"  ITEM: id={item.id}, tag={item.tag_type}{compact_flag}")
         # Include a brief summary from heading lines (strip LaTeX noise)
-        heading_preview = _latex_preview(item.heading_lines)
+        heading_preview = latex_preview(item.heading_lines)
         if heading_preview:
             lines.append(f"    heading: {heading_preview}")
 
         for bullet in item.bullets:
-            bullet_text = _latex_preview(bullet.text)
+            bullet_text = latex_preview(bullet.text)
             lines.append(f"    BULLET: id={bullet.id}, tag={bullet.tag_type}")
             if bullet_text:
                 lines.append(f"      text: {bullet_text}")
@@ -181,35 +181,6 @@ def _serialize_skills_section(section: SkillsSection) -> str:
         )
 
     return "\n".join(lines)
-
-
-def _latex_preview(text: str) -> str:
-    r"""Extract a readable preview from a LaTeX snippet.
-
-    Strips common LaTeX commands to give the LLM a cleaner view of
-    the content, while keeping it recognisable.  Not a full LaTeX
-    parser — just enough to be useful.
-    """
-    preview = text.strip()
-    # Remove common LaTeX line-break commands
-    preview = preview.replace("\\\\", " ")
-    preview = preview.replace("\\newline", " ")
-    # Remove \href{url}{text} — keep text (before brace stripping)
-    preview = re.sub(r"\\href\{[^}]*\}\{([^}]*)\}", r"\1", preview)
-    # Remove \textbf{...} / \textit{...} — keep content
-    preview = re.sub(r"\\text\w+\{([^}]*)\}", r"\1", preview)
-    # Remove \resumeItem{...} wrapper — keep the content
-    preview = re.sub(r"\\resumeItem\{", "", preview)
-    # Remove \resumeSubheading and similar — keep args
-    preview = re.sub(r"\\resume\w+\{", "", preview)
-    # Strip leftover braces from the above removals
-    preview = preview.replace("{", " ").replace("}", " ")
-    # Collapse whitespace
-    preview = re.sub(r"\s+", " ", preview).strip()
-    # Truncate for sanity
-    if len(preview) > 300:
-        preview = preview[:297] + "..."
-    return preview
 
 
 # ---------------------------------------------------------------------------

@@ -28,7 +28,7 @@ from autocustomizeresume.schemas import (
     ItemDecision,
     JDAnalysis,
 )
-from autocustomizeresume.selector import _latex_preview
+from autocustomizeresume.utils import latex_preview
 
 logger = logging.getLogger(__name__)
 
@@ -236,7 +236,7 @@ def _summarize_regular_section(
         if not _is_item_included(item, item_dec):
             continue
 
-        heading = _latex_preview(item.heading_lines)
+        heading = latex_preview(item.heading_lines)
         if heading:
             lines.append(f"- {heading}")
 
@@ -244,7 +244,7 @@ def _summarize_regular_section(
         for bullet in item.bullets:
             # Pinned bullets always included
             if bullet.tag_type == "pinned":
-                text = _latex_preview(bullet.text)
+                text = latex_preview(bullet.text)
                 if text:
                     lines.append(f"  * {text}")
             elif item_dec is not None:
@@ -253,7 +253,7 @@ def _summarize_regular_section(
                 if bd is not None and bd.include:
                     # Use edited text if present
                     raw = bd.edited_text if bd.edited_text else bullet.text
-                    text = _latex_preview(raw)
+                    text = latex_preview(raw)
                     if text:
                         lines.append(f"  * {text}")
 
