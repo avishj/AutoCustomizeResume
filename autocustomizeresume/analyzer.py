@@ -82,7 +82,7 @@ def analyze_jd(
 
     logger.info("Analyzing job description …")
 
-    raw = client.chat_json(
+    raw = client.chat(
         system=_SYSTEM_PROMPT,
         user=f"<jd>\n{re.sub(r'</?jd\s*>', '', jd_text, flags=re.IGNORECASE)}\n</jd>",
         temperature=0.1,
