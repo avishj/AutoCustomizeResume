@@ -64,25 +64,27 @@ class TestInit:
 
 
 # ---------------------------------------------------------------------------
-# chat() — plain text
+# chat() — always returns parsed JSON dict
 # ---------------------------------------------------------------------------
 
 
 class TestChat:
     @patch("autocustomizeresume.llm_client.OpenAI")
-    def test_returns_content(self, mock_openai_cls: MagicMock):
+    def test_returns_parsed_dict(self, mock_openai_cls: MagicMock):
         mock_client = mock_openai_cls.return_value
-        mock_client.chat.completions.create.return_value = _mock_response("hello")
+        mock_client.chat.completions.create.return_value = _mock_response(
+            '{"name": "test", "value": 42}'
+        )
 
         client = LLMClient(_make_config())
         result = client.chat(system="sys", user="usr")
 
-        assert result == "hello"
+        assert result == {"name": "test", "value": 42}
 
     @patch("autocustomizeresume.llm_client.OpenAI")
     def test_passes_messages_and_temperature(self, mock_openai_cls: MagicMock):
         mock_client = mock_openai_cls.return_value
-        mock_client.chat.completions.create.return_value = _mock_response("ok")
+        mock_client.chat.completions.create.return_value = _mock_response("{}")
 
         client = LLMClient(_make_config())
         client.chat(system="be helpful", user="hi", temperature=0.5)
@@ -96,26 +98,47 @@ class TestChat:
         ]
 
     @patch("autocustomizeresume.llm_client.OpenAI")
-    def test_json_response_format(self, mock_openai_cls: MagicMock):
+    def test_always_uses_json_format(self, mock_openai_cls: MagicMock):
         mock_client = mock_openai_cls.return_value
         mock_client.chat.completions.create.return_value = _mock_response("{}")
-
-        client = LLMClient(_make_config())
-        client.chat(system="sys", user="usr", json_response=True)
-
-        call_kwargs = mock_client.chat.completions.create.call_args[1]
-        assert call_kwargs["response_format"] == {"type": "json_object"}
-
-    @patch("autocustomizeresume.llm_client.OpenAI")
-    def test_no_json_format_by_default(self, mock_openai_cls: MagicMock):
-        mock_client = mock_openai_cls.return_value
-        mock_client.chat.completions.create.return_value = _mock_response("text")
 
         client = LLMClient(_make_config())
         client.chat(system="sys", user="usr")
 
         call_kwargs = mock_client.chat.completions.create.call_args[1]
-        assert "response_format" not in call_kwargs
+        assert call_kwargs["response_format"] == {"type": "json_object"}
+
+    @patch("autocustomizeresume.llm_client.OpenAI")
+    def test_invalid_json_raises(self, mock_openai_cls: MagicMock):
+        mock_client = mock_openai_cls.return_value
+        mock_client.chat.completions.create.return_value = _mock_response(
+            "not json at all"
+        )
+
+        client = LLMClient(_make_config())
+        with pytest.raises(LLMError, match="invalid JSON"):
+            client.chat(system="sys", user="usr")
+
+    @patch("autocustomizeresume.llm_client.OpenAI")
+    def test_json_array_raises(self, mock_openai_cls: MagicMock):
+        mock_client = mock_openai_cls.return_value
+        mock_client.chat.completions.create.return_value = _mock_response("[1, 2, 3]")
+
+        client = LLMClient(_make_config())
+        with pytest.raises(LLMError, match="Expected a JSON object"):
+            client.chat(system="sys", user="usr")
+
+    @patch("autocustomizeresume.llm_client.OpenAI")
+    def test_strips_think_blocks(self, mock_openai_cls: MagicMock):
+        mock_client = mock_openai_cls.return_value
+        mock_client.chat.completions.create.return_value = _mock_response(
+            '<think>reasoning</think>{"key": "val"}'
+        )
+
+        client = LLMClient(_make_config())
+        result = client.chat(system="sys", user="usr")
+
+        assert result == {"key": "val"}
 
     @patch("autocustomizeresume.llm_client.OpenAI")
     def test_none_content_raises(self, mock_openai_cls: MagicMock):
@@ -217,51 +240,4 @@ class TestChatErrors:
             client.chat(system="sys", user="usr")
 
 
-# ---------------------------------------------------------------------------
-# chat_json()
-# ---------------------------------------------------------------------------
 
-
-class TestChatJson:
-    @patch("autocustomizeresume.llm_client.OpenAI")
-    def test_returns_parsed_dict(self, mock_openai_cls: MagicMock):
-        mock_client = mock_openai_cls.return_value
-        mock_client.chat.completions.create.return_value = _mock_response(
-            '{"name": "test", "value": 42}'
-        )
-
-        client = LLMClient(_make_config())
-        result = client.chat_json(system="sys", user="usr")
-
-        assert result == {"name": "test", "value": 42}
-
-    @patch("autocustomizeresume.llm_client.OpenAI")
-    def test_invalid_json_raises(self, mock_openai_cls: MagicMock):
-        mock_client = mock_openai_cls.return_value
-        mock_client.chat.completions.create.return_value = _mock_response(
-            "not json at all"
-        )
-
-        client = LLMClient(_make_config())
-        with pytest.raises(LLMError, match="invalid JSON"):
-            client.chat_json(system="sys", user="usr")
-
-    @patch("autocustomizeresume.llm_client.OpenAI")
-    def test_json_array_raises(self, mock_openai_cls: MagicMock):
-        mock_client = mock_openai_cls.return_value
-        mock_client.chat.completions.create.return_value = _mock_response("[1, 2, 3]")
-
-        client = LLMClient(_make_config())
-        with pytest.raises(LLMError, match="Expected a JSON object"):
-            client.chat_json(system="sys", user="usr")
-
-    @patch("autocustomizeresume.llm_client.OpenAI")
-    def test_uses_json_response_format(self, mock_openai_cls: MagicMock):
-        mock_client = mock_openai_cls.return_value
-        mock_client.chat.completions.create.return_value = _mock_response("{}")
-
-        client = LLMClient(_make_config())
-        client.chat_json(system="sys", user="usr")
-
-        call_kwargs = mock_client.chat.completions.create.call_args[1]
-        assert call_kwargs["response_format"] == {"type": "json_object"}
