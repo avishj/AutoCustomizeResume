@@ -19,21 +19,11 @@ _DEFAULTS: dict[str, Any] = {
     "extra_params": {},
 }
 
-_registry: dict[str, dict[str, Any]] | None = None
-
-
-def _load_registry() -> dict[str, dict[str, Any]]:
-    """Load the registry JSON once and cache it."""
-    global _registry  # noqa: PLW0603
-    if _registry is None:
-        ref = resources.files(__package__) / "model_registry.json"
-        _registry = json.loads(ref.read_text(encoding="utf-8"))
-    return _registry
-
 
 def get_model_params(model: str) -> dict[str, Any]:
     """Return the parameter dict for *model*, falling back to defaults."""
-    registry = _load_registry()
+    ref = resources.files(__package__) / "model_registry.json"
+    registry = json.loads(ref.read_text(encoding="utf-8"))
     entry = registry.get(model)
     if entry is not None:
         return {**_DEFAULTS, **entry}
