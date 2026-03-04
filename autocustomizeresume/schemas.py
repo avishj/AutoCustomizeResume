@@ -289,6 +289,8 @@ def _coerce_score(val: object, default: int = 50) -> int:
     """Coerce a value to an int score, clamped to 0-100."""
     if val is None:
         return default
+    if not isinstance(val, (int, float, str)):
+        return default
     try:
         return max(0, min(100, int(float(val))))
     except (TypeError, ValueError):

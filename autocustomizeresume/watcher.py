@@ -58,7 +58,7 @@ class DebouncedHandler(FileSystemEventHandler):
             return
         # Ignore empty-file saves
         try:
-            if Path(event.src_path).stat().st_size == 0:
+            if Path(os.fsdecode(event.src_path)).stat().st_size == 0:
                 return
         except OSError:
             return
