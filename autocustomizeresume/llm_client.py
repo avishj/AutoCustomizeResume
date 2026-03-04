@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any
 
 import httpx
@@ -26,62 +27,22 @@ from autocustomizeresume.config import Config
 logger = logging.getLogger(__name__)
 
 
-def _extract_json(text: str) -> str:
-    """Extract JSON from text that may contain thinking/reasoning content.
+_THINK_TAG_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
 
-    Models that support thinking (e.g., minimax-m2.5, glm5) may output
-    thinking in <!-- and --> or similar markers. This strips those and
-    finds the last valid JSON object.
+
+def _strip_think_blocks(text: str) -> str:
+    """Strip ``<think>…</think>`` reasoning blocks from model output.
+
+    Reasoning models (e.g., minimax-m2.5, glm5) may prepend a thinking
+    block even when ``response_format=json_object`` is set.  The OpenAI
+    API spec keeps thinking content in a separate ``reasoning_content``
+    field, but not all providers follow that convention—some inline it
+    in the main ``content`` field wrapped in ``<think>`` tags.
+
+    This function removes those tags so the remaining text can be parsed
+    as JSON.
     """
-    import re
-
-    text = text.strip()
-
-    # Strip thinking content between各种 thinking tags
-    # Common patterns:<think>...</think>, ```thinking...```
-    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
-    text = re.sub(r"```thinking.*?```", "", text, flags=re.DOTALL)
-    text = text.strip()
-
-    # First try: direct parse (no thinking content)
-    if text.startswith("{"):
-        try:
-            json.loads(text)
-            return text
-        except json.JSONDecodeError:
-            pass
-
-    # Find all potential JSON starts (lines starting with {)
-    lines = text.split("\n")
-    candidates: list[tuple[int, str]] = []
-
-    for i, line in enumerate(lines):
-        stripped = line.strip()
-        if stripped.startswith("{"):
-            candidate = "\n".join(lines[i:])
-            candidates.append((i, candidate))
-
-    if not candidates:
-        return text
-
-    # Try parsing from the last candidate (most likely to be the actual JSON)
-    for _, candidate in reversed(candidates):
-        try:
-            parsed = json.loads(candidate)
-            # Verify it's a dict (our expected response type)
-            if isinstance(parsed, dict):
-                return candidate
-        except json.JSONDecodeError:
-            continue
-
-    # Fallback: first { to last }
-    first_brace = text.find("{")
-    last_brace = text.rfind("}")
-
-    if first_brace == -1 or last_brace == -1 or last_brace < first_brace:
-        return text
-
-    return text[first_brace : last_brace + 1]
+    return _THINK_TAG_RE.sub("", text).strip()
 
 
 class LLMError(Exception):
@@ -287,7 +248,7 @@ class LLMClient:
             **kwargs,
         )
 
-        json_text = _extract_json(raw)
+        json_text = _strip_think_blocks(raw)
 
         try:
             parsed = json.loads(json_text)
