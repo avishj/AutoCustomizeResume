@@ -13,6 +13,24 @@ from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
 
+# Expected keys for each from_dict (used by _warn_unexpected_keys)
+_JD_KEYS = frozenset(
+    {
+        "company",
+        "role",
+        "seniority",
+        "domain",
+        "key_skills",
+        "technologies",
+        "priority_keywords",
+    }
+)
+_BULLET_KEYS = frozenset({"id", "include", "relevance_score", "edited_text"})
+_ITEM_KEYS = frozenset({"id", "include", "relevance_score", "bullets"})
+_SECTION_KEYS = frozenset({"id", "include", "items"})
+_SKILL_CAT_KEYS = frozenset({"name", "skills"})
+_CONTENT_SEL_KEYS = frozenset({"sections", "skill_categories"})
+
 
 # ---------------------------------------------------------------------------
 # JD analysis schema
@@ -51,6 +69,7 @@ class JDAnalysis:
     @classmethod
     def from_dict(cls, data: dict) -> JDAnalysis:
         """Parse and validate a dict (from LLM JSON) into a JDAnalysis."""
+        _warn_unexpected_keys("JDAnalysis", data, _JD_KEYS)
         return cls(
             company=str(data.get("company") or "Unknown").strip() or "Unknown",
             role=str(data.get("role") or "Unknown").strip() or "Unknown",
@@ -92,6 +111,7 @@ class BulletDecision:
 
     @classmethod
     def from_dict(cls, data: dict) -> BulletDecision:
+        _warn_unexpected_keys("BulletDecision", data, _BULLET_KEYS)
         if "include" not in data:
             logger.warning(
                 "BulletDecision missing 'include' for id=%s, defaulting to True",
@@ -129,6 +149,7 @@ class ItemDecision:
 
     @classmethod
     def from_dict(cls, data: dict) -> ItemDecision:
+        _warn_unexpected_keys("ItemDecision", data, _ITEM_KEYS)
         if "include" not in data:
             logger.warning(
                 "ItemDecision missing 'include' for id=%s, defaulting to True",
@@ -169,6 +190,7 @@ class SectionDecision:
 
     @classmethod
     def from_dict(cls, data: dict) -> SectionDecision:
+        _warn_unexpected_keys("SectionDecision", data, _SECTION_KEYS)
         if "include" not in data:
             logger.warning(
                 "SectionDecision missing 'include' for id=%s, defaulting to True",
@@ -202,6 +224,7 @@ class SkillCategoryDecision:
 
     @classmethod
     def from_dict(cls, data: dict) -> SkillCategoryDecision:
+        _warn_unexpected_keys("SkillCategoryDecision", data, _SKILL_CAT_KEYS)
         return cls(
             name=str(data.get("name", "")),
             skills=_str_list(data.get("skills", [])),
@@ -231,6 +254,7 @@ class ContentSelection:
 
     @classmethod
     def from_dict(cls, data: dict) -> ContentSelection:
+        _warn_unexpected_keys("ContentSelection", data, _CONTENT_SEL_KEYS)
         return cls(
             sections=[
                 SectionDecision.from_dict(s) for s in _dict_list(data.get("sections"))
@@ -283,3 +307,14 @@ def _dict_list(val: object) -> list[dict]:
     if not isinstance(val, list):
         return []
     return [item for item in val if isinstance(item, dict)]
+
+
+def _warn_unexpected_keys(cls_name: str, data: dict, expected: frozenset[str]) -> None:
+    """Log a debug message for any keys in *data* not in *expected*."""
+    unexpected = data.keys() - expected
+    if unexpected:
+        logger.debug(
+            "%s.from_dict: unexpected keys ignored: %s",
+            cls_name,
+            ", ".join(sorted(unexpected)),
+        )
