@@ -85,12 +85,14 @@ class LLMClient:
         system: str,
         user: str,
         temperature: float = 0.2,
-        json_response: bool = False,
         stream: bool = False,
         extra_body: dict[str, Any] | None = None,
         **kwargs: Any,
-    ) -> str:
-        """Send a chat completion request and return the assistant reply.
+    ) -> dict[str, Any]:
+        """Send a chat completion request and return parsed JSON.
+
+        Always requests ``response_format={"type": "json_object"}``,
+        strips any ``<think>`` blocks, and parses the response as JSON.
 
         Parameters
         ----------
@@ -100,9 +102,6 @@ class LLMClient:
             The user prompt.
         temperature:
             Sampling temperature (default 0.2 for deterministic-ish output).
-        json_response:
-            If ``True``, requests ``response_format={"type": "json_object"}``
-            so the model is constrained to produce valid JSON.
         stream:
             If ``True``, stream the response and return concatenated content.
         extra_body:
@@ -113,14 +112,14 @@ class LLMClient:
 
         Returns
         -------
-        str
-            The assistant's response text.
+        dict
+            The parsed JSON object.
 
         Raises
         ------
         LLMError
-            On authentication, connection, timeout, rate-limit, or
-            unexpected API failures.
+            On authentication, connection, timeout, rate-limit,
+            unexpected API failures, or invalid JSON responses.
         """
         messages: list[dict[str, str]] = [
             {"role": "system", "content": system},
@@ -131,10 +130,8 @@ class LLMClient:
             "model": self._model,
             "messages": messages,
             "temperature": temperature,
+            "response_format": {"type": "json_object"},
         }
-
-        if json_response:
-            request_kwargs["response_format"] = {"type": "json_object"}
 
         if extra_body:
             request_kwargs["extra_body"] = extra_body
@@ -142,10 +139,9 @@ class LLMClient:
         request_kwargs.update(kwargs)
 
         logger.info(
-            "LLM request: model=%s, stream=%s, json_response=%s, extra_body=%s",
+            "LLM request: model=%s, stream=%s, extra_body=%s",
             self._model,
             stream,
-            json_response,
             extra_body,
         )
         logger.debug("LLM request kwargs: %s", request_kwargs)
@@ -164,13 +160,22 @@ class LLMClient:
                     delta = chunk.choices[0].delta
                     if delta and delta.content:
                         chunks.append(delta.content)
-                result = "".join(chunks)
-                logger.info("Streaming complete, got %d chars", len(result))
-                return result
+                raw = "".join(chunks)
+                logger.info("Streaming complete, got %d chars", len(raw))
+            else:
+                logger.info("Starting non-streaming request...")
+                response = self._client.chat.completions.create(**request_kwargs)
+                logger.info("Non-streaming request complete")
 
-            logger.info("Starting non-streaming request...")
-            response = self._client.chat.completions.create(**request_kwargs)
-            logger.info("Non-streaming request complete")
+                if not response.choices:
+                    raise LLMError("LLM returned no choices (empty choices list)")
+
+                content = response.choices[0].message.content
+                if content is None:
+                    raise LLMError(
+                        "LLM returned an empty response (content is None)"
+                    )
+                raw = content
         except AuthenticationError as exc:
             raise LLMError(
                 f"LLM authentication failed — check your API key "
@@ -188,65 +193,10 @@ class LLMClient:
             raise LLMError(
                 f"LLM API request timed out after {self._timeout}s: {exc}"
             ) from exc
+        except LLMError:
+            raise
         except Exception as exc:
             raise LLMError(f"LLM API call failed: {exc}") from exc
-
-        if not response.choices:
-            raise LLMError("LLM returned no choices (empty choices list)")
-
-        choice = response.choices[0]
-        content = choice.message.content
-
-        if content is None:
-            raise LLMError("LLM returned an empty response (content is None)")
-
-        return content
-
-    def chat_json(
-        self,
-        *,
-        system: str,
-        user: str,
-        temperature: float = 0.2,
-        extra_body: dict[str, Any] | None = None,
-        **kwargs: Any,
-    ) -> dict[str, Any]:
-        """Send a chat request and parse the response as JSON.
-
-        Convenience wrapper around :meth:`chat` that sets
-        ``json_response=True`` and parses the result.
-
-        Parameters
-        ----------
-        system:
-            The system prompt.
-        user:
-            The user message.
-        temperature:
-            Sampling temperature.
-        extra_body:
-            Extra body parameters for the API.
-        **kwargs:
-            Additional parameters to pass to the chat API.
-
-        Returns
-        -------
-        dict
-            The parsed JSON object.
-
-        Raises
-        ------
-        LLMError
-            If the LLM call fails or the response is not valid JSON.
-        """
-        raw = self.chat(
-            system=system,
-            user=user,
-            temperature=temperature,
-            json_response=True,
-            extra_body=extra_body,
-            **kwargs,
-        )
 
         json_text = _strip_think_blocks(raw)
 
