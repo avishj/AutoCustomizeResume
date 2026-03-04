@@ -28,7 +28,7 @@ naming:
 # Supports: NVIDIA NIM, Groq, Together, Ollama, OpenAI, etc.
 llm:
   base_url: "https://integrate.api.nvidia.com/v1"
-  model: "z-ai/glm5"
+  model: "qwen/qwen3.5-397b-a17b"  # See autocustomizeresume/model_registry.json for supported models
   api_key_env: "LLM_API_KEY"  # Name of the env var holding the API key
 
 # Cover letter settings
