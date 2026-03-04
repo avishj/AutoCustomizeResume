@@ -159,7 +159,7 @@ def _find_droppables(selection: ContentSelection) -> list[_Droppable]:
                             section_id=sec.id,
                             item_id=it.id,
                             bullet_id=bd.id,
-                            score=it.relevance_score,
+                            score=bd.relevance_score,
                         )
                     )
             # The item itself is droppable

@@ -77,6 +77,8 @@ class BulletDecision:
         The bullet's tag ID (e.g. ``"acme-1"``).
     include:
         Whether to include this bullet.
+    relevance_score:
+        0-100 score indicating how relevant this bullet is to the JD.
     edited_text:
         If non-empty, a minor rephrasing of the bullet text to better
         match JD terminology.  Must preserve the core meaning.  Empty
@@ -85,6 +87,7 @@ class BulletDecision:
 
     id: str
     include: bool
+    relevance_score: int = 50
     edited_text: str = ""
 
     @classmethod
@@ -97,6 +100,7 @@ class BulletDecision:
         return cls(
             id=str(data.get("id", "")),
             include=_coerce_bool(data.get("include", True)),
+            relevance_score=_coerce_score(data.get("relevance_score")),
             edited_text=str(data.get("edited_text", "")),
         )
 

@@ -59,6 +59,7 @@ Return a single JSON object (no markdown, no commentary):
             {
               "id": "<bullet tag ID>",
               "include": true/false,
+              "relevance_score": <0-100>,
               "edited_text": "<minor rephrasing or empty string>"
             }
           ]
@@ -83,14 +84,17 @@ Selection rules:
   your output with an explicit include decision.
 
 Scoring guidance:
-- "relevance_score" reflects how well the item matches THIS specific role,
-  not software engineering in general.
+- "relevance_score" applies to BOTH items and bullets.  It reflects how
+  well the element matches THIS specific role, not software engineering
+  in general.
 - Score 80-100: directly demonstrates a priority_keyword or core JD requirement.
 - Score 50-79: relevant technology or transferable domain experience.
 - Score 20-49: tangentially related or shows general engineering strength.
 - Score 0-19: no meaningful connection to the role's distinguishing needs.
 - Prefer fewer, high-relevance items over many mediocre ones.  A tight,
   focused resume is better than a cluttered one.
+- For bullets, score each independently — a high-relevance bullet within a
+  low-relevance item (or vice versa) is perfectly fine.
 
 Bullet editing ("edited_text"):
 - Set to "" (empty string) to keep original text verbatim — this is the default.

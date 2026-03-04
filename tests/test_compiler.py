@@ -125,8 +125,18 @@ def _full_selection() -> ContentSelection:
                         "include": True,
                         "relevance_score": 80,
                         "bullets": [
-                            {"id": "acme-1", "include": True, "edited_text": ""},
-                            {"id": "acme-2", "include": True, "edited_text": ""},
+                            {
+                                "id": "acme-1",
+                                "include": True,
+                                "relevance_score": 80,
+                                "edited_text": "",
+                            },
+                            {
+                                "id": "acme-2",
+                                "include": True,
+                                "relevance_score": 75,
+                                "edited_text": "",
+                            },
                         ],
                     },
                     {
@@ -134,7 +144,12 @@ def _full_selection() -> ContentSelection:
                         "include": True,
                         "relevance_score": 30,
                         "bullets": [
-                            {"id": "widgets-1", "include": True, "edited_text": ""},
+                            {
+                                "id": "widgets-1",
+                                "include": True,
+                                "relevance_score": 30,
+                                "edited_text": "",
+                            },
                         ],
                     },
                 ],
