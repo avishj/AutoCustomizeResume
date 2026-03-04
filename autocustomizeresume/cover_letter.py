@@ -27,8 +27,6 @@ from autocustomizeresume.schemas import (
     ContentSelection,
     ItemDecision,
     JDAnalysis,
-    SectionDecision,
-    SkillCategoryDecision,
 )
 from autocustomizeresume.selector import _latex_preview
 
@@ -210,27 +208,6 @@ def _summarize_selected_content(
     return "\n\n".join(parts)
 
 
-def _find_section_decision(
-    selection: ContentSelection, section_id: str
-) -> SectionDecision | None:
-    return next((sd for sd in selection.sections if sd.id == section_id), None)
-
-
-def _find_item_decision(
-    section_dec: SectionDecision, item_id: str
-) -> ItemDecision | None:
-    return next((itd for itd in section_dec.items if itd.id == item_id), None)
-
-
-def _find_skill_cat_decision(
-    selection: ContentSelection, cat_name: str
-) -> SkillCategoryDecision | None:
-    return next(
-        (scd for scd in selection.skill_categories if scd.name == cat_name),
-        None,
-    )
-
-
 def _is_item_included(item: ResumeItem, item_dec: ItemDecision | None) -> bool:
     """Determine if an item is included in the final resume."""
     if item.tag_type == "pinned":
@@ -245,7 +222,7 @@ def _summarize_regular_section(
     selection: ContentSelection,
 ) -> str:
     """Summarize a regular section's selected content."""
-    sec_dec = _find_section_decision(selection, section.id)
+    sec_dec = selection.find_section(section.id)
 
     # Optional section excluded
     if section.tag_type == "optional" and (sec_dec is None or not sec_dec.include):
@@ -254,7 +231,7 @@ def _summarize_regular_section(
     lines: list[str] = [f"## {section.id.replace('-', ' ').title()}"]
 
     for item in section.items:
-        item_dec = _find_item_decision(sec_dec, item.id) if sec_dec else None
+        item_dec = sec_dec.find_item(item.id) if sec_dec else None
 
         if not _is_item_included(item, item_dec):
             continue
@@ -293,14 +270,14 @@ def _summarize_skills_section(
 ) -> str:
     """Summarize the skills section's selected content."""
     if section.tag_type == "optional":
-        sd = _find_section_decision(selection, section.id)
+        sd = selection.find_section(section.id)
         if sd is None or not sd.include:
             return ""
 
     lines: list[str] = [f"## {section.id.replace('-', ' ').title()}"]
 
     for cat in section.categories:
-        cat_dec = _find_skill_cat_decision(selection, cat.name)
+        cat_dec = selection.find_skill_category(cat.name)
         skills = cat_dec.skills if cat_dec is not None else cat.skills
 
         if skills:

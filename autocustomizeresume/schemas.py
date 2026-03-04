@@ -159,6 +159,10 @@ class SectionDecision:
     include: bool
     items: list[ItemDecision] = field(default_factory=list)
 
+    def find_item(self, item_id: str) -> ItemDecision | None:
+        """Find the ItemDecision for *item_id*, or ``None``."""
+        return next((itd for itd in self.items if itd.id == item_id), None)
+
     @classmethod
     def from_dict(cls, data: dict) -> SectionDecision:
         if "include" not in data:
@@ -209,6 +213,17 @@ class ContentSelection:
 
     sections: list[SectionDecision] = field(default_factory=list)
     skill_categories: list[SkillCategoryDecision] = field(default_factory=list)
+
+    def find_section(self, section_id: str) -> SectionDecision | None:
+        """Find the SectionDecision for *section_id*, or ``None``."""
+        return next((sd for sd in self.sections if sd.id == section_id), None)
+
+    def find_skill_category(self, cat_name: str) -> SkillCategoryDecision | None:
+        """Find the SkillCategoryDecision for *cat_name*, or ``None``."""
+        return next(
+            (scd for scd in self.skill_categories if scd.name == cat_name),
+            None,
+        )
 
     @classmethod
     def from_dict(cls, data: dict) -> ContentSelection:

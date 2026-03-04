@@ -27,30 +27,8 @@ logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
-# Lookup helpers
+# Bullet helpers
 # ---------------------------------------------------------------------------
-
-
-def _section_decision(
-    selection: ContentSelection, section_id: str
-) -> SectionDecision | None:
-    """Find the SectionDecision for *section_id*, or None."""
-    return next((sd for sd in selection.sections if sd.id == section_id), None)
-
-
-def _item_decision(section_dec: SectionDecision, item_id: str) -> ItemDecision | None:
-    """Find the ItemDecision for *item_id* within a section decision."""
-    return next((itd for itd in section_dec.items if itd.id == item_id), None)
-
-
-def _skill_cat_decision(
-    selection: ContentSelection, cat_name: str
-) -> SkillCategoryDecision | None:
-    """Find the SkillCategoryDecision for *cat_name*, or None."""
-    return next(
-        (scd for scd in selection.skill_categories if scd.name == cat_name),
-        None,
-    )
 
 
 def _bullet_text(bullet: Bullet, item_dec: ItemDecision | None) -> str:
@@ -172,7 +150,7 @@ def _assemble_regular_section(
     for idx, item in enumerate(section.items):
         item_dec = None
         if section_dec is not None:
-            item_dec = _item_decision(section_dec, item.id)
+            item_dec = section_dec.find_item(item.id)
 
         # Collect interstitial at this position
         inter = _get_interstitial(section.interstitial, idx)
@@ -231,14 +209,14 @@ def _assemble_skills_section(
     """Assemble the skills section with reordered skills."""
     # Skills section is always pinned in the plan, but handle optional too
     if section.tag_type == "optional":
-        sd = _section_decision(selection, section.id)
+        sd = selection.find_section(section.id)
         if sd is None or not sd.include:
             return None
 
     assembled_cats: list[str] = []
     pending_interstitials: list[str] = []
     for idx, cat in enumerate(section.categories):
-        cat_dec = _skill_cat_decision(selection, cat.name)
+        cat_dec = selection.find_skill_category(cat.name)
 
         inter = _get_interstitial(section.interstitial, idx)
         if inter is not None:
@@ -304,7 +282,7 @@ def assemble_tex(
         if isinstance(section, SkillsSection):
             assembled = _assemble_skills_section(section, selection)
         else:
-            section_dec = _section_decision(selection, section.id)
+            section_dec = selection.find_section(section.id)
             assembled = _assemble_regular_section(section, section_dec)
 
         inter = _get_interstitial(parsed.interstitial, idx)

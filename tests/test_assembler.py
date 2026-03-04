@@ -15,9 +15,6 @@ from autocustomizeresume.assembler import (
     _is_bullet_included,
     _bullet_text,
     _get_interstitial,
-    _section_decision,
-    _item_decision,
-    _skill_cat_decision,
 )
 from autocustomizeresume.models import (
     Bullet,
@@ -108,29 +105,29 @@ class TestLookupHelpers:
     def test_section_decision_found(self):
         sd = _make_section_decision(section_id="exp")
         sel = _make_selection(sections=[sd])
-        assert _section_decision(sel, "exp") is sd
+        assert sel.find_section("exp") is sd
 
     def test_section_decision_not_found(self):
         sel = _make_selection()
-        assert _section_decision(sel, "exp") is None
+        assert sel.find_section("exp") is None
 
     def test_item_decision_found(self):
         itd = _make_item_decision(item_id="acme")
         sd = _make_section_decision(items=[itd])
-        assert _item_decision(sd, "acme") is itd
+        assert sd.find_item("acme") is itd
 
     def test_item_decision_not_found(self):
         sd = _make_section_decision()
-        assert _item_decision(sd, "acme") is None
+        assert sd.find_item("acme") is None
 
     def test_skill_cat_decision_found(self):
         scd = SkillCategoryDecision(name="lang", skills=["Python"])
         sel = _make_selection(skill_cats=[scd])
-        assert _skill_cat_decision(sel, "lang") is scd
+        assert sel.find_skill_category("lang") is scd
 
     def test_skill_cat_decision_not_found(self):
         sel = _make_selection()
-        assert _skill_cat_decision(sel, "lang") is None
+        assert sel.find_skill_category("lang") is None
 
 
 # ---------------------------------------------------------------------------
@@ -853,9 +850,12 @@ class TestCompactHeadingAssembly:
             interstitial=[(0, r"\resumeItemListStart"), (1, r"\resumeItemListEnd")],
             compact_heading=compact,
         )
-        dec = _make_item_decision(item_id="ey", bullets=[
-            BulletDecision(id="ey-1", include=False),
-        ])
+        dec = _make_item_decision(
+            item_id="ey",
+            bullets=[
+                BulletDecision(id="ey-1", include=False),
+            ],
+        )
         result = _assemble_item(item, dec)
         assert result == compact
 
@@ -868,9 +868,12 @@ class TestCompactHeadingAssembly:
             interstitial=[(0, r"\resumeItemListStart"), (1, r"\resumeItemListEnd")],
             compact_heading=compact,
         )
-        dec = _make_item_decision(item_id="ey", bullets=[
-            BulletDecision(id="ey-1", include=True),
-        ])
+        dec = _make_item_decision(
+            item_id="ey",
+            bullets=[
+                BulletDecision(id="ey-1", include=True),
+            ],
+        )
         result = _assemble_item(item, dec)
         assert result is not None
         assert r"\resumeSubheading" in result
@@ -883,9 +886,12 @@ class TestCompactHeadingAssembly:
             bullets=[_make_bullet(bullet_id="ey-1")],
             interstitial=[(0, r"\resumeItemListStart"), (1, r"\resumeItemListEnd")],
         )
-        dec = _make_item_decision(item_id="ey", bullets=[
-            BulletDecision(id="ey-1", include=False),
-        ])
+        dec = _make_item_decision(
+            item_id="ey",
+            bullets=[
+                BulletDecision(id="ey-1", include=False),
+            ],
+        )
         result = _assemble_item(item, dec)
         assert result is None
 
@@ -899,8 +905,11 @@ class TestCompactHeadingAssembly:
             interstitial=[(0, r"\resumeItemListStart"), (1, r"\resumeItemListEnd")],
             compact_heading=compact,
         )
-        dec = _make_item_decision(item_id="addverb", bullets=[
-            BulletDecision(id="addverb-1", include=False),
-        ])
+        dec = _make_item_decision(
+            item_id="addverb",
+            bullets=[
+                BulletDecision(id="addverb-1", include=False),
+            ],
+        )
         result = _assemble_item(item, dec)
         assert result == compact
