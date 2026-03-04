@@ -33,3 +33,7 @@ __pycache__/
 plan.md
 implementation.md
 *signs.md
+
+# Cache
+.pytest_cache/
+.ruff_cache/
