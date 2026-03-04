@@ -174,7 +174,7 @@ _SAMPLE_SELECTION_DICT = {
 
 def _make_client(response_dict: dict) -> MagicMock:
     client = MagicMock(spec=LLMClient)
-    client.chat_json.return_value = response_dict
+    client.chat.return_value = response_dict
     return client
 
 
@@ -302,7 +302,7 @@ class TestPromptConstruction:
             config=_make_config(),
             client=client,
         )
-        call_kwargs = client.chat_json.call_args[1]
+        call_kwargs = client.chat.call_args[1]
         user = call_kwargs["user"]
         assert "Acme Corp" in user
         assert "Senior Backend Engineer" in user
@@ -317,7 +317,7 @@ class TestPromptConstruction:
             config=_make_config(),
             client=client,
         )
-        call_kwargs = client.chat_json.call_args[1]
+        call_kwargs = client.chat.call_args[1]
         user = call_kwargs["user"]
         assert "experience" in user
         assert "acme" in user
@@ -331,7 +331,7 @@ class TestPromptConstruction:
             config=_make_config(),
             client=client,
         )
-        call_kwargs = client.chat_json.call_args[1]
+        call_kwargs = client.chat.call_args[1]
         system = call_kwargs["system"]
         assert "JSON" in system or "json" in system
 
@@ -343,7 +343,7 @@ class TestPromptConstruction:
             config=_make_config(),
             client=client,
         )
-        call_kwargs = client.chat_json.call_args[1]
+        call_kwargs = client.chat.call_args[1]
         system = call_kwargs["system"]
         assert "edited_text" in system
         assert "rephrasing" in system.lower() or "rephras" in system.lower()
@@ -356,7 +356,7 @@ class TestPromptConstruction:
             config=_make_config(),
             client=client,
         )
-        call_kwargs = client.chat_json.call_args[1]
+        call_kwargs = client.chat.call_args[1]
         assert call_kwargs["temperature"] == pytest.approx(0.1)
 
 
@@ -451,7 +451,7 @@ class TestLatexPreview:
 class TestSelectContentErrors:
     def test_llm_error_propagates(self):
         client = MagicMock(spec=LLMClient)
-        client.chat_json.side_effect = LLMError("boom")
+        client.chat.side_effect = LLMError("boom")
 
         with pytest.raises(LLMError, match="boom"):
             select_content(
@@ -464,7 +464,7 @@ class TestSelectContentErrors:
     def test_creates_client_from_config_when_none(self):
         with patch("autocustomizeresume.selector.LLMClient") as mock_cls:
             mock_instance = MagicMock(spec=LLMClient)
-            mock_instance.chat_json.return_value = _SAMPLE_SELECTION_DICT
+            mock_instance.chat.return_value = _SAMPLE_SELECTION_DICT
             mock_cls.return_value = mock_instance
 
             cfg = _make_config()
