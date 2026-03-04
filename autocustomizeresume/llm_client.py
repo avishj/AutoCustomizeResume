@@ -59,7 +59,7 @@ class LLMClient:
         ``model``, ``api_key``) are read from ``config.llm``.
     """
 
-    DEFAULT_TIMEOUT = 120.0  # seconds
+    DEFAULT_TIMEOUT = 600.0  # seconds
 
     def __init__(
         self,
