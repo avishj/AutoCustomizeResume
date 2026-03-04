@@ -16,7 +16,7 @@ from pathlib import Path
 
 from autocustomizeresume.compiler import compile_tex
 from autocustomizeresume.config import Config
-from autocustomizeresume.llm_client import LLMClient
+from autocustomizeresume.llm_client import LLMClient, LLMError
 from autocustomizeresume.models import (
     ParsedResume,
     ResumeItem,
@@ -122,7 +122,10 @@ the template already has one.
 - Do NOT use any LaTeX commands or formatting.  Output plain text only.
 - Separate paragraphs with a blank line.
 - Be concise and direct.  Avoid generic filler phrases.
-- Return ONLY the body text.  No commentary, no markdown.\
+- Return a JSON object with a single key "body" containing the full text.
+- Example: {"body": "First paragraph...\\n\\nSecond paragraph..."}
+- Separate paragraphs with a blank line (\\n\\n) inside the "body" value.
+- No other keys.  No commentary.  No markdown.\
 """
 
 
@@ -329,13 +332,17 @@ def generate_cover_letter_body(
         jd_analysis.company,
     )
 
-    body = client.chat(
+    result = client.chat(
         system=_BODY_SYSTEM_PROMPT,
         user=user_prompt,
         temperature=0.4,
         stream=True,
         extra_body={"chat_template_kwargs": {"enable_thinking": True}},
     )
+
+    body = result.get("body", "")
+    if not body:
+        raise LLMError("LLM returned no 'body' key in cover letter response")
 
     logger.info("Cover letter body generated (%d chars)", len(body))
     return body.strip()
