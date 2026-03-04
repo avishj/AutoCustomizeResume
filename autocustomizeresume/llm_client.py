@@ -79,19 +79,23 @@ class LLMClient:
     # Public API
     # ------------------------------------------------------------------
 
+    _DEFAULT_EXTRA_BODY: dict[str, Any] = {
+        "chat_template_kwargs": {"enable_thinking": True},
+    }
+
     def chat(
         self,
         *,
         system: str,
         user: str,
         temperature: float = 0.2,
-        extra_body: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Send a chat completion request and return parsed JSON.
 
         Always requests ``response_format={"type": "json_object"}``,
-        strips any ``<think>`` blocks, and parses the response as JSON.
+        enables thinking via ``extra_body``, strips any ``<think>``
+        blocks, and parses the response as JSON.
 
         Parameters
         ----------
@@ -101,9 +105,6 @@ class LLMClient:
             The user prompt.
         temperature:
             Sampling temperature (default 0.2 for deterministic-ish output).
-        extra_body:
-            Extra body parameters to pass to the API (e.g., for NVIDIA NIM
-            chat template kwargs).
         **kwargs:
             Additional parameters to pass to the chat completion API.
 
@@ -128,18 +129,12 @@ class LLMClient:
             "messages": messages,
             "temperature": temperature,
             "response_format": {"type": "json_object"},
+            "extra_body": self._DEFAULT_EXTRA_BODY,
         }
-
-        if extra_body:
-            request_kwargs["extra_body"] = extra_body
 
         request_kwargs.update(kwargs)
 
-        logger.info(
-            "LLM request: model=%s, extra_body=%s",
-            self._model,
-            extra_body,
-        )
+        logger.info("LLM request: model=%s", self._model)
         logger.debug("LLM request kwargs: %s", request_kwargs)
 
         try:
