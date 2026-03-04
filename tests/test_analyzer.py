@@ -52,9 +52,9 @@ def _make_config() -> MagicMock:
 
 
 def _make_client(response_dict: dict) -> LLMClient:
-    """Build an LLMClient whose chat_json returns *response_dict*."""
+    """Build an LLMClient whose chat returns *response_dict*."""
     client = MagicMock(spec=LLMClient)
-    client.chat_json.return_value = response_dict
+    client.chat.return_value = response_dict
     return client
 
 
@@ -80,7 +80,7 @@ class TestAnalyzeJD:
         client = _make_client(_SAMPLE_ANALYSIS_DICT)
         analyze_jd(_SAMPLE_JD, config=_make_config(), client=client)
 
-        call_kwargs = client.chat_json.call_args[1]
+        call_kwargs = client.chat.call_args[1]
         user = call_kwargs["user"]
         assert _SAMPLE_JD in user
         # JD should be wrapped in XML delimiters for prompt-injection hardening
@@ -91,14 +91,14 @@ class TestAnalyzeJD:
         client = _make_client(_SAMPLE_ANALYSIS_DICT)
         analyze_jd(_SAMPLE_JD, config=_make_config(), client=client)
 
-        call_kwargs = client.chat_json.call_args[1]
+        call_kwargs = client.chat.call_args[1]
         assert call_kwargs["temperature"] == pytest.approx(0.1)
 
     def test_system_prompt_requests_json(self):
         client = _make_client(_SAMPLE_ANALYSIS_DICT)
         analyze_jd(_SAMPLE_JD, config=_make_config(), client=client)
 
-        call_kwargs = client.chat_json.call_args[1]
+        call_kwargs = client.chat.call_args[1]
         system = call_kwargs["system"]
         assert "JSON" in system or "json" in system
 
@@ -145,7 +145,7 @@ class TestAnalyzeJDEdgeCases:
 class TestAnalyzeJDErrors:
     def test_llm_error_propagates(self):
         client = MagicMock(spec=LLMClient)
-        client.chat_json.side_effect = LLMError("boom")
+        client.chat.side_effect = LLMError("boom")
 
         with pytest.raises(LLMError, match="boom"):
             analyze_jd(_SAMPLE_JD, config=_make_config(), client=client)
@@ -154,7 +154,7 @@ class TestAnalyzeJDErrors:
         """When no client is passed, a new one is built from config."""
         with patch("autocustomizeresume.analyzer.LLMClient") as mock_cls:
             mock_instance = MagicMock(spec=LLMClient)
-            mock_instance.chat_json.return_value = _SAMPLE_ANALYSIS_DICT
+            mock_instance.chat.return_value = _SAMPLE_ANALYSIS_DICT
             mock_cls.return_value = mock_instance
 
             cfg = _make_config()
