@@ -259,7 +259,7 @@ def select_content(
         len(resume_block),
     )
 
-    raw = client.chat_json(
+    raw = client.chat(
         system=_SYSTEM_PROMPT,
         user=user_prompt,
         temperature=0.1,
