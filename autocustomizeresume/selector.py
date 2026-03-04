@@ -234,6 +234,7 @@ def select_content(
             "domain": jd_analysis.domain,
             "key_skills": jd_analysis.key_skills,
             "technologies": jd_analysis.technologies,
+            "priority_keywords": jd_analysis.priority_keywords,
         },
         indent=2,
     )

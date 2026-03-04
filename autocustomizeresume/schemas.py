@@ -46,6 +46,7 @@ class JDAnalysis:
     domain: str
     key_skills: list[str]
     technologies: list[str]
+    priority_keywords: list[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data: dict) -> JDAnalysis:
@@ -57,6 +58,7 @@ class JDAnalysis:
             domain=str(data.get("domain") or "unknown").strip(),
             key_skills=_str_list(data.get("key_skills", [])),
             technologies=_str_list(data.get("technologies", [])),
+            priority_keywords=_str_list(data.get("priority_keywords", [])),
         )
 
 
