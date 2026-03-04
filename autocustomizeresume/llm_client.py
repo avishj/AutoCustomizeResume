@@ -85,7 +85,6 @@ class LLMClient:
         system: str,
         user: str,
         temperature: float = 0.2,
-        stream: bool = False,
         extra_body: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
@@ -102,8 +101,6 @@ class LLMClient:
             The user prompt.
         temperature:
             Sampling temperature (default 0.2 for deterministic-ish output).
-        stream:
-            If ``True``, stream the response and return concatenated content.
         extra_body:
             Extra body parameters to pass to the API (e.g., for NVIDIA NIM
             chat template kwargs).
@@ -139,43 +136,24 @@ class LLMClient:
         request_kwargs.update(kwargs)
 
         logger.info(
-            "LLM request: model=%s, stream=%s, extra_body=%s",
+            "LLM request: model=%s, extra_body=%s",
             self._model,
-            stream,
             extra_body,
         )
         logger.debug("LLM request kwargs: %s", request_kwargs)
 
         try:
-            if stream:
-                logger.info("Starting streaming request...")
-                response = self._client.chat.completions.create(
-                    **request_kwargs, stream=True
+            response = self._client.chat.completions.create(**request_kwargs)
+
+            if not response.choices:
+                raise LLMError("LLM returned no choices (empty choices list)")
+
+            content = response.choices[0].message.content
+            if content is None:
+                raise LLMError(
+                    "LLM returned an empty response (content is None)"
                 )
-                chunks: list[str] = []
-                for i, chunk in enumerate(response):
-                    logger.debug("Stream chunk %d: %s", i, chunk)
-                    if not chunk.choices:
-                        continue
-                    delta = chunk.choices[0].delta
-                    if delta and delta.content:
-                        chunks.append(delta.content)
-                raw = "".join(chunks)
-                logger.info("Streaming complete, got %d chars", len(raw))
-            else:
-                logger.info("Starting non-streaming request...")
-                response = self._client.chat.completions.create(**request_kwargs)
-                logger.info("Non-streaming request complete")
-
-                if not response.choices:
-                    raise LLMError("LLM returned no choices (empty choices list)")
-
-                content = response.choices[0].message.content
-                if content is None:
-                    raise LLMError(
-                        "LLM returned an empty response (content is None)"
-                    )
-                raw = content
+            raw = content
         except AuthenticationError as exc:
             raise LLMError(
                 f"LLM authentication failed — check your API key "
