@@ -57,7 +57,6 @@ class LLMConfig:
 class CoverLetterConfig:
     enabled: bool
     template: str
-    style: str
     signature_path: str
 
 
@@ -234,7 +233,6 @@ def load_config(config_path: str = "config.yaml") -> Config:
     cover_letter = CoverLetterConfig(
         enabled=_get_bool(cl_raw, "enabled", "cover_letter"),
         template=_get_str(cl_raw, "template", "cover_letter"),
-        style=_get_str(cl_raw, "style", "cover_letter", default=""),
         signature_path=_get_str(cl_raw, "signature_path", "cover_letter", default=""),
     )
 

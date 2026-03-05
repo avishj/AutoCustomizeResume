@@ -236,7 +236,7 @@ def generate_cover_letter_body(
         The content selection decisions (determines what's in the
         final resume).
     config:
-        Application config (style preferences + LLM settings).
+        Application config (LLM settings, cover letter template path).
     client:
         Optional pre-built LLM client.
 
@@ -262,7 +262,6 @@ def generate_cover_letter_body(
     )
 
     resume_summary = _summarize_selected_content(parsed_resume, selection)
-    style = config.cover_letter.style
 
     user_prompt = (
         "<jd_analysis>\n"
@@ -270,10 +269,7 @@ def generate_cover_letter_body(
         "</jd_analysis>\n\n"
         "<resume_summary>\n"
         f"{resume_summary}\n"
-        "</resume_summary>\n\n"
-        "<style>\n"
-        f"{style}\n"
-        "</style>"
+        "</resume_summary>"
     )
 
     logger.info(

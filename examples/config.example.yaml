@@ -35,7 +35,6 @@ llm:
 cover_letter:
   enabled: true
   template: "templates/cover_letter_template.tex"
-  style: "Professional, concise. No generic filler. Mention specific projects relevant to the role. Absolutely no emdashes. No buzzwords. Use long sentences with varying lengths. Use () in the middle of sentences to explain a thought. Keep it crisp. Show not tell. Key qualities to show: Ownership, Curiosity, Challenges."
   signature_path: ""  # Optional: path to signature image (e.g., "signature.png"). Leave empty to omit.
 
 # File paths

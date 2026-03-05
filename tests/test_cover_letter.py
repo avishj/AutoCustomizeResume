@@ -89,7 +89,6 @@ def _make_config(**overrides) -> Config:
     cl_defaults = dict(
         enabled=True,
         template="templates/cover_letter_template.tex",
-        style="Professional and concise.",
         signature_path="",
     )
     cl_defaults.update(cl_kw)
@@ -413,24 +412,6 @@ class TestGenerateCoverLetterBody:
         assert "<resume_summary>" in user
         # Should include content from the resume summary
         assert "Education" in user or "Experience" in user
-
-    def test_prompt_contains_style(self):
-        client = MagicMock(spec=LLMClient)
-        client.chat.return_value = {"body": "Body."}
-
-        cfg = _make_config(cover_letter={"style": "Casual and friendly."})
-        generate_cover_letter_body(
-            _make_jd_analysis(),
-            _make_parsed_resume(),
-            _make_selection(),
-            config=cfg,
-            client=client,
-        )
-
-        call_kwargs = client.chat.call_args[1]
-        user = call_kwargs["user"]
-        assert "<style>" in user
-        assert "Casual and friendly." in user
 
     def test_no_temperature_override(self):
         client = MagicMock(spec=LLMClient)
