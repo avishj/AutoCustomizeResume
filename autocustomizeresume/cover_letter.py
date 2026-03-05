@@ -363,7 +363,6 @@ def generate_cover_letter_body(
     result = client.chat(
         system=_BODY_SYSTEM_PROMPT,
         user=user_prompt,
-        temperature=0.4,
     )
 
     body = result.get("body", "")

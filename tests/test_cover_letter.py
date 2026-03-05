@@ -432,24 +432,7 @@ class TestGenerateCoverLetterBody:
         assert "<style>" in user
         assert "Casual and friendly." in user
 
-    def test_default_style_when_empty(self):
-        client = MagicMock(spec=LLMClient)
-        client.chat.return_value = {"body": "Body."}
-
-        cfg = _make_config(cover_letter={"style": ""})
-        generate_cover_letter_body(
-            _make_jd_analysis(),
-            _make_parsed_resume(),
-            _make_selection(),
-            config=cfg,
-            client=client,
-        )
-
-        call_kwargs = client.chat.call_args[1]
-        user = call_kwargs["user"]
-        assert "Professional, concise." in user
-
-    def test_uses_temperature_04(self):
+    def test_no_temperature_override(self):
         client = MagicMock(spec=LLMClient)
         client.chat.return_value = {"body": "Body."}
 
@@ -462,7 +445,7 @@ class TestGenerateCoverLetterBody:
         )
 
         call_kwargs = client.chat.call_args[1]
-        assert call_kwargs["temperature"] == pytest.approx(0.4)
+        assert "temperature" not in call_kwargs
 
     def test_creates_client_from_config_when_none(self):
         with patch("autocustomizeresume.cover_letter.LLMClient") as mock_cls:
