@@ -1,29 +1,77 @@
 {
-  "minimaxai/minimax-m2.5": {
-    "temperature": 1,
-    "top_p": 0.95,
-    "max_tokens": 16384,
-    "extra_params": {
-      "extra_body": {
-        "chat_template_kwargs": {
-          "enable_thinking": true
-        }
-      }
-    }
-  },
-  "qwen/qwen3.5-397b-a17b": {
-    "temperature": 0.6,
-    "top_p": 0.95,
-    "max_tokens": 16384,
-    "extra_params": {
-      "extra_body": {
-        "top_k": 20,
-        "presence_penalty": 0,
-        "repetition_penalty": 1,
-        "chat_template_kwargs": {
-          "enable_thinking": true
-        }
-      }
-    }
-  }
+	"minimaxai/minimax-m2.5": {
+		"temperature": 1,
+		"top_p": 0.95,
+		"max_tokens": 16384,
+		"extra_params": {
+			"extra_body": {
+				"chat_template_kwargs": {}
+			}
+		}
+	},
+	"qwen/qwen3.5-397b-a17b": {
+		"temperature": 0.6,
+		"top_p": 0.95,
+		"max_tokens": 16384,
+		"extra_params": {
+			"extra_body": {
+				"top_k": 20,
+				"presence_penalty": 0,
+				"repetition_penalty": 1,
+				"chat_template_kwargs": {
+					"enable_thinking": true
+				}
+			}
+		}
+	},
+	"qwen/qwen3.5-122b-a10b": {
+		"temperature": 0.6,
+		"top_p": 0.95,
+		"max_tokens": 16384,
+		"extra_params": {
+			"extra_body": {
+				"chat_template_kwargs": {
+					"enable_thinking": true
+				}
+			}
+		}
+	},
+	"moonshotai/kimi-k2.5": {
+		"temperature": 1,
+		"top_p": 1,
+		"max_tokens": 16384,
+		"extra_params": {
+			"extra_body": {
+				"chat_template_kwargs": {
+					"thinking": true
+				}
+			}
+		}
+	},
+	"z-ai/glm4.7": {
+		"temperature": 1,
+		"top_p": 1,
+		"max_tokens": 16384,
+		"extra_params": {
+			"extra_body": {
+				"chat_template_kwargs": {
+					"enable_thinking": true,
+					"clear_thinking": false
+				}
+			}
+		}
+	},
+	"z-ai/glm5": {
+		"temperature": 1,
+		"top_p": 1,
+		"max_tokens": 16384,
+		"extra_params": {
+			"extra_body": {
+				"chat_template_kwargs": {
+					"enable_thinking": true,
+					"clear_thinking": false
+				}
+			}
+		}
+	}
 }
