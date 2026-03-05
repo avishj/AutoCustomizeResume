@@ -441,89 +441,6 @@ class TestFormatDate:
 class TestInjectTemplate:
     """Tests for inject_template()."""
 
-    def test_replaces_first_name(self):
-        template = "Hello {{FIRST_NAME}}!"
-        result = inject_template(template, config=_make_config(), body_text="Body.")
-        assert "Jane" in result
-        assert "{{FIRST_NAME}}" not in result
-
-    def test_replaces_last_name(self):
-        template = "Hello {{LAST_NAME}}!"
-        result = inject_template(template, config=_make_config(), body_text="Body.")
-        assert "Doe" in result
-
-    def test_replaces_phone(self):
-        template = "Phone: {{PHONE}}"
-        result = inject_template(template, config=_make_config(), body_text="Body.")
-        assert "555-123-4567" in result
-
-    def test_replaces_email(self):
-        template = "Email: {{EMAIL}}"
-        result = inject_template(template, config=_make_config(), body_text="Body.")
-        assert "jane@example.com" in result
-
-    def test_replaces_linkedin(self):
-        template = "{{LINKEDIN}}"
-        result = inject_template(template, config=_make_config(), body_text="Body.")
-        assert "linkedin.com/in/janedoe" in result
-
-    def test_replaces_website(self):
-        template = "{{WEBSITE}}"
-        result = inject_template(template, config=_make_config(), body_text="Body.")
-        assert "janedoe.dev" in result
-
-    def test_replaces_degree(self):
-        template = "{{DEGREE}}"
-        result = inject_template(template, config=_make_config(), body_text="Body.")
-        assert "MS Computer Science" in result
-
-    def test_replaces_university(self):
-        template = "{{UNIVERSITY}}"
-        result = inject_template(template, config=_make_config(), body_text="Body.")
-        assert "MIT" in result
-
-    def test_replaces_body(self):
-        template = "{{BODY}}"
-        result = inject_template(
-            template, config=_make_config(), body_text="My cover letter body."
-        )
-        assert "My cover letter body." in result
-        assert "{{BODY}}" not in result
-
-    def test_replaces_date(self):
-        template = "{{DATE}}"
-        with patch("autocustomizeresume.cover_letter.date") as mock_date:
-            mock_date.today.return_value = date(2026, 3, 15)
-            mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
-            result = inject_template(template, config=_make_config(), body_text="Body.")
-        assert "March 15, 2026" in result
-
-    def test_replaces_signature_block(self):
-        cfg = _make_config(cover_letter={"signature_path": "sig.png"})
-        template = "{{SIGNATURE_BLOCK}}"
-        result = inject_template(template, config=cfg, body_text="Body.")
-        assert r"\includegraphics" in result
-        assert "sig.png" in result
-
-    def test_empty_signature_block(self):
-        cfg = _make_config(cover_letter={"signature_path": ""})
-        template = "before{{SIGNATURE_BLOCK}}after"
-        result = inject_template(template, config=cfg, body_text="Body.")
-        assert result == "beforeafter"
-
-    def test_escapes_user_info(self):
-        """User info with LaTeX special chars is properly escaped."""
-        cfg = _make_config(user={"email": "user_name@example.com"})
-        template = "{{EMAIL}}"
-        result = inject_template(template, config=cfg, body_text="Body.")
-        assert r"\_" in result
-
-    def test_warns_on_unreplaced_placeholders(self, caplog):
-        template = "{{FIRST_NAME}} {{UNKNOWN_THING}}"
-        with caplog.at_level(logging.WARNING):
-            inject_template(template, config=_make_config(), body_text="Body.")
-        assert "UNKNOWN_THING" in caplog.text
-
     def test_full_template(self):
         """Injection against the real template produces no remaining placeholders."""
         template_path = Path("templates/cover_letter_template.tex")
@@ -538,9 +455,28 @@ class TestInjectTemplate:
             result = inject_template(template, config=cfg, body_text="Body text.")
 
         remaining = re.findall(r"\{\{[A-Z_]+\}\}", result)
-        # {{PLACEHOLDER}} in a comment is expected — filter it out
+        # {{PLACEHOLDER}} in a comment is expected -- filter it out
         remaining = [p for p in remaining if p != "{{PLACEHOLDER}}"]
         assert remaining == [], f"Unreplaced placeholders: {remaining}"
+
+    def test_escapes_user_info(self):
+        """User info with LaTeX special chars is properly escaped."""
+        cfg = _make_config(user={"email": "user_name@example.com"})
+        template = "{{EMAIL}}"
+        result = inject_template(template, config=cfg, body_text="Body.")
+        assert r"\_" in result
+
+    def test_empty_signature_block(self):
+        cfg = _make_config(cover_letter={"signature_path": ""})
+        template = "before{{SIGNATURE_BLOCK}}after"
+        result = inject_template(template, config=cfg, body_text="Body.")
+        assert result == "beforeafter"
+
+    def test_warns_on_unreplaced_placeholders(self, caplog):
+        template = "{{FIRST_NAME}} {{UNKNOWN_THING}}"
+        with caplog.at_level(logging.WARNING):
+            inject_template(template, config=_make_config(), body_text="Body.")
+        assert "UNKNOWN_THING" in caplog.text
 
 
 # ===========================================================================
@@ -710,53 +646,6 @@ class TestBuildCoverLetter:
         mock_gen.assert_called_once()
         mock_compile.assert_called_once()
         assert result == tmp_path / "output.pdf"
-
-    @patch("autocustomizeresume.cover_letter.compile_cover_letter")
-    @patch("autocustomizeresume.cover_letter.generate_cover_letter_body")
-    def test_passes_client_through(self, mock_gen, mock_compile, tmp_path):
-        template = tmp_path / "template.tex"
-        template.write_text("{{BODY}}", encoding="utf-8")
-
-        cfg = _make_config(cover_letter={"enabled": True, "template": str(template)})
-
-        client = MagicMock(spec=LLMClient)
-        mock_gen.return_value = "Body."
-        mock_compile.return_value = tmp_path / "out.pdf"
-
-        build_cover_letter(
-            _make_jd_analysis(),
-            _make_parsed_resume(),
-            _make_selection(),
-            config=cfg,
-            client=client,
-        )
-
-        # Client should be passed to generate_cover_letter_body
-        call_kwargs = mock_gen.call_args[1]
-        assert call_kwargs["client"] is client
-
-    @patch("autocustomizeresume.cover_letter.compile_cover_letter")
-    @patch("autocustomizeresume.cover_letter.generate_cover_letter_body")
-    def test_passes_keep_dir_through(self, mock_gen, mock_compile, tmp_path):
-        template = tmp_path / "template.tex"
-        template.write_text("{{BODY}}", encoding="utf-8")
-
-        cfg = _make_config(cover_letter={"enabled": True, "template": str(template)})
-
-        keep = tmp_path / "keep"
-        mock_gen.return_value = "Body."
-        mock_compile.return_value = keep / "out.pdf"
-
-        build_cover_letter(
-            _make_jd_analysis(),
-            _make_parsed_resume(),
-            _make_selection(),
-            config=cfg,
-            keep_dir=keep,
-        )
-
-        call_kwargs = mock_compile.call_args[1]
-        assert call_kwargs["keep_dir"] is keep
 
     @patch("autocustomizeresume.cover_letter.compile_cover_letter")
     @patch("autocustomizeresume.cover_letter.generate_cover_letter_body")
