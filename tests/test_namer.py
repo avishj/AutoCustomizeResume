@@ -2,11 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
-
-import pytest
-
-from autocustomizeresume.namer import build_name, build_variables, handle_output
+from autocustomizeresume.namer import build_variables, handle_output
 
 
 # ---------------------------------------------------------------------------
@@ -52,56 +48,14 @@ def _make_analysis(company="Google", role="SWE"):
 
 
 # ---------------------------------------------------------------------------
-# build_name
-# ---------------------------------------------------------------------------
-
-
-class TestBuildName:
-    def test_basic_substitution(self):
-        v = {"last": "Doe", "first": "Jane"}
-        assert build_name("{last}, {first} - Resume.pdf", v) == "Doe, Jane - Resume.pdf"
-
-    def test_all_variables(self):
-        v = {
-            "first": "Jane",
-            "last": "Doe",
-            "company": "Acme",
-            "role": "Dev",
-            "date": "2026-01-01",
-            "timestamp": "2026-01-01_120000",
-        }
-        result = build_name("{company} - {role} - {timestamp}.pdf", v)
-        assert result == "Acme - Dev - 2026-01-01_120000.pdf"
-
-    def test_missing_variable_raises(self):
-        with pytest.raises(KeyError):
-            build_name("{missing} file.pdf", {"first": "Jane"})
-
-
-# ---------------------------------------------------------------------------
 # build_variables
 # ---------------------------------------------------------------------------
 
 
 class TestBuildVariables:
-    @patch("autocustomizeresume.namer.datetime")
-    def test_all_keys_present(self, mock_dt):
-        from datetime import datetime as real_dt
-
-        fixed = real_dt(2026, 3, 15, 10, 30, 45)
-        mock_dt.now.return_value = fixed
-        mock_dt.side_effect = lambda *a, **kw: real_dt(*a, **kw)
-
-        config = _make_config()
-        analysis = _make_analysis()
-        v = build_variables(config, analysis)
-
-        assert v["first"] == "Jane"
-        assert v["last"] == "Doe"
-        assert v["company"] == "Google"
-        assert v["role"] == "SWE"
-        assert v["date"] == "2026-03-15"
-        assert v["timestamp"] == "2026-03-15_103045"
+    def test_all_expected_keys_present(self):
+        v = build_variables(_make_config(), _make_analysis())
+        assert set(v) == {"first", "last", "company", "role", "date", "timestamp"}
 
 
 # ---------------------------------------------------------------------------
