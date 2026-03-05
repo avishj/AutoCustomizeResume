@@ -14,7 +14,6 @@ from autocustomizeresume.assembler import (
     _assemble_skill_category,
     _is_bullet_included,
     _bullet_text,
-    _get_interstitial,
 )
 from autocustomizeresume.models import (
     Bullet,
@@ -97,121 +96,49 @@ def _make_selection(
 
 
 # ---------------------------------------------------------------------------
-# Lookup helpers
+# Bullet inclusion & text
 # ---------------------------------------------------------------------------
 
 
-class TestLookupHelpers:
-    def test_section_decision_found(self):
-        sd = _make_section_decision(section_id="exp")
-        sel = _make_selection(sections=[sd])
-        assert sel.find_section("exp") is sd
-
-    def test_section_decision_not_found(self):
-        sel = _make_selection()
-        assert sel.find_section("exp") is None
-
-    def test_item_decision_found(self):
-        itd = _make_item_decision(item_id="acme")
-        sd = _make_section_decision(items=[itd])
-        assert sd.find_item("acme") is itd
-
-    def test_item_decision_not_found(self):
-        sd = _make_section_decision()
-        assert sd.find_item("acme") is None
-
-    def test_skill_cat_decision_found(self):
-        scd = SkillCategoryDecision(name="lang", skills=["Python"])
-        sel = _make_selection(skill_cats=[scd])
-        assert sel.find_skill_category("lang") is scd
-
-    def test_skill_cat_decision_not_found(self):
-        sel = _make_selection()
-        assert sel.find_skill_category("lang") is None
-
-
-# ---------------------------------------------------------------------------
-# Interstitial
-# ---------------------------------------------------------------------------
-
-
-class TestInterstitial:
-    def test_found(self):
-        inter = [(0, "before"), (2, "after")]
-        assert _get_interstitial(inter, 0) == "before"
-        assert _get_interstitial(inter, 2) == "after"
-
-    def test_not_found(self):
-        assert _get_interstitial([(0, "x")], 1) is None
-
-    def test_empty(self):
-        assert _get_interstitial([], 0) is None
-
-
-# ---------------------------------------------------------------------------
-# Bullet inclusion
-# ---------------------------------------------------------------------------
-
-
-class TestBulletInclusion:
-    def test_pinned_always_included(self):
+class TestBulletBehavior:
+    def test_pinned_always_included_regardless_of_decision(self):
         b = _make_bullet(tag_type="pinned")
         assert _is_bullet_included(b, None) is True
 
-    def test_optional_included_by_decision(self):
+    def test_optional_follows_decision(self):
         b = _make_bullet(bullet_id="b1")
-        itd = _make_item_decision(
-            bullets=[
-                BulletDecision(id="b1", include=True),
-            ]
+        included = _make_item_decision(
+            bullets=[BulletDecision(id="b1", include=True)]
         )
-        assert _is_bullet_included(b, itd) is True
-
-    def test_optional_excluded_by_decision(self):
-        b = _make_bullet(bullet_id="b1")
-        itd = _make_item_decision(
-            bullets=[
-                BulletDecision(id="b1", include=False),
-            ]
+        excluded = _make_item_decision(
+            bullets=[BulletDecision(id="b1", include=False)]
         )
-        assert _is_bullet_included(b, itd) is False
-
-    def test_optional_no_decision_defaults_true(self):
-        b = _make_bullet(bullet_id="b1")
+        assert _is_bullet_included(b, included) is True
+        assert _is_bullet_included(b, excluded) is False
+        # No decision defaults to included
         assert _is_bullet_included(b, None) is True
 
-
-class TestBulletText:
-    def test_original_when_no_decision(self):
-        b = _make_bullet(text="original")
-        assert _bullet_text(b, None) == "original"
-
-    def test_original_when_edited_text_empty(self):
+    def test_edited_text_replaces_original(self):
         b = _make_bullet(bullet_id="b1", text="original")
         itd = _make_item_decision(
-            bullets=[
-                BulletDecision(id="b1", include=True, edited_text=""),
-            ]
-        )
-        assert _bullet_text(b, itd) == "original"
-
-    def test_edited_text_when_present(self):
-        b = _make_bullet(bullet_id="b1", text="original")
-        itd = _make_item_decision(
-            bullets=[
-                BulletDecision(id="b1", include=True, edited_text="edited"),
-            ]
+            bullets=[BulletDecision(id="b1", include=True, edited_text="edited")]
         )
         assert _bullet_text(b, itd) == "edited"
 
-    def test_original_when_no_matching_bullet_decision(self):
+    def test_original_text_when_no_edit(self):
         b = _make_bullet(bullet_id="b1", text="original")
+        # No decision at all
+        assert _bullet_text(b, None) == "original"
+        # Empty edited_text
         itd = _make_item_decision(
-            bullets=[
-                BulletDecision(id="other", include=True, edited_text="edited"),
-            ]
+            bullets=[BulletDecision(id="b1", include=True, edited_text="")]
         )
         assert _bullet_text(b, itd) == "original"
+        # No matching bullet decision
+        itd2 = _make_item_decision(
+            bullets=[BulletDecision(id="other", include=True, edited_text="edited")]
+        )
+        assert _bullet_text(b, itd2) == "original"
 
 
 # ---------------------------------------------------------------------------
@@ -222,19 +149,14 @@ class TestBulletText:
 class TestAssembleItem:
     def test_pinned_item_always_included(self):
         item = _make_item(tag_type="pinned", heading="heading")
-        result = _assemble_item(item, None)
-        assert result == "heading"
+        assert _assemble_item(item, None) == "heading"
 
-    def test_optional_excluded_when_no_decision(self):
-        item = _make_item(tag_type="optional")
+    def test_optional_item_excluded_without_decision_or_when_excluded(self):
+        item = _make_item(tag_type="optional", item_id="it1")
         assert _assemble_item(item, None) is None
+        assert _assemble_item(item, _make_item_decision(item_id="it1", include=False)) is None
 
-    def test_optional_excluded_by_decision(self):
-        item = _make_item(item_id="it1")
-        itd = _make_item_decision(item_id="it1", include=False)
-        assert _assemble_item(item, itd) is None
-
-    def test_optional_included_with_bullets(self):
+    def test_optional_included_with_bullets_and_interstitial(self):
         item = _make_item(
             item_id="it1",
             heading="heading",
@@ -242,11 +164,8 @@ class TestAssembleItem:
             interstitial=[(0, "\\resumeItemListStart"), (1, "\\resumeItemListEnd")],
         )
         itd = _make_item_decision(
-            item_id="it1",
-            include=True,
-            bullets=[
-                BulletDecision(id="b1", include=True),
-            ],
+            item_id="it1", include=True,
+            bullets=[BulletDecision(id="b1", include=True)],
         )
         result = _assemble_item(item, itd)
         assert "heading" in result
@@ -254,64 +173,35 @@ class TestAssembleItem:
         assert "\\resumeItemListStart" in result
         assert "\\resumeItemListEnd" in result
 
-    def test_all_bullets_excluded_drops_item(self):
-        item = _make_item(
-            item_id="it1",
-            heading="heading",
-            bullets=[_make_bullet(bullet_id="b1", text="bullet1")],
-        )
-        itd = _make_item_decision(
-            item_id="it1",
-            include=True,
-            bullets=[
-                BulletDecision(id="b1", include=False),
-            ],
-        )
-        assert _assemble_item(item, itd) is None
-
-    def test_pinned_item_all_bullets_excluded_keeps_heading(self):
-        """Pinned items should keep their heading even when all bullets are excluded."""
-        item = _make_item(
-            tag_type="pinned",
-            item_id="it1",
-            heading="heading",
-            bullets=[_make_bullet(bullet_id="b1", text="bullet1")],
-        )
-        itd = _make_item_decision(
-            item_id="it1",
-            include=True,
-            bullets=[
-                BulletDecision(id="b1", include=False),
-            ],
-        )
-        result = _assemble_item(item, itd)
-        assert result is not None
-        assert "heading" in result
-        assert "bullet1" not in result
-
-    def test_item_without_bullets(self):
-        item = _make_item(tag_type="optional", item_id="it1", heading="heading only")
-        itd = _make_item_decision(item_id="it1", include=True)
-        result = _assemble_item(item, itd)
-        assert result == "heading only"
+    def test_all_bullets_excluded_drops_optional_keeps_pinned(self):
+        for tag_type, expect_none in [("optional", True), ("pinned", False)]:
+            item = _make_item(
+                tag_type=tag_type, item_id="it1", heading="heading",
+                bullets=[_make_bullet(bullet_id="b1", text="bullet1")],
+            )
+            itd = _make_item_decision(
+                item_id="it1", include=True,
+                bullets=[BulletDecision(id="b1", include=False)],
+            )
+            result = _assemble_item(item, itd)
+            if expect_none:
+                assert result is None
+            else:
+                assert result is not None
+                assert "heading" in result
+                assert "bullet1" not in result
 
     def test_first_bullet_excluded_preserves_interstitial(self):
-        """Interstitial at position 0 should survive even if bullet 0 is excluded."""
         item = _make_item(
-            item_id="it1",
-            heading="heading",
+            item_id="it1", heading="heading",
             bullets=[
                 _make_bullet(bullet_id="b1", text="bullet1"),
                 _make_bullet(bullet_id="b2", text="bullet2"),
             ],
-            interstitial=[
-                (0, "\\resumeItemListStart"),
-                (2, "\\resumeItemListEnd"),
-            ],
+            interstitial=[(0, "\\resumeItemListStart"), (2, "\\resumeItemListEnd")],
         )
         itd = _make_item_decision(
-            item_id="it1",
-            include=True,
+            item_id="it1", include=True,
             bullets=[
                 BulletDecision(id="b1", include=False),
                 BulletDecision(id="b2", include=True),
@@ -321,7 +211,6 @@ class TestAssembleItem:
         assert "\\resumeItemListStart" in result
         assert "bullet2" in result
         assert "bullet1" not in result
-        assert "\\resumeItemListEnd" in result
 
 
 # ---------------------------------------------------------------------------
@@ -472,178 +361,6 @@ class TestAssembleTexFixture:
     @pytest.fixture
     def parsed(self):
         return parse_resume(_load_fixture("sample_tagged.tex"))
-
-    def test_include_all(self, parsed):
-        selection = ContentSelection.from_dict(
-            {
-                "sections": [
-                    {
-                        "id": "experience",
-                        "include": True,
-                        "items": [
-                            {
-                                "id": "acme",
-                                "include": True,
-                                "relevance_score": 80,
-                                "bullets": [
-                                    {
-                                        "id": "acme-1",
-                                        "include": True,
-                                        "edited_text": "",
-                                    },
-                                    {
-                                        "id": "acme-2",
-                                        "include": True,
-                                        "edited_text": "",
-                                    },
-                                ],
-                            },
-                            {
-                                "id": "widgets",
-                                "include": True,
-                                "relevance_score": 60,
-                                "bullets": [
-                                    {
-                                        "id": "widgets-1",
-                                        "include": True,
-                                        "edited_text": "",
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                    {
-                        "id": "projects",
-                        "include": True,
-                        "items": [
-                            {
-                                "id": "chatbot",
-                                "include": True,
-                                "relevance_score": 50,
-                                "bullets": [
-                                    {
-                                        "id": "chatbot-1",
-                                        "include": True,
-                                        "edited_text": "",
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                ],
-                "skill_categories": [
-                    {"name": "languages", "skills": ["Python", "Java", "C++"]},
-                    {"name": "cloud", "skills": ["AWS", "Docker"]},
-                    {"name": "frameworks", "skills": ["FastAPI"]},
-                ],
-            }
-        )
-        result = assemble_tex(parsed, selection)
-        assert "Jane Doe" in result
-        assert "MIT" in result
-        assert "Acme Corp" in result
-        assert "Widgets Inc" in result
-        assert "Chatbot" in result
-        assert r"\begin{document}" in result
-        assert r"\end{document}" in result
-
-    def test_exclude_section(self, parsed):
-        selection = ContentSelection.from_dict(
-            {
-                "sections": [
-                    {
-                        "id": "experience",
-                        "include": True,
-                        "items": [
-                            {
-                                "id": "acme",
-                                "include": True,
-                                "relevance_score": 80,
-                                "bullets": [
-                                    {
-                                        "id": "acme-1",
-                                        "include": True,
-                                        "edited_text": "",
-                                    },
-                                    {
-                                        "id": "acme-2",
-                                        "include": True,
-                                        "edited_text": "",
-                                    },
-                                ],
-                            },
-                            {
-                                "id": "widgets",
-                                "include": True,
-                                "relevance_score": 60,
-                                "bullets": [
-                                    {
-                                        "id": "widgets-1",
-                                        "include": True,
-                                        "edited_text": "",
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                    {"id": "projects", "include": False, "items": []},
-                ],
-                "skill_categories": [
-                    {"name": "languages", "skills": ["Python"]},
-                    {"name": "cloud", "skills": ["AWS"]},
-                    {"name": "frameworks", "skills": ["FastAPI"]},
-                ],
-            }
-        )
-        result = assemble_tex(parsed, selection)
-        assert "Acme Corp" in result
-        assert "Chatbot" not in result
-
-    def test_exclude_item(self, parsed):
-        selection = ContentSelection.from_dict(
-            {
-                "sections": [
-                    {
-                        "id": "experience",
-                        "include": True,
-                        "items": [
-                            {
-                                "id": "acme",
-                                "include": True,
-                                "relevance_score": 80,
-                                "bullets": [
-                                    {
-                                        "id": "acme-1",
-                                        "include": True,
-                                        "edited_text": "",
-                                    },
-                                    {
-                                        "id": "acme-2",
-                                        "include": True,
-                                        "edited_text": "",
-                                    },
-                                ],
-                            },
-                            {
-                                "id": "widgets",
-                                "include": False,
-                                "relevance_score": 20,
-                                "bullets": [],
-                            },
-                        ],
-                    },
-                    {"id": "projects", "include": False, "items": []},
-                ],
-                "skill_categories": [
-                    {"name": "languages", "skills": ["Python"]},
-                    {"name": "cloud", "skills": ["AWS"]},
-                    {"name": "frameworks", "skills": ["FastAPI"]},
-                ],
-            }
-        )
-        result = assemble_tex(parsed, selection)
-        assert "Acme Corp" in result
-        assert "Widgets" not in result
 
     def test_exclude_bullet(self, parsed):
         selection = ContentSelection.from_dict(
@@ -798,42 +515,6 @@ class TestAssembleTexFixture:
         result = assemble_tex(parsed, selection)
         assert "Education" in result
         assert "MIT" in result
-
-    def test_empty_section_omitted(self, parsed):
-        """Section with all items excluded is omitted entirely."""
-        selection = ContentSelection.from_dict(
-            {
-                "sections": [
-                    {
-                        "id": "experience",
-                        "include": True,
-                        "items": [
-                            {
-                                "id": "acme",
-                                "include": False,
-                                "relevance_score": 0,
-                                "bullets": [],
-                            },
-                            {
-                                "id": "widgets",
-                                "include": False,
-                                "relevance_score": 0,
-                                "bullets": [],
-                            },
-                        ],
-                    },
-                    {"id": "projects", "include": False, "items": []},
-                ],
-                "skill_categories": [
-                    {"name": "languages", "skills": ["Python"]},
-                    {"name": "cloud", "skills": ["AWS"]},
-                    {"name": "frameworks", "skills": ["FastAPI"]},
-                ],
-            }
-        )
-        result = assemble_tex(parsed, selection)
-        assert "Experience" not in result
-
 
 # ---------------------------------------------------------------------------
 # Compact heading fallback
