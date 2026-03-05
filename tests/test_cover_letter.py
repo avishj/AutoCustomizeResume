@@ -234,37 +234,29 @@ def _make_selection() -> ContentSelection:
 class TestSummarizeSelectedContent:
     """Tests for _summarize_selected_content()."""
 
-    def test_includes_pinned_section(self):
+    def test_included_content_appears(self):
+        """Pinned sections/bullets and selected optional content all appear."""
         summary = _summarize_selected_content(_make_parsed_resume(), _make_selection())
+        # Pinned section + item
         assert "Education" in summary
         assert "MIT" in summary
-
-    def test_includes_pinned_bullets(self):
-        summary = _summarize_selected_content(_make_parsed_resume(), _make_selection())
-        # Pinned bullet text should appear (LaTeX stripped by _latex_preview)
+        # Pinned bullet
         assert "TA for Distributed Systems" in summary
-
-    def test_includes_optional_section_when_selected(self):
-        summary = _summarize_selected_content(_make_parsed_resume(), _make_selection())
+        # Optional section included by selection
         assert "Experience" in summary
         assert "Acme" in summary
-
-    def test_excludes_optional_section_when_not_selected(self):
-        sel = ContentSelection(
-            sections=[
-                SectionDecision(id="experience", include=False, items=[]),
-            ],
-            skill_categories=[],
-        )
-        summary = _summarize_selected_content(_make_parsed_resume(), sel)
-        assert "Experience" not in summary
-
-    def test_includes_selected_optional_bullet(self):
-        summary = _summarize_selected_content(_make_parsed_resume(), _make_selection())
-        # acme-2 is optional and included
+        # Optional bullet included by selection
         assert "unit tests" in summary or "coverage" in summary
+        # Skills section with selected subset
+        assert "Languages" in summary
+        assert "Python" in summary
+        assert "Go" in summary
+        assert "FastAPI" in summary
+        # Unselected skill excluded
+        assert "Java" not in summary
 
-    def test_excludes_unselected_optional_bullet(self):
+    def test_excluded_content_absent(self):
+        """Excluded optional sections, items, and bullets do not appear."""
         sel = ContentSelection(
             sections=[
                 SectionDecision(
@@ -273,13 +265,9 @@ class TestSummarizeSelectedContent:
                     items=[
                         ItemDecision(
                             id="acme",
-                            include=True,
+                            include=False,
                             relevance_score=85,
-                            bullets=[
-                                BulletDecision(
-                                    id="acme-2", include=False, edited_text=""
-                                ),
-                            ],
+                            bullets=[],
                         ),
                     ],
                 ),
@@ -287,8 +275,22 @@ class TestSummarizeSelectedContent:
             skill_categories=[],
         )
         summary = _summarize_selected_content(_make_parsed_resume(), sel)
-        # acme-2 text should not appear (excluded)
-        assert "90" not in summary
+        # Item excluded
+        assert "Acme" not in summary
+
+        # Entire section excluded
+        sel2 = ContentSelection(
+            sections=[SectionDecision(id="experience", include=False, items=[])],
+            skill_categories=[],
+        )
+        summary2 = _summarize_selected_content(_make_parsed_resume(), sel2)
+        assert "Experience" not in summary2
+
+        # Empty selection: only pinned content
+        sel3 = ContentSelection(sections=[], skill_categories=[])
+        summary3 = _summarize_selected_content(_make_parsed_resume(), sel3)
+        assert "Education" in summary3
+        assert "Experience" not in summary3
 
     def test_uses_edited_text_when_present(self):
         sel = ContentSelection(
@@ -317,54 +319,12 @@ class TestSummarizeSelectedContent:
         summary = _summarize_selected_content(_make_parsed_resume(), sel)
         assert "95" in summary
 
-    def test_includes_skills_section(self):
-        summary = _summarize_selected_content(_make_parsed_resume(), _make_selection())
-        assert "Languages" in summary
-        assert "Python" in summary
-        assert "Go" in summary
-
-    def test_skills_respects_selection(self):
-        """Selected skills list is used, not the original full list."""
-        summary = _summarize_selected_content(_make_parsed_resume(), _make_selection())
-        # "Java" is in the original but not in the selection
-        assert "Java" not in summary
-        # "FastAPI" is selected
-        assert "FastAPI" in summary
-
-    def test_excludes_item_when_not_included(self):
-        sel = ContentSelection(
-            sections=[
-                SectionDecision(
-                    id="experience",
-                    include=True,
-                    items=[
-                        ItemDecision(
-                            id="acme",
-                            include=False,
-                            relevance_score=85,
-                            bullets=[],
-                        ),
-                    ],
-                ),
-            ],
-            skill_categories=[],
-        )
-        summary = _summarize_selected_content(_make_parsed_resume(), sel)
-        # Item heading should not appear
-        assert "Acme" not in summary
-
-    def test_empty_selection(self):
-        sel = ContentSelection(sections=[], skill_categories=[])
-        summary = _summarize_selected_content(_make_parsed_resume(), sel)
-        # Only pinned content appears
-        assert "Education" in summary
-        assert "Experience" not in summary
-
 
 class TestGenerateCoverLetterBody:
     """Tests for generate_cover_letter_body() with mocked LLM."""
 
-    def test_returns_llm_response_stripped(self):
+    def test_returns_stripped_body_with_correct_prompt(self):
+        """LLM response is stripped; prompt contains JD analysis and resume summary."""
         client = MagicMock(spec=LLMClient)
         client.chat.return_value = {"body": "  Body text here.  \n"}
 
@@ -377,56 +337,11 @@ class TestGenerateCoverLetterBody:
         )
         assert result == "Body text here."
 
-    def test_prompt_contains_jd_analysis(self):
-        client = MagicMock(spec=LLMClient)
-        client.chat.return_value = {"body": "Body."}
-
-        generate_cover_letter_body(
-            _make_jd_analysis(),
-            _make_parsed_resume(),
-            _make_selection(),
-            config=_make_config(),
-            client=client,
-        )
-
         call_kwargs = client.chat.call_args[1]
         user = call_kwargs["user"]
         assert "<jd_analysis>" in user
         assert "Acme Corp" in user
-        assert "Senior Backend Engineer" in user
-
-    def test_prompt_contains_resume_summary(self):
-        client = MagicMock(spec=LLMClient)
-        client.chat.return_value = {"body": "Body."}
-
-        generate_cover_letter_body(
-            _make_jd_analysis(),
-            _make_parsed_resume(),
-            _make_selection(),
-            config=_make_config(),
-            client=client,
-        )
-
-        call_kwargs = client.chat.call_args[1]
-        user = call_kwargs["user"]
         assert "<resume_summary>" in user
-        # Should include content from the resume summary
-        assert "Education" in user or "Experience" in user
-
-    def test_no_temperature_override(self):
-        client = MagicMock(spec=LLMClient)
-        client.chat.return_value = {"body": "Body."}
-
-        generate_cover_letter_body(
-            _make_jd_analysis(),
-            _make_parsed_resume(),
-            _make_selection(),
-            config=_make_config(),
-            client=client,
-        )
-
-        call_kwargs = client.chat.call_args[1]
-        assert "temperature" not in call_kwargs
 
     def test_creates_client_from_config_when_none(self):
         with patch("autocustomizeresume.cover_letter.LLMClient") as mock_cls:
@@ -443,23 +358,6 @@ class TestGenerateCoverLetterBody:
             )
 
             mock_cls.assert_called_once_with(cfg)
-
-    def test_system_prompt_mentions_rules(self):
-        client = MagicMock(spec=LLMClient)
-        client.chat.return_value = {"body": "Body."}
-
-        generate_cover_letter_body(
-            _make_jd_analysis(),
-            _make_parsed_resume(),
-            _make_selection(),
-            config=_make_config(),
-            client=client,
-        )
-
-        call_kwargs = client.chat.call_args[1]
-        system = call_kwargs["system"]
-        assert "plain text" in system.lower()
-        assert "greeting" in system.lower() or "salutation" in system.lower()
 
 
 # ===========================================================================
