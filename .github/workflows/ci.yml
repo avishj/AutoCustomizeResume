@@ -48,7 +48,7 @@ jobs:
           fi
 
   lint:
-    name: Lint & Format
+    name: Lint, Format & Type Check
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
@@ -77,6 +77,9 @@ jobs:
 
       - name: Ruff format check
         run: uv run ruff format --check --diff
+
+      - name: Type check
+        run: uv run ty check
 
   test:
     name: Test (Python ${{ matrix.python-version }})
