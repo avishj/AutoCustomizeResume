@@ -51,8 +51,8 @@ def _make_config() -> MagicMock:
     return cfg
 
 
-def _make_client(response_dict: dict) -> LLMClient:
-    """Build an LLMClient whose chat returns *response_dict*."""
+def _make_client(response_dict: dict) -> MagicMock:
+    """Build a mock LLMClient whose chat returns *response_dict*."""
     client = MagicMock(spec=LLMClient)
     client.chat.return_value = response_dict
     return client
