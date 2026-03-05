@@ -82,6 +82,12 @@ Selection rules:
   "include": true) so you can list the optional elements within it.
 - Every optional section, item, and bullet from the input MUST appear in
   your output with an explicit include decision.
+- CRITICAL: Your goal is to FILL a full one-page resume, not to minimize
+  content.  Include as much relevant content as possible.  A resume that
+  is too short is WORSE than one that is slightly too long — the system
+  will automatically trim overflow, but it CANNOT add content back.
+- When in doubt, INCLUDE the item or bullet.  Err heavily on the side of
+  inclusion.  Only exclude items that are truly irrelevant to the role.
 
 Scoring guidance:
 - "relevance_score" applies to BOTH items and bullets.  It reflects how
@@ -91,10 +97,9 @@ Scoring guidance:
 - Score 50-79: relevant technology or transferable domain experience.
 - Score 20-49: tangentially related or shows general engineering strength.
 - Score 0-19: no meaningful connection to the role's distinguishing needs.
-- Prefer fewer, high-relevance items over many mediocre ones.  A tight,
-  focused resume is better than a cluttered one.
 - For bullets, score each independently — a high-relevance bullet within a
   low-relevance item (or vice versa) is perfectly fine.
+- Include ALL items scoring 20+.  Only exclude items scoring below 20.
 
 Bullet editing ("edited_text"):
 - Set to "" (empty string) to keep original text verbatim — this is the default.
