@@ -175,23 +175,28 @@ class TestAssembleItem:
         assert "\\resumeItemListStart" in result
         assert "\\resumeItemListEnd" in result
 
-    def test_all_bullets_excluded_drops_optional_keeps_pinned(self):
-        for tag_type, expect_none in [("optional", True), ("pinned", False)]:
-            item = _make_item(
-                tag_type=tag_type, item_id="it1", heading="heading",
-                bullets=[_make_bullet(bullet_id="b1", text="bullet1")],
-            )
-            itd = _make_item_decision(
-                item_id="it1", include=True,
-                bullets=[BulletDecision(id="b1", include=False)],
-            )
-            result = _assemble_item(item, itd)
-            if expect_none:
-                assert result is None
-            else:
-                assert result is not None
-                assert "heading" in result
-                assert "bullet1" not in result
+    @pytest.mark.parametrize(
+        ("tag_type", "expect_none"),
+        [("optional", True), ("pinned", False)],
+    )
+    def test_all_bullets_excluded_drops_optional_keeps_pinned(
+        self, tag_type: TagType, expect_none: bool
+    ):
+        item = _make_item(
+            tag_type=tag_type, item_id="it1", heading="heading",
+            bullets=[_make_bullet(bullet_id="b1", text="bullet1")],
+        )
+        itd = _make_item_decision(
+            item_id="it1", include=True,
+            bullets=[BulletDecision(id="b1", include=False)],
+        )
+        result = _assemble_item(item, itd)
+        if expect_none:
+            assert result is None
+        else:
+            assert result is not None
+            assert "heading" in result
+            assert "bullet1" not in result
 
     def test_first_bullet_excluded_preserves_interstitial(self):
         item = _make_item(
