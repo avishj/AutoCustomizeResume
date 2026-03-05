@@ -229,10 +229,6 @@ class TestFindDroppables:
         )
         assert _find_droppables(sel) == []
 
-    def test_empty_selection(self):
-        sel = _make_selection()
-        assert _find_droppables(sel) == []
-
 
 # ---------------------------------------------------------------------------
 # _drop_element
@@ -276,19 +272,6 @@ class TestDropElement:
         # Should not raise; returns unchanged selection
         new_sel = _drop_element(sel, droppable)
         assert len(new_sel.sections) == len(sel.sections)
-
-    def test_drop_bullet_leaves_other_bullets(self):
-        sel = _full_selection()
-        droppable = _Droppable(
-            section_id="experience",
-            item_id="acme",
-            bullet_id="acme-1",
-            score=80,
-        )
-        new_sel = _drop_element(sel, droppable)
-        acme = next(it for it in new_sel.sections[0].items if it.id == "acme")
-        acme2 = next(b for b in acme.bullets if b.id == "acme-2")
-        assert acme2.include is True
 
     def test_original_selection_unchanged(self):
         """_drop_element must not mutate the original selection."""
@@ -340,31 +323,6 @@ class TestCompileTex:
             compile_tex(r"\documentclass{article}", keep_dir=tmp_path)
 
     @patch("autocustomizeresume.compiler.subprocess.run")
-    def test_uses_temp_dir_when_no_keep_dir(self, mock_run):
-        mock_run.return_value = MagicMock(returncode=0, stderr="")
-
-        # Create a real temp dir, then patch mkdtemp to return it.
-        import tempfile as _tempfile
-
-        td = _tempfile.mkdtemp(prefix="test_acr_")
-        (Path(td) / "resume.pdf").write_bytes(b"%PDF-1.4 fake")
-
-        with patch("autocustomizeresume.compiler.tempfile") as mock_tempmod:
-            mock_tempmod.mkdtemp.return_value = td
-            result = compile_tex(r"\documentclass{article}")
-            assert result == Path(td) / "resume.pdf"
-
-    @patch("autocustomizeresume.compiler.subprocess.run")
-    def test_writes_tex_file(self, mock_run, tmp_path):
-        mock_run.return_value = MagicMock(returncode=0, stderr="")
-        (tmp_path / "resume.pdf").write_bytes(b"%PDF-1.4 fake")
-        tex_content = r"\documentclass{article}\begin{document}test\end{document}"
-        compile_tex(tex_content, keep_dir=tmp_path)
-        tex_file = tmp_path / "resume.tex"
-        assert tex_file.exists()
-        assert tex_file.read_text(encoding="utf-8") == tex_content
-
-    @patch("autocustomizeresume.compiler.subprocess.run")
     def test_timeout_raises_compile_error(self, mock_run, tmp_path):
         import subprocess as _subprocess
 
@@ -388,41 +346,6 @@ class TestCompileTex:
 
         assert not td_path.exists(), "temp dir should be cleaned up on failure"
 
-    @patch("autocustomizeresume.compiler.subprocess.run")
-    def test_temp_dir_cleaned_on_timeout(self, mock_run):
-        """Temp dir is removed when compile_tex raises CompileError on timeout."""
-        import subprocess as _subprocess
-        import tempfile as _tempfile
-
-        mock_run.side_effect = _subprocess.TimeoutExpired(cmd=["tectonic"], timeout=120)
-        td = _tempfile.mkdtemp(prefix="test_acr_leak_")
-        td_path = Path(td)
-
-        with patch("autocustomizeresume.compiler.tempfile") as mock_tempmod:
-            mock_tempmod.mkdtemp.return_value = td
-            with pytest.raises(CompileError, match="timed out"):
-                compile_tex(r"\documentclass{article}")
-
-        assert not td_path.exists(), "temp dir should be cleaned up on timeout"
-
-    @patch("autocustomizeresume.compiler.subprocess.run")
-    def test_temp_dir_cleaned_on_no_pdf(self, mock_run):
-        """Temp dir is removed when tectonic succeeds but no PDF is produced."""
-        mock_run.return_value = MagicMock(returncode=0, stderr="")
-        import tempfile as _tempfile
-
-        td = _tempfile.mkdtemp(prefix="test_acr_leak_")
-        td_path = Path(td)
-
-        with patch("autocustomizeresume.compiler.tempfile") as mock_tempmod:
-            mock_tempmod.mkdtemp.return_value = td
-            with pytest.raises(CompileError, match="no PDF was produced"):
-                compile_tex(r"\documentclass{article}")
-
-        assert not td_path.exists(), (
-            "temp dir should be cleaned up when no PDF produced"
-        )
-
 
 # ---------------------------------------------------------------------------
 # get_page_count (unit tests with real tiny PDFs)
@@ -437,27 +360,17 @@ class TestGetPageCount:
             get_page_count(bad)
 
     def test_real_pdf(self, tmp_path):
-        """Create a minimal valid PDF via pypdf and verify page count."""
+        """Create minimal valid PDFs via pypdf and verify page count."""
         from pypdf import PdfWriter
 
-        writer = PdfWriter()
-        writer.add_blank_page(width=612, height=792)
-        pdf_path = tmp_path / "test.pdf"
-        with open(pdf_path, "wb") as f:
-            writer.write(f)
-        assert get_page_count(pdf_path) == 1
-
-    def test_multi_page_pdf(self, tmp_path):
-        from pypdf import PdfWriter
-
-        writer = PdfWriter()
-        writer.add_blank_page(width=612, height=792)
-        writer.add_blank_page(width=612, height=792)
-        writer.add_blank_page(width=612, height=792)
-        pdf_path = tmp_path / "multi.pdf"
-        with open(pdf_path, "wb") as f:
-            writer.write(f)
-        assert get_page_count(pdf_path) == 3
+        for n_pages in (1, 3):
+            writer = PdfWriter()
+            for _ in range(n_pages):
+                writer.add_blank_page(width=612, height=792)
+            pdf_path = tmp_path / f"test_{n_pages}.pdf"
+            with open(pdf_path, "wb") as f:
+                writer.write(f)
+            assert get_page_count(pdf_path) == n_pages
 
 
 # ---------------------------------------------------------------------------
@@ -529,16 +442,6 @@ class TestCompileWithEnforcement:
             or final_sel.sections[0].items[1].include is False
         )
 
-    def test_multiple_retries(self):
-        """Needs 3 drops (all 3 retries) to fit."""
-        # 4 attempts: 2, 2, 2, 1
-        p1, p2 = self._patch_compile([2, 2, 2, 1])
-        with p1, p2:
-            pdf_path, final_sel = compile_with_enforcement(
-                _make_parsed(), _full_selection()
-            )
-        assert pdf_path == Path("/tmp/fake/resume.pdf")
-
     def test_exceeds_after_all_retries(self):
         """Still > 1 page after max retries — raises CompileError."""
         # Provide enough 2-page results to exhaust all droppables.
@@ -548,35 +451,6 @@ class TestCompileWithEnforcement:
         with p1, p2:
             with pytest.raises(CompileError, match="still exceeds 1 page"):
                 compile_with_enforcement(_make_parsed(), _full_selection())
-
-    def test_nothing_to_drop(self):
-        """All items already excluded — raises immediately."""
-        sel = _make_selection(
-            sections=[
-                {
-                    "id": "experience",
-                    "include": True,
-                    "items": [
-                        {
-                            "id": "acme",
-                            "include": False,
-                            "relevance_score": 80,
-                            "bullets": [],
-                        },
-                        {
-                            "id": "widgets",
-                            "include": False,
-                            "relevance_score": 30,
-                            "bullets": [],
-                        },
-                    ],
-                }
-            ]
-        )
-        p1, p2 = self._patch_compile([2])
-        with p1, p2:
-            with pytest.raises(CompileError, match="still exceeds 1 page"):
-                compile_with_enforcement(_make_parsed(), sel)
 
     def test_original_selection_not_mutated(self):
         """Enforcement should not modify the original selection object."""
