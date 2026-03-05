@@ -18,7 +18,8 @@ from __future__ import annotations
 
 import re
 import warnings
-from typing import cast
+from collections.abc import Callable
+from typing import TypeVar, cast
 
 from autocustomizeresume.models import (
     Bullet,
@@ -308,63 +309,97 @@ def _parse_section(
     return _parse_regular_section(tag_type, tag_id, lines)
 
 
-def _parse_regular_section(
-    tag_type: TagType, tag_id: str, lines: list[str]
-) -> ResumeSection:
-    """Parse a regular section (Education, Experience, Projects, etc.)."""
-    items: list[ResumeItem] = []
-    interstitial: list[tuple[int, str]] = []
-    buffer: list[str] = []  # accumulates interstitial between items
+_TChild = TypeVar("_TChild")
+_TIdent = TypeVar("_TIdent", bound=tuple)
 
-    in_item = False
-    item_type: TagType | None = None
-    item_id: str | None = None
-    item_lines: list[str] = []
+
+def _collect_tagged_children(
+    lines: list[str],
+    *,
+    begin_re: re.Pattern[str],
+    end_re: re.Pattern[str],
+    begin_identity: Callable[[re.Match[str]], _TIdent],
+    end_identity: Callable[[re.Match[str]], _TIdent],
+    build_child: Callable[[_TIdent, list[str]], _TChild],
+    unexpected_end_error: Callable[[str], ParseError],
+    unclosed_error: Callable[[_TIdent], ParseError],
+) -> tuple[list[_TChild], list[tuple[int, str]]]:
+    """Collect tagged child blocks with interstitial content.
+
+    Generic state-machine shared by regular sections (items) and skills
+    sections (categories).  Iterates *lines*, matching begin/end regex
+    pairs, accumulating child content and interstitial buffers.
+
+    Returns ``(children, interstitial)`` where interstitial entries are
+    ``(child_index, text)`` pairs.
+    """
+    children: list[_TChild] = []
+    interstitial: list[tuple[int, str]] = []
+    buffer: list[str] = []
+
+    in_child = False
+    cur_ident: _TIdent | None = None
+    child_lines: list[str] = []
 
     for line in lines:
         stripped = line.strip()
 
-        if not in_item:
-            m = TAG_BEGIN_RE.match(stripped)
+        if not in_child:
+            m = begin_re.match(stripped)
             if m:
-                # Flush interstitial buffer
                 if buffer:
-                    interstitial.append((len(items), "\n".join(buffer)))
+                    interstitial.append((len(children), "\n".join(buffer)))
                     buffer = []
-                in_item = True
-                item_type = cast(TagType, m.group(1))
-                item_id = m.group(2)
-                item_lines = []
+                in_child = True
+                cur_ident = begin_identity(m)
+                child_lines = []
                 continue
-            # Reject stray END tags outside any item
-            if TAG_END_RE.match(stripped):
-                raise ParseError(
-                    f"Unexpected END tag outside any item in section "
-                    f"'{tag_id}': {stripped}"
-                )
+            if end_re.match(stripped):
+                raise unexpected_end_error(stripped)
             buffer.append(line)
             continue
 
-        # Inside an item — look for matching END
-        m_end = TAG_END_RE.match(stripped)
-        if m_end and m_end.group(1) == item_type and m_end.group(2) == item_id:
-            assert item_type is not None and item_id is not None
-            item = _parse_item(item_type, item_id, item_lines)
-            items.append(item)
-            in_item = False
-            item_type = None
-            item_id = None
-            item_lines = []
+        m_end = end_re.match(stripped)
+        if m_end and cur_ident is not None and end_identity(m_end) == cur_ident:
+            children.append(build_child(cur_ident, child_lines))
+            in_child = False
+            cur_ident = None
+            child_lines = []
             continue
 
-        item_lines.append(line)
+        child_lines.append(line)
 
-    if in_item:
-        raise ParseError(f"Unclosed item tag: %%% BEGIN:{item_type}:{item_id}")
+    if in_child:
+        assert cur_ident is not None
+        raise unclosed_error(cur_ident)
 
-    # Trailing interstitial
     if buffer:
-        interstitial.append((len(items), "\n".join(buffer)))
+        interstitial.append((len(children), "\n".join(buffer)))
+
+    return children, interstitial
+
+
+def _parse_regular_section(
+    tag_type: TagType, tag_id: str, lines: list[str]
+) -> ResumeSection:
+    """Parse a regular section (Education, Experience, Projects, etc.)."""
+    items, interstitial = _collect_tagged_children(
+        lines,
+        begin_re=TAG_BEGIN_RE,
+        end_re=TAG_END_RE,
+        begin_identity=lambda m: (cast(TagType, m.group(1)), m.group(2)),
+        end_identity=lambda m: (cast(TagType, m.group(1)), m.group(2)),
+        build_child=lambda ident, child_lines: _parse_item(
+            cast(TagType, ident[0]), cast(str, ident[1]), child_lines
+        ),
+        unexpected_end_error=lambda stripped: ParseError(
+            f"Unexpected END tag outside any item in section "
+            f"'{tag_id}': {stripped}"
+        ),
+        unclosed_error=lambda ident: ParseError(
+            f"Unclosed item tag: %%% BEGIN:{ident[0]}:{ident[1]}"
+        ),
+    )
 
     return ResumeSection(
         tag_type=tag_type,
@@ -468,55 +503,23 @@ def _parse_skills_section(
     Each category is delimited by %%% SKILLS:<name> / %%% END:SKILLS:<name>
     and contains a single \\textbf{DisplayName}{: skill1, skill2, ...} line.
     """
-    categories: list[SkillCategory] = []
-    interstitial: list[tuple[int, str]] = []
-    buffer: list[str] = []
-
-    in_category = False
-    cat_name: str | None = None
-    cat_lines: list[str] = []
-
-    for line in lines:
-        stripped = line.strip()
-
-        if not in_category:
-            m = SKILLS_BEGIN_RE.match(stripped)
-            if m:
-                if buffer:
-                    interstitial.append((len(categories), "\n".join(buffer)))
-                    buffer = []
-                in_category = True
-                cat_name = m.group(1)
-                cat_lines = []
-                continue
-            # Reject stray END:SKILLS tags outside any category
-            if SKILLS_END_RE.match(stripped):
-                raise ParseError(
-                    f"Unexpected END:SKILLS tag outside any category in "
-                    f"section '{tag_id}': {stripped}"
-                )
-            buffer.append(line)
-            continue
-
-        # Inside a category — look for matching END
-        m_end = SKILLS_END_RE.match(stripped)
-        if m_end and m_end.group(1) == cat_name:
-            assert cat_name is not None
-            cat = _parse_skill_line(cat_name, cat_lines)
-            categories.append(cat)
-            in_category = False
-            cat_name = None
-            cat_lines = []
-            continue
-
-        cat_lines.append(line)
-
-    if in_category:
-        raise ParseError(f"Unclosed skills tag: %%% SKILLS:{cat_name}")
-
-    # Trailing interstitial
-    if buffer:
-        interstitial.append((len(categories), "\n".join(buffer)))
+    categories, interstitial = _collect_tagged_children(
+        lines,
+        begin_re=SKILLS_BEGIN_RE,
+        end_re=SKILLS_END_RE,
+        begin_identity=lambda m: (m.group(1),),
+        end_identity=lambda m: (m.group(1),),
+        build_child=lambda ident, child_lines: _parse_skill_line(
+            cast(str, ident[0]), child_lines
+        ),
+        unexpected_end_error=lambda stripped: ParseError(
+            f"Unexpected END:SKILLS tag outside any category in "
+            f"section '{tag_id}': {stripped}"
+        ),
+        unclosed_error=lambda ident: ParseError(
+            f"Unclosed skills tag: %%% SKILLS:{ident[0]}"
+        ),
+    )
 
     return SkillsSection(
         tag_type=tag_type,
