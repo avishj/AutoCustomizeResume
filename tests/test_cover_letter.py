@@ -368,83 +368,49 @@ class TestGenerateCoverLetterBody:
 class TestEscapeLatex:
     """Tests for _escape_latex()."""
 
-    def test_ampersand(self):
-        assert _escape_latex("A & B") == r"A \& B"
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [
+            ("A & B", r"A \& B"),
+            ("100%", r"100\%"),
+            ("$100", r"\$100"),
+            ("#1", r"\#1"),
+            ("foo_bar", r"foo\_bar"),
+            ("~", r"\textasciitilde{}"),
+            ("x^2", r"x\textasciicircum{}2"),
+            ("{hello}", r"\{hello\}"),
+            ("a\\b", r"a\textbackslash{}b"),
+            ("Hello World", "Hello World"),
+            ("", ""),
+        ],
+    )
+    def test_escapes_special_chars(self, raw, expected):
+        assert _escape_latex(raw) == expected
 
-    def test_percent(self):
-        assert _escape_latex("100%") == r"100\%"
-
-    def test_dollar(self):
-        assert _escape_latex("$100") == r"\$100"
-
-    def test_hash(self):
-        assert _escape_latex("#1") == r"\#1"
-
-    def test_underscore(self):
-        assert _escape_latex("foo_bar") == r"foo\_bar"
-
-    def test_tilde(self):
-        assert _escape_latex("~") == r"\textasciitilde{}"
-
-    def test_caret(self):
-        assert _escape_latex("x^2") == r"x\textasciicircum{}2"
-
-    def test_braces(self):
-        assert _escape_latex("{hello}") == r"\{hello\}"
-
-    def test_backslash(self):
-        assert _escape_latex("a\\b") == r"a\textbackslash{}b"
-
-    def test_backslash_with_braces(self):
-        """Backslash followed by braces: no double-escaping."""
+    def test_backslash_with_braces_no_double_escape(self):
         result = _escape_latex("\\{")
         assert r"\textbackslash{}" in result
         assert r"\{" in result
-
-    def test_no_special_chars(self):
-        assert _escape_latex("Hello World") == "Hello World"
-
-    def test_multiple_specials(self):
-        result = _escape_latex("A & B $100 #1 _x")
-        assert r"\&" in result
-        assert r"\$" in result
-        assert r"\#" in result
-        assert r"\_" in result
-
-    def test_empty_string(self):
-        assert _escape_latex("") == ""
 
 
 class TestPlainTextToLatex:
     """Tests for _plain_text_to_latex()."""
 
-    def test_single_paragraph(self):
+    def test_single_paragraph_unchanged(self):
         result = _plain_text_to_latex("Hello world.")
         assert result == "Hello world."
         assert r"\par" not in result
 
-    def test_two_paragraphs(self):
-        result = _plain_text_to_latex("Para one.\n\nPara two.")
-        assert r"\par" in result
-        assert "Para one." in result
-        assert "Para two." in result
-
-    def test_multiple_blank_lines(self):
-        result = _plain_text_to_latex("A.\n\n\n\nB.")
-        # Multiple blank lines should collapse to single \par
-        assert result.count(r"\par") == 1
-
-    def test_escapes_special_chars_in_paragraphs(self):
-        result = _plain_text_to_latex("100% of $20\n\nA & B")
+    def test_paragraphs_and_escaping(self):
+        """Multiple paragraphs separated by \\par, blank lines collapsed, stripped."""
+        result = _plain_text_to_latex("  100% of $20  \n\n\n\n  A & B  ")
         assert r"\%" in result
         assert r"\$" in result
         assert r"\&" in result
-
-    def test_strips_whitespace_from_paragraphs(self):
-        result = _plain_text_to_latex("  A.  \n\n  B.  ")
-        # Paragraphs should be stripped
-        assert result.startswith("A.")
-        assert result.endswith("B.")
+        assert result.count(r"\par") == 1
+        # Paragraphs are stripped
+        assert not result.startswith(" ")
+        assert not result.endswith(" ")
 
 
 class TestBuildSignatureBlock:
@@ -454,20 +420,10 @@ class TestBuildSignatureBlock:
         assert _build_signature_block("") == ""
         assert _build_signature_block("   ") == ""
 
-    def test_returns_latex_with_filename(self):
-        result = _build_signature_block("coverletter/signature.png")
-        assert "signature.png" in result
+    def test_builds_latex_with_detokenized_filename_only(self):
+        result = _build_signature_block("/full/path/to/my_signature.png")
         assert r"\includegraphics" in result
-
-    def test_uses_only_filename(self):
-        result = _build_signature_block("/full/path/to/sig.png")
-        # Should NOT contain the full path
         assert "/full/path/to/" not in result
-        assert "sig.png" in result
-
-    def test_detokenizes_special_chars_in_filename(self):
-        result = _build_signature_block("path/my_signature.png")
-        # Filename is wrapped in \detokenize so _ is passed literally
         assert r"\detokenize{my_signature.png}" in result
 
 
