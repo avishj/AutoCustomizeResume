@@ -11,7 +11,7 @@ class TestGetModelParams:
         assert params["temperature"] == 0.6
         assert params["top_p"] == 0.95
         assert params["max_tokens"] == 16384
-        assert params["extra_params"]["top_k"] == 20
+        assert params["extra_params"]["extra_body"]["top_k"] == 20
 
     def test_known_model_minimax(self):
         params = get_model_params("minimaxai/minimax-m2.5")
