@@ -21,6 +21,7 @@ from autocustomizeresume.models import (
     ResumeSection,
     SkillCategory,
     SkillsSection,
+    TagType,
 )
 from autocustomizeresume.parser import parse_resume
 from autocustomizeresume.schemas import (
@@ -44,7 +45,7 @@ def _load_fixture(name: str) -> str:
 
 
 def _make_bullet(
-    tag_type: str = "optional",
+    tag_type: TagType = "optional",
     bullet_id: str = "b1",
     text: str = r"\resumeItem{Did something.}",
 ) -> Bullet:
@@ -52,7 +53,7 @@ def _make_bullet(
 
 
 def _make_item(
-    tag_type: str = "optional",
+    tag_type: TagType = "optional",
     item_id: str = "it1",
     heading: str = r"\resumeSubheading{Co}{2024}{Role}{City}",
     bullets: list[Bullet] | None = None,
@@ -168,6 +169,7 @@ class TestAssembleItem:
             bullets=[BulletDecision(id="b1", include=True)],
         )
         result = _assemble_item(item, itd)
+        assert result is not None
         assert "heading" in result
         assert "bullet1" in result
         assert "\\resumeItemListStart" in result
@@ -208,6 +210,7 @@ class TestAssembleItem:
             ],
         )
         result = _assemble_item(item, itd)
+        assert result is not None
         assert "\\resumeItemListStart" in result
         assert "bullet2" in result
         assert "bullet1" not in result
