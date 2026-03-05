@@ -340,7 +340,7 @@ def generate_cover_letter_body(
     )
 
     resume_summary = _summarize_selected_content(parsed_resume, selection)
-    style = config.cover_letter.style or "Professional, concise."
+    style = config.cover_letter.style
 
     user_prompt = (
         "<jd_analysis>\n"
