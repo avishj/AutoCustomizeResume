@@ -348,7 +348,7 @@ class TestPromptConstruction:
         assert "edited_text" in system
         assert "rephrasing" in system.lower() or "rephras" in system.lower()
 
-    def test_low_temperature(self):
+    def test_no_temperature_override(self):
         client = _make_client(_SAMPLE_SELECTION_DICT)
         select_content(
             _make_jd_analysis(),
@@ -357,7 +357,7 @@ class TestPromptConstruction:
             client=client,
         )
         call_kwargs = client.chat.call_args[1]
-        assert call_kwargs["temperature"] == pytest.approx(0.1)
+        assert "temperature" not in call_kwargs
 
 
 # ---------------------------------------------------------------------------

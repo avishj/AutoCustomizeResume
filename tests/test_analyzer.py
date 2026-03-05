@@ -87,12 +87,12 @@ class TestAnalyzeJD:
         assert user.startswith("<jd>")
         assert user.endswith("</jd>")
 
-    def test_uses_low_temperature(self):
+    def test_no_temperature_override(self):
         client = _make_client(_SAMPLE_ANALYSIS_DICT)
         analyze_jd(_SAMPLE_JD, config=_make_config(), client=client)
 
         call_kwargs = client.chat.call_args[1]
-        assert call_kwargs["temperature"] == pytest.approx(0.1)
+        assert "temperature" not in call_kwargs
 
     def test_system_prompt_requests_json(self):
         client = _make_client(_SAMPLE_ANALYSIS_DICT)

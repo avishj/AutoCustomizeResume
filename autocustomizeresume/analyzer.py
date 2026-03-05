@@ -101,7 +101,6 @@ def analyze_jd(
     raw = client.chat(
         system=_SYSTEM_PROMPT,
         user=f"<jd>\n{re.sub(r'</?jd\s*>', '', jd_text, flags=re.IGNORECASE)}\n</jd>",
-        temperature=0.1,
     )
 
     analysis = JDAnalysis.from_dict(raw)

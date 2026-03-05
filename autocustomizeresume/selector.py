@@ -263,7 +263,6 @@ def select_content(
     raw = client.chat(
         system=_SYSTEM_PROMPT,
         user=user_prompt,
-        temperature=0.1,
     )
 
     selection = ContentSelection.from_dict(raw)
