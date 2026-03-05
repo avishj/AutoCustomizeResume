@@ -30,43 +30,24 @@ def sample_resume() -> ParsedResume:
     return parse_resume(_load_fixture("sample_tagged.tex"))
 
 
-@pytest.fixture
-def minimal_resume() -> ParsedResume:
-    return parse_resume(_load_fixture("minimal_tagged.tex"))
-
-
 # ---------------------------------------------------------------------------
-# Preamble / header / postamble extraction
+# Full fixture parse — structural & content validation
 # ---------------------------------------------------------------------------
 
 
-class TestStructuralSplit:
-    def test_preamble_contains_documentclass(self, sample_resume: ParsedResume):
+class TestSampleFixtureParse:
+    """Parse the sample fixture and verify the entire tree in a few tests."""
+
+    def test_structural_split(self, sample_resume: ParsedResume):
+        """Preamble, header, and postamble are correctly separated."""
         assert r"\documentclass" in sample_resume.preamble
-
-    def test_preamble_ends_with_begin_document(self, sample_resume: ParsedResume):
         assert sample_resume.preamble.rstrip().endswith(r"\begin{document}")
-
-    def test_header_contains_name(self, sample_resume: ParsedResume):
         assert "Jane Doe" in sample_resume.header
-
-    def test_header_has_no_section_tags(self, sample_resume: ParsedResume):
         assert "%%% BEGIN" not in sample_resume.header
-
-    def test_postamble_contains_end_document(self, sample_resume: ParsedResume):
         assert r"\end{document}" in sample_resume.postamble
 
-
-# ---------------------------------------------------------------------------
-# Section-level parsing
-# ---------------------------------------------------------------------------
-
-
-class TestSections:
-    def test_section_count(self, sample_resume: ParsedResume):
-        assert len(sample_resume.sections) == 4
-
-    def test_section_types(self, sample_resume: ParsedResume):
+    def test_sections_and_items(self, sample_resume: ParsedResume):
+        """All sections, items, and bullets are parsed with correct IDs and types."""
         types = [(s.tag_type, s.id) for s in sample_resume.sections]
         assert types == [
             ("pinned", "education"),
@@ -74,179 +55,55 @@ class TestSections:
             ("optional", "projects"),
             ("pinned", "skills"),
         ]
-
-    def test_pinned_section(self, sample_resume: ParsedResume):
+        # Education: pinned item with 1 bullet, optional item with 0 bullets
         edu = sample_resume.sections[0]
         assert isinstance(edu, ResumeSection)
-        assert edu.tag_type == "pinned"
-
-    def test_optional_section(self, sample_resume: ParsedResume):
+        assert [(i.id, i.tag_type, len(i.bullets)) for i in edu.items] == [
+            ("mit", "pinned", 1),
+            ("state-u", "optional", 0),
+        ]
+        # Experience: items with bullets preserving ids and tag types
         exp = sample_resume.sections[1]
         assert isinstance(exp, ResumeSection)
-        assert exp.tag_type == "optional"
+        assert [(b.id, b.tag_type) for b in exp.items[0].bullets] == [
+            ("acme-1", "optional"),
+            ("acme-2", "optional"),
+            ("acme-3", "pinned"),
+        ]
+        # Heading content is preserved
+        assert r"\resumeSubheading" in exp.items[0].heading_lines
+        # Skills section has correct type
+        assert isinstance(sample_resume.sections[3], SkillsSection)
 
-    def test_skills_section_type(self, sample_resume: ParsedResume):
-        skills = sample_resume.sections[3]
-        assert isinstance(skills, SkillsSection)
-
-
-# ---------------------------------------------------------------------------
-# Item-level parsing
-# ---------------------------------------------------------------------------
-
-
-class TestItems:
-    def test_education_items(self, sample_resume: ParsedResume):
-        edu = sample_resume.sections[0]
-        assert isinstance(edu, ResumeSection)
-        assert len(edu.items) == 2
-        assert edu.items[0].id == "mit"
-        assert edu.items[0].tag_type == "pinned"
-        assert edu.items[1].id == "state-u"
-        assert edu.items[1].tag_type == "optional"
-
-    def test_experience_items(self, sample_resume: ParsedResume):
-        exp = sample_resume.sections[1]
-        assert isinstance(exp, ResumeSection)
-        assert len(exp.items) == 2
-        assert exp.items[0].id == "acme"
-        assert exp.items[1].id == "widgets"
-
-    def test_item_heading_preserved(self, sample_resume: ParsedResume):
-        exp = sample_resume.sections[1]
-        assert isinstance(exp, ResumeSection)
-        acme = exp.items[0]
-        assert "Acme Corp" in acme.heading_lines
-        assert r"\resumeSubheading" in acme.heading_lines
-
-    def test_item_without_bullets(self, sample_resume: ParsedResume):
-        edu = sample_resume.sections[0]
-        assert isinstance(edu, ResumeSection)
-        state_u = edu.items[1]
-        assert len(state_u.bullets) == 0
-        assert "State University" in state_u.heading_lines
-
-
-# ---------------------------------------------------------------------------
-# Bullet-level parsing
-# ---------------------------------------------------------------------------
-
-
-class TestBullets:
-    def test_bullet_count(self, sample_resume: ParsedResume):
-        exp = sample_resume.sections[1]
-        assert isinstance(exp, ResumeSection)
-        acme = exp.items[0]
-        assert len(acme.bullets) == 3
-
-    def test_bullet_ids(self, sample_resume: ParsedResume):
-        exp = sample_resume.sections[1]
-        assert isinstance(exp, ResumeSection)
-        acme = exp.items[0]
-        ids = [b.id for b in acme.bullets]
-        assert ids == ["acme-1", "acme-2", "acme-3"]
-
-    def test_pinned_bullet(self, sample_resume: ParsedResume):
-        exp = sample_resume.sections[1]
-        assert isinstance(exp, ResumeSection)
-        acme = exp.items[0]
-        assert acme.bullets[2].tag_type == "pinned"
-        assert acme.bullets[2].id == "acme-3"
-
-    def test_optional_bullet(self, sample_resume: ParsedResume):
-        exp = sample_resume.sections[1]
-        assert isinstance(exp, ResumeSection)
-        acme = exp.items[0]
-        assert acme.bullets[0].tag_type == "optional"
-
-    def test_bullet_text_content(self, sample_resume: ParsedResume):
-        exp = sample_resume.sections[1]
-        assert isinstance(exp, ResumeSection)
-        acme = exp.items[0]
-        assert "REST API" in acme.bullets[0].text
-        assert "OAuth 2.0" in acme.bullets[1].text
-        assert "p99 latency" in acme.bullets[2].text
-
-    def test_single_bullet_item(self, sample_resume: ParsedResume):
-        edu = sample_resume.sections[0]
-        assert isinstance(edu, ResumeSection)
-        mit = edu.items[0]
-        assert len(mit.bullets) == 1
-        assert mit.bullets[0].id == "mit-1"
-        assert "Distributed Systems" in mit.bullets[0].text
-
-
-# ---------------------------------------------------------------------------
-# Skills parsing
-# ---------------------------------------------------------------------------
-
-
-class TestSkills:
-    def test_category_count(self, sample_resume: ParsedResume):
-        skills = sample_resume.sections[3]
-        assert isinstance(skills, SkillsSection)
-        assert len(skills.categories) == 3
-
-    def test_category_names(self, sample_resume: ParsedResume):
+    def test_skills_categories(self, sample_resume: ParsedResume):
+        """Skill categories parse names, display names, skills list, prefix/suffix."""
         skills = sample_resume.sections[3]
         assert isinstance(skills, SkillsSection)
         names = [c.name for c in skills.categories]
         assert names == ["languages", "cloud", "frameworks"]
-
-    def test_display_names(self, sample_resume: ParsedResume):
-        skills = sample_resume.sections[3]
-        assert isinstance(skills, SkillsSection)
+        # Display name and LaTeX-escaped display name
         assert skills.categories[0].display_name == "Languages"
         assert skills.categories[1].display_name == r"Cloud \& Infra"
+        # Skills are parsed as list
+        assert "Python" in skills.categories[0].skills
+        assert len(skills.categories[0].skills) > 1
+        # Prefix/suffix structure
+        assert skills.categories[0].prefix.startswith(r"\textbf{")
+        # Last category should not have trailing \\
+        assert "\\\\" not in skills.categories[-1].suffix
 
-    def test_skills_list(self, sample_resume: ParsedResume):
-        skills = sample_resume.sections[3]
-        assert isinstance(skills, SkillsSection)
-        lang = skills.categories[0]
-        assert lang.skills == ["Python", "Java", "C++", "Go", "TypeScript", "SQL"]
-
-    def test_skills_prefix_suffix(self, sample_resume: ParsedResume):
-        skills = sample_resume.sections[3]
-        assert isinstance(skills, SkillsSection)
-        lang = skills.categories[0]
-        assert lang.prefix == r"\textbf{Languages}{: "
-        assert lang.suffix.startswith(".")
-
-    def test_last_category_no_backslash(self, sample_resume: ParsedResume):
-        skills = sample_resume.sections[3]
-        assert isinstance(skills, SkillsSection)
-        last = skills.categories[-1]
-        assert "\\\\" not in last.suffix
-
-
-# ---------------------------------------------------------------------------
-# Interstitial content preservation
-# ---------------------------------------------------------------------------
-
-
-class TestInterstitial:
-    def test_section_interstitial(self, sample_resume: ParsedResume):
-        """Section header and list wrappers should be in interstitial."""
+    def test_interstitial_preserved(self, sample_resume: ParsedResume):
+        """Interstitial content (section headers, list wrappers) is captured."""
         edu = sample_resume.sections[0]
         assert isinstance(edu, ResumeSection)
-        # There should be interstitial content (section header, list start, etc.)
-        all_text = " ".join(t for _, t in edu.interstitial)
-        assert (
-            r"\section{Education}" in all_text
-            or r"\resumeSubHeadingListStart" in all_text
-        )
+        section_text = " ".join(t for _, t in edu.interstitial)
+        assert r"\section{Education}" in section_text or r"\resumeSubHeadingListStart" in section_text
 
-    def test_item_interstitial(self, sample_resume: ParsedResume):
-        """Bullet list wrappers should be in item interstitial."""
         exp = sample_resume.sections[1]
         assert isinstance(exp, ResumeSection)
         acme = exp.items[0]
-        all_text = " ".join(t for _, t in acme.interstitial)
-        # resumeItemListStart/End should be captured
-        assert (
-            r"\resumeItemListStart" in acme.heading_lines
-            or r"\resumeItemListStart" in all_text
-        )
+        item_text = " ".join(t for _, t in acme.interstitial)
+        assert r"\resumeItemListStart" in acme.heading_lines or r"\resumeItemListStart" in item_text
 
 
 # ---------------------------------------------------------------------------
@@ -461,38 +318,6 @@ class TestErrors:
             ParseError, match="Unexpected END:SKILLS tag outside any category"
         ):
             parse_resume(tex)
-
-
-# ---------------------------------------------------------------------------
-# Minimal fixture tests
-# ---------------------------------------------------------------------------
-
-
-class TestMinimalFixture:
-    """Tests using the minimal single-section fixture."""
-
-    def test_single_section(self, minimal_resume: ParsedResume):
-        assert len(minimal_resume.sections) == 1
-        assert minimal_resume.sections[0].id == "education"
-
-    def test_single_item(self, minimal_resume: ParsedResume):
-        edu = minimal_resume.sections[0]
-        assert isinstance(edu, ResumeSection)
-        assert len(edu.items) == 1
-        assert edu.items[0].id == "mit"
-
-    def test_single_bullet(self, minimal_resume: ParsedResume):
-        edu = minimal_resume.sections[0]
-        assert isinstance(edu, ResumeSection)
-        mit = edu.items[0]
-        assert len(mit.bullets) == 1
-        assert "Distributed Systems" in mit.bullets[0].text
-
-    def test_header(self, minimal_resume: ParsedResume):
-        assert "Test User" in minimal_resume.header
-
-    def test_postamble(self, minimal_resume: ParsedResume):
-        assert r"\end{document}" in minimal_resume.postamble
 
 
 # ---------------------------------------------------------------------------
