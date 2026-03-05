@@ -26,6 +26,19 @@ packages = ["autocustomizeresume"]
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
     "ruff>=0.15.4",
     "ty>=0.0.20",
 ]
+
+[tool.coverage.run]
+source = ["autocustomizeresume"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+fail_under = 80
+
+[tool.pytest.ini_options]
+addopts = "--cov --cov-report=term-missing"
