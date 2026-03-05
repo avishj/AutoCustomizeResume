@@ -482,7 +482,10 @@ class TestCompileWithEnforcement:
         def mock_pages(pdf_path):
             idx = call_idx["n"]
             call_idx["n"] += 1
-            return page_counts[idx]
+            if idx < len(page_counts):
+                return page_counts[idx]
+            # Phase 2 (fill) calls: default to 1 page (fits)
+            return 1
 
         return (
             patch("autocustomizeresume.compiler.compile_tex", side_effect=mock_compile),
@@ -504,20 +507,22 @@ class TestCompileWithEnforcement:
         assert final_sel.sections[0].items[1].include is True
 
     def test_drops_content_on_retry(self):
-        """PDF exceeds 1 page, drops lowest-scored content, then fits."""
-        # First attempt: 2 pages, second: 1 page
-        p1, p2 = self._patch_compile([2, 1])
+        """PDF exceeds 1 page, drops lowest-scored content, then fits.
+
+        Phase 1: 2 pages → drop lowest bullet → 1 page.
+        Phase 2 (fill): re-adding the dropped bullet overflows → stays dropped.
+        """
+        # Phase 1: 2 pages, then 1 page after drop.
+        # Phase 2: re-adding the dropped bullet → 2 pages (overflow, skip).
+        p1, p2 = self._patch_compile([2, 1, 2])
         with p1, p2:
             pdf_path, final_sel = compile_with_enforcement(
                 _make_parsed(), _full_selection()
             )
-        # Something should have been dropped
-        # The lowest scored item is widgets (30), so its bullet should be
-        # dropped first (bullets come before items)
+        # The lowest scored bullet (widgets-1 at 30) should have been dropped
+        # and stayed dropped because re-adding it overflowed.
         widgets_bullets = final_sel.sections[0].items[1].bullets
         widgets_1 = next((b for b in widgets_bullets if b.id == "widgets-1"), None)
-        # Either the bullet was dropped or the item itself
-        # (depends on ordering — widgets bullet at score=30 is first droppable)
         assert (
             widgets_1 is None
             or widgets_1.include is False
@@ -599,7 +604,7 @@ class TestCompileWithEnforcement:
         page_calls = iter([2, 1])
 
         def mock_pages(pdf_path):
-            return next(page_calls)
+            return next(page_calls, 1)  # default 1 for Phase 2 fill calls
 
         with (
             patch("autocustomizeresume.compiler.compile_tex", side_effect=mock_compile),
@@ -617,10 +622,10 @@ class TestCompileWithEnforcement:
 
             compile_with_enforcement(_make_parsed(), _full_selection())
 
-        # Second call should have one bullet dropped but all items still included
-        assert len(call_log) == 2
+        # Second call (first drop) should have one bullet dropped but all items still included
+        assert len(call_log) >= 2
         second_sel = call_log[1]
-        # All items should still be included
+        # All items should still be included after first drop
         for sec in second_sel.sections:
             for it in sec.items:
                 assert it.include is True, f"Item {it.id} should still be included"
