@@ -86,12 +86,9 @@ def _make_config(**overrides) -> Config:
     )
     user_defaults.update(user_kw)
 
-    cl_defaults = dict(
-        enabled=True,
-        template="templates/cover_letter_template.tex",
-        signature_path="",
-    )
-    cl_defaults.update(cl_kw)
+    cl_enabled: bool = cl_kw.get("enabled", True)
+    cl_template: str = cl_kw.get("template", "templates/cover_letter_template.tex")
+    cl_sig: str = cl_kw.get("signature_path", "")
 
     return Config(
         user=UserConfig(**user_defaults),
@@ -106,7 +103,11 @@ def _make_config(**overrides) -> Config:
             model="test-model",
             api_key_env="TEST_API_KEY",
         ),
-        cover_letter=CoverLetterConfig(**cl_defaults),
+        cover_letter=CoverLetterConfig(
+            enabled=cl_enabled,
+            template=cl_template,
+            signature_path=cl_sig,
+        ),
         paths=PathsConfig(
             master_resume="resume.tex",
             jd_file="jd.txt",
