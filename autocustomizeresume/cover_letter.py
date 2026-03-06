@@ -12,6 +12,7 @@ import re
 import shutil
 import tempfile
 from datetime import date
+from importlib import resources
 from pathlib import Path
 
 from autocustomizeresume.compiler import compile_tex
@@ -33,12 +34,13 @@ from autocustomizeresume.utils import latex_preview
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# System prompt — loaded from prompts/cover_letter.md at import time
+# System prompt — loaded from prompts/cover_letter.md via importlib.resources
 # ---------------------------------------------------------------------------
 
-_PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
-_BODY_SYSTEM_PROMPT: str = (_PROMPTS_DIR / "cover_letter.md").read_text(
-    encoding="utf-8"
+_BODY_SYSTEM_PROMPT: str = (
+    resources.files(__package__)
+    .joinpath("prompts/cover_letter.md")
+    .read_text(encoding="utf-8")
 )
 
 
