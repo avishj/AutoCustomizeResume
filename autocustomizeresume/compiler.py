@@ -474,6 +474,10 @@ def compile_with_enforcement(
                 current_sel = trial_sel
                 pdf_path = trial_pdf
             else:
+                # Re-compile with current_sel to restore the on-disk PDF
+                # (compile_tex overwrites the same file in work_dir).
+                tex = assemble_tex(parsed, current_sel)
+                pdf_path = compile_tex(tex, keep_dir=work_dir)
                 logger.info(
                     "Re-adding %s (score=%d) from section '%s' overflows — skipping",
                     kind,
