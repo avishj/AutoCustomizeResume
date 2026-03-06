@@ -24,6 +24,7 @@ from autocustomizeresume.schemas import (
     SectionDecision,
     SkillCategoryDecision,
 )
+from autocustomizeresume.utils import escape_latex_special
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ def _bullet_text(bullet: Bullet, item_dec: ItemDecision | None) -> str:
     if item_dec is not None:
         bd = next((b for b in item_dec.bullets if b.id == bullet.id), None)
         if bd is not None and bd.edited_text:
-            return bd.edited_text
+            return escape_latex_special(bd.edited_text)
     return bullet.text
 
 
@@ -232,7 +233,7 @@ def _assemble_skill_category(
     if not skills:
         return None
 
-    skills_str = ", ".join(skills)
+    skills_str = ", ".join(escape_latex_special(s) for s in skills)
     return f"{cat.prefix}{skills_str}{cat.suffix}"
 
 
