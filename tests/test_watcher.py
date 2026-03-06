@@ -5,7 +5,7 @@ from __future__ import annotations
 import threading
 import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from watchdog.events import DirModifiedEvent, FileModifiedEvent
@@ -28,7 +28,7 @@ class TestDebouncedHandler:
         return f
 
     @staticmethod
-    def _make_event(path: Path, *, is_directory: bool = False) -> FileModifiedEvent:
+    def _make_event(path: Path, *, is_directory: bool = False) -> DirModifiedEvent | FileModifiedEvent:
         if is_directory:
             return DirModifiedEvent(str(path))
         return FileModifiedEvent(str(path))
