@@ -5,9 +5,11 @@ from __future__ import annotations
 import re
 
 # LaTeX special chars that should be escaped when they appear unescaped
-# in LLM-returned LaTeX text. We only match chars NOT already preceded
-# by a backslash so intentional LaTeX commands are left alone.
-_UNESCAPED_SPECIAL = re.compile(r"(?<!\\)([#&%\$])")
+# in LLM-returned LaTeX text.  We match a special char preceded by an
+# even number of backslashes (including zero) — that means the char
+# itself is NOT escaped.  An odd count means the last backslash escapes
+# the special char, so we leave it alone.
+_UNESCAPED_SPECIAL = re.compile(r"(?<!\\)((?:\\\\)*)([#&%\$])")
 
 
 def escape_latex_special(text: str) -> str:
@@ -15,9 +17,11 @@ def escape_latex_special(text: str) -> str:
 
     Handles characters like ``#`` in "C#" or ``&`` that the LLM may
     return without proper escaping.  Already-escaped sequences (e.g.
-    ``\#``, ``\&``) are left untouched.
+    ``\#``, ``\&``) are left untouched.  Correctly handles even runs
+    of backslashes (e.g. ``\\#`` where ``\\`` is a line break and
+    ``#`` is unescaped).
     """
-    return _UNESCAPED_SPECIAL.sub(r"\\\1", text)
+    return _UNESCAPED_SPECIAL.sub(r"\1\\\2", text)
 
 
 def latex_preview(text: str) -> str:
