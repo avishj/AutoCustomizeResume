@@ -97,13 +97,19 @@ class TestSampleFixtureParse:
         edu = sample_resume.sections[0]
         assert isinstance(edu, ResumeSection)
         section_text = " ".join(t for _, t in edu.interstitial)
-        assert r"\section{Education}" in section_text or r"\resumeSubHeadingListStart" in section_text
+        assert (
+            r"\section{Education}" in section_text
+            or r"\resumeSubHeadingListStart" in section_text
+        )
 
         exp = sample_resume.sections[1]
         assert isinstance(exp, ResumeSection)
         acme = exp.items[0]
         item_text = " ".join(t for _, t in acme.interstitial)
-        assert r"\resumeItemListStart" in acme.heading_lines or r"\resumeItemListStart" in item_text
+        assert (
+            r"\resumeItemListStart" in acme.heading_lines
+            or r"\resumeItemListStart" in item_text
+        )
 
 
 # ---------------------------------------------------------------------------

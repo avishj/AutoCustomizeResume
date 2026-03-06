@@ -28,7 +28,9 @@ class TestDebouncedHandler:
         return f
 
     @staticmethod
-    def _make_event(path: Path, *, is_directory: bool = False) -> DirModifiedEvent | FileModifiedEvent:
+    def _make_event(
+        path: Path, *, is_directory: bool = False
+    ) -> DirModifiedEvent | FileModifiedEvent:
         if is_directory:
             return DirModifiedEvent(str(path))
         return FileModifiedEvent(str(path))
@@ -36,7 +38,9 @@ class TestDebouncedHandler:
     def test_debounce_coalesces_rapid_events(self, watched_file: Path):
         """Multiple rapid events within the debounce window fire callback once."""
         callback = MagicMock()
-        handler = DebouncedHandler(watched_file, debounce_seconds=0.15, callback=callback)
+        handler = DebouncedHandler(
+            watched_file, debounce_seconds=0.15, callback=callback
+        )
         fired = threading.Event()
         callback.side_effect = lambda: fired.set()
 
@@ -51,7 +55,9 @@ class TestDebouncedHandler:
     def test_debounce_resets_on_new_event(self, watched_file: Path):
         """A later event resets the debounce timer, delaying the callback."""
         callback = MagicMock()
-        handler = DebouncedHandler(watched_file, debounce_seconds=0.15, callback=callback)
+        handler = DebouncedHandler(
+            watched_file, debounce_seconds=0.15, callback=callback
+        )
 
         handler.on_modified(self._make_event(watched_file))
         time.sleep(0.08)
@@ -69,7 +75,9 @@ class TestDebouncedHandler:
     def test_ignores_directory_events(self, watched_file: Path):
         """Directory modification events are silently ignored."""
         callback = MagicMock()
-        handler = DebouncedHandler(watched_file, debounce_seconds=0.05, callback=callback)
+        handler = DebouncedHandler(
+            watched_file, debounce_seconds=0.05, callback=callback
+        )
 
         handler.on_modified(self._make_event(watched_file, is_directory=True))
         time.sleep(0.15)
@@ -81,7 +89,9 @@ class TestDebouncedHandler:
         other.write_text("unrelated")
 
         callback = MagicMock()
-        handler = DebouncedHandler(watched_file, debounce_seconds=0.05, callback=callback)
+        handler = DebouncedHandler(
+            watched_file, debounce_seconds=0.05, callback=callback
+        )
 
         handler.on_modified(self._make_event(other))
         time.sleep(0.15)
@@ -92,7 +102,9 @@ class TestDebouncedHandler:
         watched_file.write_text("")  # truncate to 0 bytes
 
         callback = MagicMock()
-        handler = DebouncedHandler(watched_file, debounce_seconds=0.05, callback=callback)
+        handler = DebouncedHandler(
+            watched_file, debounce_seconds=0.05, callback=callback
+        )
 
         handler.on_modified(self._make_event(watched_file))
         time.sleep(0.15)

@@ -236,9 +236,7 @@ def _find_addables(selection: ContentSelection) -> list[_Addable]:
     return items + bullets
 
 
-def _add_element(
-    selection: ContentSelection, addable: _Addable
-) -> ContentSelection:
+def _add_element(selection: ContentSelection, addable: _Addable) -> ContentSelection:
     """Return a new *ContentSelection* with the given addable re-included."""
     new_sections: list[SectionDecision] = []
     for sec in selection.sections:
@@ -268,9 +266,7 @@ def _add_element(
     return replace(selection, sections=new_sections)
 
 
-def _mark_skip(
-    selection: ContentSelection, addable: _Addable
-) -> ContentSelection:
+def _mark_skip(selection: ContentSelection, addable: _Addable) -> ContentSelection:
     """Set an excluded element's score to -1 so _find_addables skips it."""
     new_sections: list[SectionDecision] = []
     for sec in selection.sections:

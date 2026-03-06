@@ -6,7 +6,6 @@ from autocustomizeresume.model_registry import _DEFAULTS, get_model_params
 
 
 class TestGetModelParams:
-
     def test_unknown_model_returns_defaults(self):
         result = get_model_params("some/unknown-model")
         assert result == _DEFAULTS

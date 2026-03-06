@@ -240,6 +240,3 @@ class TestChatErrors:
         client = LLMClient(_make_config())
         with pytest.raises(LLMError, match="LLM API call failed"):
             client.chat(system="sys", user="usr")
-
-
-

@@ -149,9 +149,7 @@ class LLMClient:
 
             raw = response.choices[0].message.content
             if raw is None:
-                raise LLMError(
-                    "LLM returned an empty response (content is None)"
-                )
+                raise LLMError("LLM returned an empty response (content is None)")
         except AuthenticationError as exc:
             raise LLMError(
                 f"LLM authentication failed — check your API key "
