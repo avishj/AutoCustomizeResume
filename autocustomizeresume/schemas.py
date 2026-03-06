@@ -293,7 +293,7 @@ def _coerce_score(val: object, default: int = 50) -> int:
         return default
     try:
         return max(0, min(100, int(float(val))))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return default
 
 
