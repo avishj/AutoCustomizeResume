@@ -286,7 +286,7 @@ def generate_cover_letter_body(
     )
 
     body = result.get("body", "")
-    if not body:
+    if not isinstance(body, str) or not body.strip():
         raise LLMError("LLM returned no 'body' key in cover letter response")
 
     logger.info("Cover letter body generated (%d chars)", len(body))
