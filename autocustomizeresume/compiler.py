@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING
 from pypdf import PdfReader
 
 from autocustomizeresume.schemas import (
-    BulletDecision,
     ContentSelection,
     ItemDecision,
     SectionDecision,
