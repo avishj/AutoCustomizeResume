@@ -54,11 +54,12 @@ class DebouncedHandler(FileSystemEventHandler):
     def on_modified(self, event: FileModifiedEvent) -> None:  # type: ignore[override]
         if event.is_directory:
             return
-        if os.path.abspath(event.src_path) != self._watch_path:
+        src_path = os.path.abspath(os.fsdecode(event.src_path))
+        if src_path != self._watch_path:
             return
         # Ignore empty-file saves
         try:
-            if Path(os.fsdecode(event.src_path)).stat().st_size == 0:
+            if Path(src_path).stat().st_size == 0:
                 return
         except OSError:
             return
