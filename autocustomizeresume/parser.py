@@ -16,6 +16,7 @@ The LLM can:
 
 from __future__ import annotations
 
+import logging
 import re
 import warnings
 from collections.abc import Callable
@@ -30,6 +31,8 @@ from autocustomizeresume.models import (
     SkillsSection,
     TagType,
 )
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Tag format constants
@@ -429,8 +432,15 @@ def _parse_item(tag_type: TagType, tag_id: str, lines: list[str]) -> ResumeItem:
         if not in_bullet:
             # Check for %%% COMPACT: tag (must appear before first bullet)
             m_compact = COMPACT_RE.match(stripped)
-            if m_compact and not found_first_bullet_tag:
-                compact_heading = m_compact.group(1)
+            if m_compact:
+                if not found_first_bullet_tag:
+                    compact_heading = m_compact.group(1)
+                else:
+                    logger.warning(
+                        "Ignoring misplaced %%% COMPACT: tag after first "
+                        "bullet in item '%s'",
+                        tag_id,
+                    )
                 continue
 
             m = TAG_BEGIN_RE.match(stripped)
