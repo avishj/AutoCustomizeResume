@@ -20,13 +20,11 @@ from autocustomizeresume.config import Config
 from autocustomizeresume.llm_client import LLMClient, LLMError
 from autocustomizeresume.models import (
     ParsedResume,
-    ResumeItem,
     ResumeSection,
     SkillsSection,
 )
 from autocustomizeresume.schemas import (
     ContentSelection,
-    ItemDecision,
     JDAnalysis,
 )
 from autocustomizeresume.utils import latex_preview
@@ -130,15 +128,6 @@ def _summarize_selected_content(
     return "\n\n".join(parts)
 
 
-def _is_item_included(item: ResumeItem, item_dec: ItemDecision | None) -> bool:
-    """Determine if an item is included in the final resume."""
-    if item.tag_type == "pinned":
-        return True
-    if item_dec is None or not item_dec.include:
-        return False
-    return True
-
-
 def _summarize_regular_section(
     section: ResumeSection,
     selection: ContentSelection,
@@ -155,7 +144,7 @@ def _summarize_regular_section(
     for item in section.items:
         item_dec = sec_dec.find_item(item.id) if sec_dec else None
 
-        if not _is_item_included(item, item_dec):
+        if item.tag_type != "pinned" and (item_dec is None or not item_dec.include):
             continue
 
         heading = latex_preview(item.heading_lines)
