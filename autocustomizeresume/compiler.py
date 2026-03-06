@@ -456,8 +456,8 @@ def compile_with_enforcement(
             trial_sel = _add_element(current_sel, candidate)
 
             tex = assemble_tex(parsed, trial_sel)
-            pdf_path = compile_tex(tex, keep_dir=work_dir)
-            pages = get_page_count(pdf_path)
+            trial_pdf = compile_tex(tex, keep_dir=work_dir)
+            pages = get_page_count(trial_pdf)
 
             kind = (
                 f"bullet '{candidate.bullet_id}'"
@@ -473,6 +473,7 @@ def compile_with_enforcement(
                     candidate.section_id,
                 )
                 current_sel = trial_sel
+                pdf_path = trial_pdf
             else:
                 logger.info(
                     "Re-adding %s (score=%d) from section '%s' overflows — skipping",
