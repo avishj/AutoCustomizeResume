@@ -427,13 +427,6 @@ def compile_with_enforcement(
             )
 
             current_sel = _drop_element(current_sel, target)
-        else:
-            # Loop completed without break — still exceeds 1 page
-            if owns_dir:
-                shutil.rmtree(work_dir, ignore_errors=True)
-            raise CompileError(
-                f"Resume still exceeds 1 page after {attempt + 1} attempts"
-            )
 
         if pages > 1:
             if owns_dir:
