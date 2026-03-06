@@ -121,10 +121,8 @@ def _summarize_selected_content(
     for section in parsed.sections:
         if isinstance(section, SkillsSection):
             block = _summarize_skills_section(section, selection)
-        elif isinstance(section, ResumeSection):
-            block = _summarize_regular_section(section, selection)
         else:
-            continue
+            block = _summarize_regular_section(section, selection)
 
         if block:
             parts.append(block)
