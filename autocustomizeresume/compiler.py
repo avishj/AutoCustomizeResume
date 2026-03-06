@@ -260,9 +260,8 @@ def _add_element(
                 ]
                 new_items.append(replace(it, bullets=new_bullets))
             else:
-                # Re-add the entire item (and all its bullets)
-                new_bullets = [replace(bd, include=True) for bd in it.bullets]
-                new_items.append(replace(it, include=True, bullets=new_bullets))
+                # Re-add the entire item, preserving original bullet states
+                new_items.append(replace(it, include=True))
 
         new_sections.append(replace(sec, items=new_items))
 
