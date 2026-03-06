@@ -396,8 +396,7 @@ def _parse_regular_section(
             cast(TagType, ident[0]), cast(str, ident[1]), child_lines
         ),
         unexpected_end_error=lambda stripped: ParseError(
-            f"Unexpected END tag outside any item in section "
-            f"'{tag_id}': {stripped}"
+            f"Unexpected END tag outside any item in section '{tag_id}': {stripped}"
         ),
         unclosed_error=lambda ident: ParseError(
             f"Unclosed item tag: %%% BEGIN:{ident[0]}:{ident[1]}"
@@ -575,11 +574,7 @@ def _parse_skill_line(cat_name: str, lines: list[str]) -> SkillCategory:
 
     # Split on commas that are NOT inside parentheses, so grouped
     # skills like "AWS (EC2, S3, EKS)" stay as a single token.
-    skills = [
-        s.strip()
-        for s in re.split(r",\s*(?![^()]*\))", raw_skills)
-        if s.strip()
-    ]
+    skills = [s.strip() for s in re.split(r",\s*(?![^()]*\))", raw_skills) if s.strip()]
 
     return SkillCategory(
         name=cat_name,
