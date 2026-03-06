@@ -108,12 +108,8 @@ class TestBulletBehavior:
 
     def test_optional_follows_decision(self):
         b = _make_bullet(bullet_id="b1")
-        included = _make_item_decision(
-            bullets=[BulletDecision(id="b1", include=True)]
-        )
-        excluded = _make_item_decision(
-            bullets=[BulletDecision(id="b1", include=False)]
-        )
+        included = _make_item_decision(bullets=[BulletDecision(id="b1", include=True)])
+        excluded = _make_item_decision(bullets=[BulletDecision(id="b1", include=False)])
         assert _is_bullet_included(b, included) is True
         assert _is_bullet_included(b, excluded) is False
         # No decision defaults to included
@@ -155,7 +151,10 @@ class TestAssembleItem:
     def test_optional_item_excluded_without_decision_or_when_excluded(self):
         item = _make_item(tag_type="optional", item_id="it1")
         assert _assemble_item(item, None) is None
-        assert _assemble_item(item, _make_item_decision(item_id="it1", include=False)) is None
+        assert (
+            _assemble_item(item, _make_item_decision(item_id="it1", include=False))
+            is None
+        )
 
     def test_optional_included_with_bullets_and_interstitial(self):
         item = _make_item(
@@ -165,7 +164,8 @@ class TestAssembleItem:
             interstitial=[(0, "\\resumeItemListStart"), (1, "\\resumeItemListEnd")],
         )
         itd = _make_item_decision(
-            item_id="it1", include=True,
+            item_id="it1",
+            include=True,
             bullets=[BulletDecision(id="b1", include=True)],
         )
         result = _assemble_item(item, itd)
@@ -183,11 +183,14 @@ class TestAssembleItem:
         self, tag_type: TagType, expect_none: bool
     ):
         item = _make_item(
-            tag_type=tag_type, item_id="it1", heading="heading",
+            tag_type=tag_type,
+            item_id="it1",
+            heading="heading",
             bullets=[_make_bullet(bullet_id="b1", text="bullet1")],
         )
         itd = _make_item_decision(
-            item_id="it1", include=True,
+            item_id="it1",
+            include=True,
             bullets=[BulletDecision(id="b1", include=False)],
         )
         result = _assemble_item(item, itd)
@@ -200,7 +203,8 @@ class TestAssembleItem:
 
     def test_first_bullet_excluded_preserves_interstitial(self):
         item = _make_item(
-            item_id="it1", heading="heading",
+            item_id="it1",
+            heading="heading",
             bullets=[
                 _make_bullet(bullet_id="b1", text="bullet1"),
                 _make_bullet(bullet_id="b2", text="bullet2"),
@@ -208,7 +212,8 @@ class TestAssembleItem:
             interstitial=[(0, "\\resumeItemListStart"), (2, "\\resumeItemListEnd")],
         )
         itd = _make_item_decision(
-            item_id="it1", include=True,
+            item_id="it1",
+            include=True,
             bullets=[
                 BulletDecision(id="b1", include=False),
                 BulletDecision(id="b2", include=True),
@@ -523,6 +528,7 @@ class TestAssembleTexFixture:
         result = assemble_tex(parsed, selection)
         assert "Education" in result
         assert "MIT" in result
+
 
 # ---------------------------------------------------------------------------
 # Compact heading fallback
