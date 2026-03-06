@@ -61,6 +61,7 @@ class TestInit:
         mock_openai_cls.assert_called_once()
         call_kwargs = mock_openai_cls.call_args.kwargs
         assert "timeout" in call_kwargs
+        assert call_kwargs["timeout"] == 60.0
 
 
 # ---------------------------------------------------------------------------
