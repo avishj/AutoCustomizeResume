@@ -363,7 +363,7 @@ def _collect_tagged_children(
             continue
 
         m_end = end_re.match(stripped)
-        if m_end and cur_ident is not None and end_identity(m_end) == cur_ident:
+        if m_end and end_identity(m_end) == cur_ident:
             children.append(build_child(cur_ident, child_lines))
             in_child = False
             cur_ident = None
