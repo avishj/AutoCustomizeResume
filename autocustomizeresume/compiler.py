@@ -153,12 +153,8 @@ def _find_droppables(selection: ContentSelection) -> list[_Candidate]:
                 continue
             for bd in it.bullets:
                 if bd.include:
-                    bullets.append(
-                        _Candidate(sec.id, it.id, bd.id, bd.relevance_score)
-                    )
-            items.append(
-                _Candidate(sec.id, it.id, None, it.relevance_score)
-            )
+                    bullets.append(_Candidate(sec.id, it.id, bd.id, bd.relevance_score))
+            items.append(_Candidate(sec.id, it.id, None, it.relevance_score))
 
     bullets.sort(key=lambda d: d.score)
     items.sort(key=lambda d: d.score)
@@ -182,15 +178,11 @@ def _find_addables(selection: ContentSelection) -> list[_Candidate]:
             if not it.include:
                 if it.relevance_score < 0:
                     continue  # already tried and overflowed
-                items.append(
-                    _Candidate(sec.id, it.id, None, it.relevance_score)
-                )
+                items.append(_Candidate(sec.id, it.id, None, it.relevance_score))
                 continue
             for bd in it.bullets:
                 if not bd.include and bd.relevance_score >= 0:
-                    bullets.append(
-                        _Candidate(sec.id, it.id, bd.id, bd.relevance_score)
-                    )
+                    bullets.append(_Candidate(sec.id, it.id, bd.id, bd.relevance_score))
 
     items.sort(key=lambda a: a.score, reverse=True)
     bullets.sort(key=lambda a: a.score, reverse=True)
@@ -261,9 +253,7 @@ def _add_element(
     )
 
 
-def _mark_skip(
-    selection: ContentSelection, candidate: _Candidate
-) -> ContentSelection:
+def _mark_skip(selection: ContentSelection, candidate: _Candidate) -> ContentSelection:
     """Set an excluded element's score to -1 so _find_addables skips it."""
     return _update_element(
         selection,
