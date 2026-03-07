@@ -471,7 +471,6 @@ def _parse_item(tag_type: TagType, tag_id: str, lines: list[str]) -> ResumeItem:
         # Inside a bullet tag
         m_end = TAG_END_RE.match(stripped)
         if m_end and m_end.group(1) == bullet_type and m_end.group(2) == bullet_id:
-            assert bullet_type is not None and bullet_id is not None
             bullets.append(
                 Bullet(
                     tag_type=bullet_type,
