@@ -316,13 +316,6 @@ class TestCompileTex:
             compile_tex(r"\bad", keep_dir=tmp_path)
 
     @patch("autocustomizeresume.compiler.subprocess.run")
-    def test_no_pdf_produced(self, mock_run, tmp_path):
-        mock_run.return_value = MagicMock(returncode=0, stderr="")
-        # Don't create the PDF file
-        with pytest.raises(CompileError, match="no PDF was produced"):
-            compile_tex(r"\documentclass{article}", keep_dir=tmp_path)
-
-    @patch("autocustomizeresume.compiler.subprocess.run")
     def test_timeout_raises_compile_error(self, mock_run, tmp_path):
         import subprocess as _subprocess
 

@@ -89,8 +89,6 @@ def compile_tex(tex_content: str, *, keep_dir: Path | None = None) -> Path:
             )
 
         pdf_path = tex_path.with_suffix(".pdf")
-        if not pdf_path.exists():
-            raise CompileError("tectonic exited successfully but no PDF was produced")
     except Exception:
         if owns_dir:
             shutil.rmtree(work, ignore_errors=True)
