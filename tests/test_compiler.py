@@ -9,7 +9,7 @@ import pytest
 
 from autocustomizeresume.compiler import (
     CompileError,
-    _Droppable,
+    _Candidate,
     _drop_element,
     _find_droppables,
     compile_tex,
@@ -238,51 +238,51 @@ class TestFindDroppables:
 class TestDropElement:
     def test_drop_bullet(self):
         sel = _full_selection()
-        droppable = _Droppable(
+        candidate = _Candidate(
             section_id="experience",
             item_id="acme",
             bullet_id="acme-1",
             score=80,
         )
-        new_sel = _drop_element(sel, droppable)
+        new_sel = _drop_element(sel, candidate)
         acme = next(it for it in new_sel.sections[0].items if it.id == "acme")
         acme1 = next(b for b in acme.bullets if b.id == "acme-1")
         assert acme1.include is False
 
     def test_drop_item(self):
         sel = _full_selection()
-        droppable = _Droppable(
+        candidate = _Candidate(
             section_id="experience",
             item_id="widgets",
             bullet_id=None,
             score=30,
         )
-        new_sel = _drop_element(sel, droppable)
+        new_sel = _drop_element(sel, candidate)
         widgets = next(it for it in new_sel.sections[0].items if it.id == "widgets")
         assert widgets.include is False
 
     def test_drop_nonexistent_is_noop(self):
         sel = _full_selection()
-        droppable = _Droppable(
+        candidate = _Candidate(
             section_id="experience",
             item_id="nonexistent",
             bullet_id=None,
             score=0,
         )
         # Should not raise; returns unchanged selection
-        new_sel = _drop_element(sel, droppable)
+        new_sel = _drop_element(sel, candidate)
         assert len(new_sel.sections) == len(sel.sections)
 
     def test_original_selection_unchanged(self):
         """_drop_element must not mutate the original selection."""
         sel = _full_selection()
-        droppable = _Droppable(
+        candidate = _Candidate(
             section_id="experience",
             item_id="acme",
             bullet_id="acme-1",
             score=80,
         )
-        _drop_element(sel, droppable)
+        _drop_element(sel, candidate)
         # Original should still have acme-1 included
         acme = next(it for it in sel.sections[0].items if it.id == "acme")
         acme1 = next(b for b in acme.bullets if b.id == "acme-1")

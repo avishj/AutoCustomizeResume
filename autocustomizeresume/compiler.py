@@ -12,11 +12,13 @@ import subprocess
 import tempfile
 from dataclasses import dataclass, replace
 from pathlib import Path
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from pypdf import PdfReader
 
 from autocustomizeresume.schemas import (
+    BulletDecision,
     ContentSelection,
     ItemDecision,
     SectionDecision,
@@ -119,29 +121,29 @@ def get_page_count(pdf_path: Path) -> int:
 
 
 # ---------------------------------------------------------------------------
-# Droppable-element search
+# Candidate elements for dropping / re-adding
 # ---------------------------------------------------------------------------
 
 
 @dataclass
-class _Droppable:
-    """A candidate element that can be dropped to save space."""
+class _Candidate:
+    """An optional element that can be dropped or re-added."""
 
     section_id: str
     item_id: str
-    bullet_id: str | None  # None means drop the whole item
-    score: int  # relevance_score (lower = drop first)
+    bullet_id: str | None  # None means the whole item
+    score: int  # relevance_score
 
 
-def _find_droppables(selection: ContentSelection) -> list[_Droppable]:
+def _find_droppables(selection: ContentSelection) -> list[_Candidate]:
     """Collect all currently-included optional elements, sorted by score.
 
     Returns bullets first (lowest score first), then items (lowest first).
     This ordering means we try dropping individual bullets before
     escalating to entire items.
     """
-    bullets: list[_Droppable] = []
-    items: list[_Droppable] = []
+    bullets: list[_Candidate] = []
+    items: list[_Candidate] = []
 
     for sec in selection.sections:
         if not sec.include:
@@ -149,52 +151,29 @@ def _find_droppables(selection: ContentSelection) -> list[_Droppable]:
         for it in sec.items:
             if not it.include:
                 continue
-            # Collect droppable bullets within this item
             for bd in it.bullets:
                 if bd.include:
                     bullets.append(
-                        _Droppable(
-                            section_id=sec.id,
-                            item_id=it.id,
-                            bullet_id=bd.id,
-                            score=bd.relevance_score,
-                        )
+                        _Candidate(sec.id, it.id, bd.id, bd.relevance_score)
                     )
-            # The item itself is droppable
             items.append(
-                _Droppable(
-                    section_id=sec.id,
-                    item_id=it.id,
-                    bullet_id=None,
-                    score=it.relevance_score,
-                )
+                _Candidate(sec.id, it.id, None, it.relevance_score)
             )
 
-    # Sort each group by score ascending (drop lowest first)
     bullets.sort(key=lambda d: d.score)
     items.sort(key=lambda d: d.score)
 
     return bullets + items
 
 
-@dataclass
-class _Addable:
-    """A candidate element that was excluded and can be re-added to fill space."""
-
-    section_id: str
-    item_id: str
-    bullet_id: str | None  # None means re-add the whole item
-    score: int  # relevance_score (higher = add first)
-
-
-def _find_addables(selection: ContentSelection) -> list[_Addable]:
+def _find_addables(selection: ContentSelection) -> list[_Candidate]:
     """Collect all currently-excluded optional elements, sorted by score descending.
 
     Returns items first (highest score first), then bullets (highest first).
     This ordering means we try re-adding entire items before individual bullets.
     """
-    bullets: list[_Addable] = []
-    items: list[_Addable] = []
+    bullets: list[_Candidate] = []
+    items: list[_Candidate] = []
 
     for sec in selection.sections:
         if not sec.include:
@@ -203,91 +182,55 @@ def _find_addables(selection: ContentSelection) -> list[_Addable]:
             if not it.include:
                 if it.relevance_score < 0:
                     continue  # already tried and overflowed
-                # Whole item is excluded — candidate for re-adding
                 items.append(
-                    _Addable(
-                        section_id=sec.id,
-                        item_id=it.id,
-                        bullet_id=None,
-                        score=it.relevance_score,
-                    )
+                    _Candidate(sec.id, it.id, None, it.relevance_score)
                 )
                 continue
-            # Item is included — check for excluded bullets
             for bd in it.bullets:
-                if not bd.include:
-                    if bd.relevance_score < 0:
-                        continue  # already tried and overflowed
+                if not bd.include and bd.relevance_score >= 0:
                     bullets.append(
-                        _Addable(
-                            section_id=sec.id,
-                            item_id=it.id,
-                            bullet_id=bd.id,
-                            score=bd.relevance_score,
-                        )
+                        _Candidate(sec.id, it.id, bd.id, bd.relevance_score)
                     )
 
-    # Sort each group by score descending (add highest first)
     items.sort(key=lambda a: a.score, reverse=True)
     bullets.sort(key=lambda a: a.score, reverse=True)
 
     return items + bullets
 
 
-def _add_element(selection: ContentSelection, addable: _Addable) -> ContentSelection:
-    """Return a new *ContentSelection* with the given addable re-included."""
+# ---------------------------------------------------------------------------
+# Selection mutation helpers
+# ---------------------------------------------------------------------------
+
+
+def _update_element(
+    selection: ContentSelection,
+    candidate: _Candidate,
+    *,
+    bullet_transform: Callable[[BulletDecision], BulletDecision],
+    item_transform: Callable[[ItemDecision], ItemDecision],
+) -> ContentSelection:
+    """Return a new *ContentSelection* with a targeted item/bullet transformed."""
     new_sections: list[SectionDecision] = []
     for sec in selection.sections:
-        if sec.id != addable.section_id:
+        if sec.id != candidate.section_id:
             new_sections.append(sec)
             continue
 
         new_items: list[ItemDecision] = []
         for it in sec.items:
-            if it.id != addable.item_id:
+            if it.id != candidate.item_id:
                 new_items.append(it)
                 continue
 
-            if addable.bullet_id is not None:
-                # Re-add a single bullet
+            if candidate.bullet_id is not None:
                 new_bullets = [
-                    replace(bd, include=True) if bd.id == addable.bullet_id else bd
+                    bullet_transform(bd) if bd.id == candidate.bullet_id else bd
                     for bd in it.bullets
                 ]
                 new_items.append(replace(it, bullets=new_bullets))
             else:
-                # Re-add the entire item, preserving original bullet states
-                new_items.append(replace(it, include=True))
-
-        new_sections.append(replace(sec, items=new_items))
-
-    return replace(selection, sections=new_sections)
-
-
-def _mark_skip(selection: ContentSelection, addable: _Addable) -> ContentSelection:
-    """Set an excluded element's score to -1 so _find_addables skips it."""
-    new_sections: list[SectionDecision] = []
-    for sec in selection.sections:
-        if sec.id != addable.section_id:
-            new_sections.append(sec)
-            continue
-
-        new_items: list[ItemDecision] = []
-        for it in sec.items:
-            if it.id != addable.item_id:
-                new_items.append(it)
-                continue
-
-            if addable.bullet_id is not None:
-                new_bullets = [
-                    replace(bd, relevance_score=-1)
-                    if bd.id == addable.bullet_id
-                    else bd
-                    for bd in it.bullets
-                ]
-                new_items.append(replace(it, bullets=new_bullets))
-            else:
-                new_items.append(replace(it, relevance_score=-1))
+                new_items.append(item_transform(it))
 
         new_sections.append(replace(sec, items=new_items))
 
@@ -295,35 +238,39 @@ def _mark_skip(selection: ContentSelection, addable: _Addable) -> ContentSelecti
 
 
 def _drop_element(
-    selection: ContentSelection, droppable: _Droppable
+    selection: ContentSelection, candidate: _Candidate
 ) -> ContentSelection:
-    """Return a new *ContentSelection* with the given droppable excluded."""
-    new_sections: list[SectionDecision] = []
-    for sec in selection.sections:
-        if sec.id != droppable.section_id:
-            new_sections.append(sec)
-            continue
+    """Return a new *ContentSelection* with the given candidate excluded."""
+    return _update_element(
+        selection,
+        candidate,
+        bullet_transform=lambda bd: replace(bd, include=False),
+        item_transform=lambda it: replace(it, include=False),
+    )
 
-        new_items: list[ItemDecision] = []
-        for it in sec.items:
-            if it.id != droppable.item_id:
-                new_items.append(it)
-                continue
 
-            if droppable.bullet_id is not None:
-                # Drop a single bullet
-                new_bullets = [
-                    replace(bd, include=False) if bd.id == droppable.bullet_id else bd
-                    for bd in it.bullets
-                ]
-                new_items.append(replace(it, bullets=new_bullets))
-            else:
-                # Drop the entire item
-                new_items.append(replace(it, include=False))
+def _add_element(
+    selection: ContentSelection, candidate: _Candidate
+) -> ContentSelection:
+    """Return a new *ContentSelection* with the given candidate re-included."""
+    return _update_element(
+        selection,
+        candidate,
+        bullet_transform=lambda bd: replace(bd, include=True),
+        item_transform=lambda it: replace(it, include=True),
+    )
 
-        new_sections.append(replace(sec, items=new_items))
 
-    return replace(selection, sections=new_sections)
+def _mark_skip(
+    selection: ContentSelection, candidate: _Candidate
+) -> ContentSelection:
+    """Set an excluded element's score to -1 so _find_addables skips it."""
+    return _update_element(
+        selection,
+        candidate,
+        bullet_transform=lambda bd: replace(bd, relevance_score=-1),
+        item_transform=lambda it: replace(it, relevance_score=-1),
+    )
 
 
 # ---------------------------------------------------------------------------
