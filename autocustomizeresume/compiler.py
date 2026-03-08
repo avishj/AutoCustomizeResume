@@ -12,11 +12,13 @@ import subprocess
 import tempfile
 from dataclasses import dataclass, replace
 from pathlib import Path
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from pypdf import PdfReader
 
 from autocustomizeresume.schemas import (
+    BulletDecision,
     ContentSelection,
     ItemDecision,
     SectionDecision,
@@ -89,8 +91,6 @@ def compile_tex(tex_content: str, *, keep_dir: Path | None = None) -> Path:
             )
 
         pdf_path = tex_path.with_suffix(".pdf")
-        if not pdf_path.exists():
-            raise CompileError("tectonic exited successfully but no PDF was produced")
     except Exception:
         if owns_dir:
             shutil.rmtree(work, ignore_errors=True)
@@ -121,29 +121,29 @@ def get_page_count(pdf_path: Path) -> int:
 
 
 # ---------------------------------------------------------------------------
-# Droppable-element search
+# Candidate elements for dropping / re-adding
 # ---------------------------------------------------------------------------
 
 
 @dataclass
-class _Droppable:
-    """A candidate element that can be dropped to save space."""
+class _Candidate:
+    """An optional element that can be dropped or re-added."""
 
     section_id: str
     item_id: str
-    bullet_id: str | None  # None means drop the whole item
-    score: int  # relevance_score (lower = drop first)
+    bullet_id: str | None  # None means the whole item
+    score: int  # relevance_score
 
 
-def _find_droppables(selection: ContentSelection) -> list[_Droppable]:
+def _find_droppables(selection: ContentSelection) -> list[_Candidate]:
     """Collect all currently-included optional elements, sorted by score.
 
     Returns bullets first (lowest score first), then items (lowest first).
     This ordering means we try dropping individual bullets before
     escalating to entire items.
     """
-    bullets: list[_Droppable] = []
-    items: list[_Droppable] = []
+    bullets: list[_Candidate] = []
+    items: list[_Candidate] = []
 
     for sec in selection.sections:
         if not sec.include:
@@ -151,64 +151,116 @@ def _find_droppables(selection: ContentSelection) -> list[_Droppable]:
         for it in sec.items:
             if not it.include:
                 continue
-            # Collect droppable bullets within this item
             for bd in it.bullets:
                 if bd.include:
-                    bullets.append(
-                        _Droppable(
-                            section_id=sec.id,
-                            item_id=it.id,
-                            bullet_id=bd.id,
-                            score=it.relevance_score,
-                        )
-                    )
-            # The item itself is droppable
-            items.append(
-                _Droppable(
-                    section_id=sec.id,
-                    item_id=it.id,
-                    bullet_id=None,
-                    score=it.relevance_score,
-                )
-            )
+                    bullets.append(_Candidate(sec.id, it.id, bd.id, bd.relevance_score))
+            items.append(_Candidate(sec.id, it.id, None, it.relevance_score))
 
-    # Sort each group by score ascending (drop lowest first)
     bullets.sort(key=lambda d: d.score)
     items.sort(key=lambda d: d.score)
 
     return bullets + items
 
 
-def _drop_element(
-    selection: ContentSelection, droppable: _Droppable
+def _find_addables(selection: ContentSelection) -> list[_Candidate]:
+    """Collect all currently-excluded optional elements, sorted by score descending.
+
+    Returns items first (highest score first), then bullets (highest first).
+    This ordering means we try re-adding entire items before individual bullets.
+    """
+    bullets: list[_Candidate] = []
+    items: list[_Candidate] = []
+
+    for sec in selection.sections:
+        if not sec.include:
+            continue
+        for it in sec.items:
+            if not it.include:
+                if it.relevance_score < 0:
+                    continue  # already tried and overflowed
+                items.append(_Candidate(sec.id, it.id, None, it.relevance_score))
+                continue
+            for bd in it.bullets:
+                if not bd.include and bd.relevance_score >= 0:
+                    bullets.append(_Candidate(sec.id, it.id, bd.id, bd.relevance_score))
+
+    items.sort(key=lambda a: a.score, reverse=True)
+    bullets.sort(key=lambda a: a.score, reverse=True)
+
+    return items + bullets
+
+
+# ---------------------------------------------------------------------------
+# Selection mutation helpers
+# ---------------------------------------------------------------------------
+
+
+def _update_element(
+    selection: ContentSelection,
+    candidate: _Candidate,
+    *,
+    bullet_transform: Callable[[BulletDecision], BulletDecision],
+    item_transform: Callable[[ItemDecision], ItemDecision],
 ) -> ContentSelection:
-    """Return a new *ContentSelection* with the given droppable excluded."""
+    """Return a new *ContentSelection* with a targeted item/bullet transformed."""
     new_sections: list[SectionDecision] = []
     for sec in selection.sections:
-        if sec.id != droppable.section_id:
+        if sec.id != candidate.section_id:
             new_sections.append(sec)
             continue
 
         new_items: list[ItemDecision] = []
         for it in sec.items:
-            if it.id != droppable.item_id:
+            if it.id != candidate.item_id:
                 new_items.append(it)
                 continue
 
-            if droppable.bullet_id is not None:
-                # Drop a single bullet
+            if candidate.bullet_id is not None:
                 new_bullets = [
-                    replace(bd, include=False) if bd.id == droppable.bullet_id else bd
+                    bullet_transform(bd) if bd.id == candidate.bullet_id else bd
                     for bd in it.bullets
                 ]
                 new_items.append(replace(it, bullets=new_bullets))
             else:
-                # Drop the entire item
-                new_items.append(replace(it, include=False))
+                new_items.append(item_transform(it))
 
         new_sections.append(replace(sec, items=new_items))
 
     return replace(selection, sections=new_sections)
+
+
+def _drop_element(
+    selection: ContentSelection, candidate: _Candidate
+) -> ContentSelection:
+    """Return a new *ContentSelection* with the given candidate excluded."""
+    return _update_element(
+        selection,
+        candidate,
+        bullet_transform=lambda bd: replace(bd, include=False),
+        item_transform=lambda it: replace(it, include=False),
+    )
+
+
+def _add_element(
+    selection: ContentSelection, candidate: _Candidate
+) -> ContentSelection:
+    """Return a new *ContentSelection* with the given candidate re-included."""
+    return _update_element(
+        selection,
+        candidate,
+        bullet_transform=lambda bd: replace(bd, include=True),
+        item_transform=lambda it: replace(it, include=True),
+    )
+
+
+def _mark_skip(selection: ContentSelection, candidate: _Candidate) -> ContentSelection:
+    """Set an excluded element's score to -1 so _find_addables skips it."""
+    return _update_element(
+        selection,
+        candidate,
+        bullet_transform=lambda bd: replace(bd, relevance_score=-1),
+        item_transform=lambda it: replace(it, relevance_score=-1),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -267,6 +319,7 @@ def compile_with_enforcement(
     attempt = 0
 
     try:
+        # Phase 1: Drop content until it fits on 1 page
         for attempt in range(_MAX_RETRIES + 1):
             tex = assemble_tex(parsed, current_sel)
             pdf_path = compile_tex(tex, keep_dir=work_dir)
@@ -274,7 +327,7 @@ def compile_with_enforcement(
 
             if pages <= 1:
                 logger.info("PDF fits in 1 page (attempt %d)", attempt + 1)
-                return pdf_path, current_sel
+                break
 
             logger.warning(
                 "PDF has %d pages (attempt %d/%d), dropping content",
@@ -305,13 +358,68 @@ def compile_with_enforcement(
             )
 
             current_sel = _drop_element(current_sel, target)
+
+        if pages > 1:
+            if owns_dir:
+                shutil.rmtree(work_dir, ignore_errors=True)
+            raise CompileError(
+                f"Resume still exceeds 1 page after {attempt + 1} attempts"
+            )
+
+        # Phase 2: Re-add excluded content to fill remaining space
+        # Try adding back highest-scored excluded elements one at a time;
+        # keep each addition only if the result still fits on 1 page.
+        for fill_attempt in range(_MAX_RETRIES * 3):
+            addables = _find_addables(current_sel)
+            if not addables:
+                break
+
+            candidate = addables[0]
+            trial_sel = _add_element(current_sel, candidate)
+
+            tex = assemble_tex(parsed, trial_sel)
+            trial_pdf = compile_tex(tex, keep_dir=work_dir)
+            pages = get_page_count(trial_pdf)
+
+            kind = (
+                f"bullet '{candidate.bullet_id}'"
+                if candidate.bullet_id
+                else f"item '{candidate.item_id}'"
+            )
+
+            if pages <= 1:
+                logger.info(
+                    "Re-added %s (score=%d) from section '%s' — still fits",
+                    kind,
+                    candidate.score,
+                    candidate.section_id,
+                )
+                current_sel = trial_sel
+                pdf_path = trial_pdf
+            else:
+                # Re-compile with current_sel to restore the on-disk PDF
+                # (compile_tex overwrites the same file in work_dir).
+                tex = assemble_tex(parsed, current_sel)
+                pdf_path = compile_tex(tex, keep_dir=work_dir)
+                logger.info(
+                    "Re-adding %s (score=%d) from section '%s' overflows — skipping",
+                    kind,
+                    candidate.score,
+                    candidate.section_id,
+                )
+                # Mark this element as permanently excluded so we don't retry it
+                # by dropping it from the current selection (it's already excluded,
+                # but we need to remove it from addables consideration).
+                # We do this by moving to the next candidate — _find_addables will
+                # return the same list, so we need to actually exclude it.
+                # The element is already excluded in current_sel, so we just need
+                # to skip it. We set its score to -1 to deprioritize it.
+                current_sel = _mark_skip(current_sel, candidate)
+
+        return pdf_path, current_sel
+
     except Exception:
         # Clean up auto-created temp dir on failure so it doesn't leak
         if owns_dir:
             shutil.rmtree(work_dir, ignore_errors=True)
         raise
-
-    # Still exceeds 1 page — clean up and raise
-    if owns_dir:
-        shutil.rmtree(work_dir, ignore_errors=True)
-    raise CompileError(f"Resume still exceeds 1 page after {attempt + 1} attempts")

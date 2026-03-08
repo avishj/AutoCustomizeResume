@@ -40,6 +40,7 @@ def run_pipeline(
     *,
     company: str | None = None,
     role: str | None = None,
+    keep_dir: Path | None = None,
 ) -> PipelineResult:
     """Run the full resume customization pipeline.
 
@@ -53,6 +54,8 @@ def run_pipeline(
         Override the LLM-extracted company name.
     role:
         Override the LLM-extracted role title.
+    keep_dir:
+        If provided, keep build artifacts (tex, pdf) in this directory.
 
     Returns
     -------
@@ -94,7 +97,9 @@ def run_pipeline(
 
     # 4. Compile with 1-page enforcement
     status.step(4, total, "Compiling resume PDF…")
-    resume_pdf, selection = compile_with_enforcement(parsed, selection)
+    resume_pdf, selection = compile_with_enforcement(
+        parsed, selection, keep_dir=keep_dir
+    )
 
     # 5. Cover letter (if enabled)
     cover_letter_pdf: Path | None = None

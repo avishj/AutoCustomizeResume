@@ -28,14 +28,13 @@ naming:
 # Supports: NVIDIA NIM, Groq, Together, Ollama, OpenAI, etc.
 llm:
   base_url: "https://integrate.api.nvidia.com/v1"
-  model: "z-ai/glm5"
+  model: "qwen/qwen3.5-397b-a17b"  # See autocustomizeresume/model_registry.json for supported models
   api_key_env: "LLM_API_KEY"  # Name of the env var holding the API key
 
 # Cover letter settings
 cover_letter:
   enabled: true
   template: "templates/cover_letter_template.tex"
-  style: "Professional, concise. No generic filler. Mention specific projects relevant to the role. Absolutely no emdashes. No buzzwords. Use long sentences with varying lengths. Use () in the middle of sentences to explain a thought. Keep it crisp. Show not tell. Key qualities to show: Ownership, Curiosity, Challenges."
   signature_path: ""  # Optional: path to signature image (e.g., "signature.png"). Leave empty to omit.
 
 # File paths

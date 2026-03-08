@@ -43,6 +43,9 @@ class ResumeItem:
     # Stored as (position, text) pairs where position is the index in bullets
     # before which the content appears. len(bullets) means after the last bullet.
     interstitial: list[tuple[int, str]] = field(default_factory=list)
+    # Optional compact one-liner (e.g. \resumeProjectHeading) used when the
+    # item is included but all its bullets are excluded.
+    compact_heading: str | None = None
 
 
 @dataclass

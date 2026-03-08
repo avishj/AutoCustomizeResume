@@ -12,7 +12,7 @@ import threading
 from pathlib import Path
 from typing import Callable
 
-from watchdog.events import FileModifiedEvent, FileSystemEventHandler
+from watchdog.events import DirModifiedEvent, FileModifiedEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 
 from autocustomizeresume import status
@@ -51,14 +51,15 @@ class DebouncedHandler(FileSystemEventHandler):
         self._timer: threading.Timer | None = None
         self._lock = threading.Lock()
 
-    def on_modified(self, event: FileModifiedEvent) -> None:  # type: ignore[override]
+    def on_modified(self, event: DirModifiedEvent | FileModifiedEvent) -> None:
         if event.is_directory:
             return
-        if os.path.abspath(event.src_path) != self._watch_path:
+        src_path = os.path.abspath(os.fsdecode(event.src_path))
+        if src_path != self._watch_path:
             return
         # Ignore empty-file saves
         try:
-            if Path(event.src_path).stat().st_size == 0:
+            if Path(src_path).stat().st_size == 0:
                 return
         except OSError:
             return

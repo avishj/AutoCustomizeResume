@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 
 from autocustomizeresume.config import Config
 from autocustomizeresume.llm_client import LLMClient
@@ -20,6 +19,7 @@ from autocustomizeresume.models import (
     SkillsSection,
 )
 from autocustomizeresume.schemas import ContentSelection, JDAnalysis
+from autocustomizeresume.utils import latex_preview
 
 logger = logging.getLogger(__name__)
 
@@ -28,29 +28,22 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 _SYSTEM_PROMPT = """\
-You are a resume content-selection assistant.
+You are a resume content-selection assistant.  Your goal is to produce a
+tightly tailored one-page resume by choosing the optional content that best
+matches the target job.  The candidate is already a software engineer —
+do not reward items simply for being "software engineering."  Instead,
+prioritize items that demonstrate the specific technologies, domain
+experience, and competencies that distinguish THIS role.
 
 You will receive two inputs wrapped in XML tags:
-1. **<jd_analysis>** — structured metadata about the target job (company, \
-role, seniority, domain, key skills, technologies).
-2. **<resume_data>** — the candidate's resume broken into sections, items, \
-bullets, and skill categories.  Each element is marked as either \
-"pinned" (always included) or "optional" (you decide).
+1. **<jd_analysis>** — structured metadata about the target job, including
+   a "priority_keywords" list of the 3-5 most differentiating requirements.
+   Use these as your primary selection signal.
+2. **<resume_data>** — the candidate's resume broken into sections, items,
+   bullets, and skill categories.  Each element is marked as either
+   "pinned" (always included) or "optional" (you decide).
 
-Your job is to return a **single JSON object** that decides:
-- Which optional **sections** to include.
-- Which optional **items** (jobs, projects, etc.) to include, with a \
-relevance score (0-100).
-- Which optional **bullets** within included items to include.  You may \
-also provide minor rephrasing of a bullet via the "edited_text" field — \
-use this ONLY to incorporate JD-specific terminology or keywords while \
-preserving the bullet's core meaning and factual content.  Set \
-"edited_text" to "" (empty string) to keep the original text verbatim.
-- Which **skills** to include within each subcategory, and in what order.  \
-All skill subcategories are always kept — you only filter and reorder \
-the individual skills within them.
-
-Return this exact JSON structure (no markdown, no commentary, no extra keys):
+Return a single JSON object (no markdown, no commentary):
 
 {
   "sections": [
@@ -66,6 +59,7 @@ Return this exact JSON structure (no markdown, no commentary, no extra keys):
             {
               "id": "<bullet tag ID>",
               "include": true/false,
+              "relevance_score": <0-100>,
               "edited_text": "<minor rephrasing or empty string>"
             }
           ]
@@ -81,22 +75,61 @@ Return this exact JSON structure (no markdown, no commentary, no extra keys):
   ]
 }
 
-Rules:
-- Pinned sections, items, and bullets are always included automatically — \
-do NOT list them.  However, if a pinned section contains optional items \
-or bullets, you MUST still include that section in your output (with \
-"include": true) so you can list the optional elements within it.
-- Every optional section, item, and bullet from the input MUST appear in \
-your output with an explicit include decision.
-- "relevance_score" should reflect how relevant the item is to the \
-target JD (0 = irrelevant, 100 = perfect match).
-- For bullets: "edited_text" must be empty ("") unless you are making a \
-minor terminology adjustment.  Never change facts, metrics, or the core \
-meaning.  Never add information that isn't in the original bullet.
-- For skills: include only skills from the original list.  Order them by \
-relevance to the JD (most relevant first).  You may exclude skills that \
-are clearly irrelevant, but err on the side of inclusion.
-- Return ONLY the JSON object.  No explanation, no markdown fences.\
+Selection rules:
+- Pinned sections, items, and bullets are always included automatically —
+  do NOT list them.  However, if a pinned section contains optional items
+  or bullets, you MUST still include that section in your output (with
+  "include": true) so you can list the optional elements within it.
+- Every optional section, item, and bullet from the input MUST appear in
+  your output with an explicit include decision.
+- CRITICAL: Your goal is to FILL a full one-page resume, not to minimize
+  content.  Include as much relevant content as possible.  A resume that
+  is too short is WORSE than one that is slightly too long — the system
+  will automatically trim overflow, but it CANNOT add content back.
+- When in doubt, INCLUDE the item or bullet.  Err heavily on the side of
+  inclusion.  Only exclude items that are truly irrelevant to the role.
+
+Scoring guidance:
+- "relevance_score" applies to BOTH items and bullets.  It reflects how
+  well the element matches THIS specific role, not software engineering
+  in general.
+- Score 80-100: directly demonstrates a priority_keyword or core JD requirement.
+- Score 50-79: relevant technology or transferable domain experience.
+- Score 20-49: tangentially related or shows general engineering strength.
+- Score 0-19: no meaningful connection to the role's distinguishing needs.
+- For bullets, score each independently — a high-relevance bullet within a
+  low-relevance item (or vice versa) is perfectly fine.
+- Include ALL items scoring 20+.  Only exclude items scoring below 20.
+
+Bullet editing ("edited_text"):
+- Set to "" (empty string) to keep original text verbatim — this is the default.
+- Use ONLY to incorporate JD-specific terminology where the original bullet
+  reasonably implies it.  Slight contextual inference is fine — bullets are
+  summaries that don't capture full detail.
+- Do NOT change metrics, numbers, or quantified outcomes.
+- Do NOT fabricate entirely new skills or experiences.
+- If you are unsure whether an edit crosses the line from reasonable
+  inference to fabrication, set edited_text to "" and flag it by giving
+  the bullet a lower relevance context — the user will handle it manually.
+- Example — GOOD: "managed cloud infrastructure" → "managed AWS cloud
+  infrastructure" (reasonable if the role/company context implies AWS).
+- Example — GOOD: "built data pipelines" → "built real-time data pipelines
+  using Kafka" (if the item's context involves streaming).
+- Example — BAD: "fixed frontend bugs" → "architected a distributed
+  microservices platform" (completely different scope and meaning).
+
+Skill ordering:
+- Include only skills from the original list.  Order by relevance to JD
+  (most relevant first).  You may drop clearly irrelevant skills, but
+  err on the side of inclusion.
+
+Compact items:
+- Items marked "has_compact=yes" have a compact one-liner fallback.  You
+  may safely exclude ALL their bullets — the item will still appear as a
+  single-line entry.  For items WITHOUT has_compact, excluding all bullets
+  will drop the item entirely.
+
+Return ONLY the JSON object.  No explanation, no markdown fences.\
 """
 
 
@@ -128,14 +161,15 @@ def _serialize_regular_section(section: ResumeSection) -> str:
     lines: list[str] = [f"SECTION: id={section.id}, tag={section.tag_type}"]
 
     for item in section.items:
-        lines.append(f"  ITEM: id={item.id}, tag={item.tag_type}")
+        compact_flag = ", has_compact=yes" if item.compact_heading else ""
+        lines.append(f"  ITEM: id={item.id}, tag={item.tag_type}{compact_flag}")
         # Include a brief summary from heading lines (strip LaTeX noise)
-        heading_preview = _latex_preview(item.heading_lines)
+        heading_preview = latex_preview(item.heading_lines)
         if heading_preview:
             lines.append(f"    heading: {heading_preview}")
 
         for bullet in item.bullets:
-            bullet_text = _latex_preview(bullet.text)
+            bullet_text = latex_preview(bullet.text)
             lines.append(f"    BULLET: id={bullet.id}, tag={bullet.tag_type}")
             if bullet_text:
                 lines.append(f"      text: {bullet_text}")
@@ -156,35 +190,6 @@ def _serialize_skills_section(section: SkillsSection) -> str:
         )
 
     return "\n".join(lines)
-
-
-def _latex_preview(text: str) -> str:
-    r"""Extract a readable preview from a LaTeX snippet.
-
-    Strips common LaTeX commands to give the LLM a cleaner view of
-    the content, while keeping it recognisable.  Not a full LaTeX
-    parser — just enough to be useful.
-    """
-    preview = text.strip()
-    # Remove common LaTeX line-break commands
-    preview = preview.replace("\\\\", " ")
-    preview = preview.replace("\\newline", " ")
-    # Remove \href{url}{text} — keep text (before brace stripping)
-    preview = re.sub(r"\\href\{[^}]*\}\{([^}]*)\}", r"\1", preview)
-    # Remove \textbf{...} / \textit{...} — keep content
-    preview = re.sub(r"\\text\w+\{([^}]*)\}", r"\1", preview)
-    # Remove \resumeItem{...} wrapper — keep the content
-    preview = re.sub(r"\\resumeItem\{", "", preview)
-    # Remove \resumeSubheading and similar — keep args
-    preview = re.sub(r"\\resume\w+\{", "", preview)
-    # Strip leftover braces from the above removals
-    preview = preview.replace("{", " ").replace("}", " ")
-    # Collapse whitespace
-    preview = re.sub(r"\s+", " ", preview).strip()
-    # Truncate for sanity
-    if len(preview) > 300:
-        preview = preview[:297] + "..."
-    return preview
 
 
 # ---------------------------------------------------------------------------
@@ -229,6 +234,7 @@ def select_content(
             "domain": jd_analysis.domain,
             "key_skills": jd_analysis.key_skills,
             "technologies": jd_analysis.technologies,
+            "priority_keywords": jd_analysis.priority_keywords,
         },
         indent=2,
     )
@@ -254,10 +260,9 @@ def select_content(
         len(resume_block),
     )
 
-    raw = client.chat_json(
+    raw = client.chat(
         system=_SYSTEM_PROMPT,
         user=user_prompt,
-        temperature=0.1,
     )
 
     selection = ContentSelection.from_dict(raw)

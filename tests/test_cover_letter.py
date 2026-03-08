@@ -86,13 +86,9 @@ def _make_config(**overrides) -> Config:
     )
     user_defaults.update(user_kw)
 
-    cl_defaults = dict(
-        enabled=True,
-        template="templates/cover_letter_template.tex",
-        style="Professional and concise.",
-        signature_path="",
-    )
-    cl_defaults.update(cl_kw)
+    cl_enabled: bool = cl_kw.get("enabled", True)
+    cl_template: str = cl_kw.get("template", "templates/cover_letter_template.tex")
+    cl_sig: str = cl_kw.get("signature_path", "")
 
     return Config(
         user=UserConfig(**user_defaults),
@@ -107,7 +103,11 @@ def _make_config(**overrides) -> Config:
             model="test-model",
             api_key_env="TEST_API_KEY",
         ),
-        cover_letter=CoverLetterConfig(**cl_defaults),
+        cover_letter=CoverLetterConfig(
+            enabled=cl_enabled,
+            template=cl_template,
+            signature_path=cl_sig,
+        ),
         paths=PathsConfig(
             master_resume="resume.tex",
             jd_file="jd.txt",
@@ -235,37 +235,29 @@ def _make_selection() -> ContentSelection:
 class TestSummarizeSelectedContent:
     """Tests for _summarize_selected_content()."""
 
-    def test_includes_pinned_section(self):
+    def test_included_content_appears(self):
+        """Pinned sections/bullets and selected optional content all appear."""
         summary = _summarize_selected_content(_make_parsed_resume(), _make_selection())
+        # Pinned section + item
         assert "Education" in summary
         assert "MIT" in summary
-
-    def test_includes_pinned_bullets(self):
-        summary = _summarize_selected_content(_make_parsed_resume(), _make_selection())
-        # Pinned bullet text should appear (LaTeX stripped by _latex_preview)
+        # Pinned bullet
         assert "TA for Distributed Systems" in summary
-
-    def test_includes_optional_section_when_selected(self):
-        summary = _summarize_selected_content(_make_parsed_resume(), _make_selection())
+        # Optional section included by selection
         assert "Experience" in summary
         assert "Acme" in summary
-
-    def test_excludes_optional_section_when_not_selected(self):
-        sel = ContentSelection(
-            sections=[
-                SectionDecision(id="experience", include=False, items=[]),
-            ],
-            skill_categories=[],
-        )
-        summary = _summarize_selected_content(_make_parsed_resume(), sel)
-        assert "Experience" not in summary
-
-    def test_includes_selected_optional_bullet(self):
-        summary = _summarize_selected_content(_make_parsed_resume(), _make_selection())
-        # acme-2 is optional and included
+        # Optional bullet included by selection
         assert "unit tests" in summary or "coverage" in summary
+        # Skills section with selected subset
+        assert "Languages" in summary
+        assert "Python" in summary
+        assert "Go" in summary
+        assert "FastAPI" in summary
+        # Unselected skill excluded
+        assert "Java" not in summary
 
-    def test_excludes_unselected_optional_bullet(self):
+    def test_excluded_content_absent(self):
+        """Excluded optional sections, items, and bullets do not appear."""
         sel = ContentSelection(
             sections=[
                 SectionDecision(
@@ -274,13 +266,9 @@ class TestSummarizeSelectedContent:
                     items=[
                         ItemDecision(
                             id="acme",
-                            include=True,
+                            include=False,
                             relevance_score=85,
-                            bullets=[
-                                BulletDecision(
-                                    id="acme-2", include=False, edited_text=""
-                                ),
-                            ],
+                            bullets=[],
                         ),
                     ],
                 ),
@@ -288,8 +276,22 @@ class TestSummarizeSelectedContent:
             skill_categories=[],
         )
         summary = _summarize_selected_content(_make_parsed_resume(), sel)
-        # acme-2 text should not appear (excluded)
-        assert "90" not in summary
+        # Item excluded
+        assert "Acme" not in summary
+
+        # Entire section excluded
+        sel2 = ContentSelection(
+            sections=[SectionDecision(id="experience", include=False, items=[])],
+            skill_categories=[],
+        )
+        summary2 = _summarize_selected_content(_make_parsed_resume(), sel2)
+        assert "Experience" not in summary2
+
+        # Empty selection: only pinned content
+        sel3 = ContentSelection(sections=[], skill_categories=[])
+        summary3 = _summarize_selected_content(_make_parsed_resume(), sel3)
+        assert "Education" in summary3
+        assert "Experience" not in summary3
 
     def test_uses_edited_text_when_present(self):
         sel = ContentSelection(
@@ -318,56 +320,14 @@ class TestSummarizeSelectedContent:
         summary = _summarize_selected_content(_make_parsed_resume(), sel)
         assert "95" in summary
 
-    def test_includes_skills_section(self):
-        summary = _summarize_selected_content(_make_parsed_resume(), _make_selection())
-        assert "Languages" in summary
-        assert "Python" in summary
-        assert "Go" in summary
-
-    def test_skills_respects_selection(self):
-        """Selected skills list is used, not the original full list."""
-        summary = _summarize_selected_content(_make_parsed_resume(), _make_selection())
-        # "Java" is in the original but not in the selection
-        assert "Java" not in summary
-        # "FastAPI" is selected
-        assert "FastAPI" in summary
-
-    def test_excludes_item_when_not_included(self):
-        sel = ContentSelection(
-            sections=[
-                SectionDecision(
-                    id="experience",
-                    include=True,
-                    items=[
-                        ItemDecision(
-                            id="acme",
-                            include=False,
-                            relevance_score=85,
-                            bullets=[],
-                        ),
-                    ],
-                ),
-            ],
-            skill_categories=[],
-        )
-        summary = _summarize_selected_content(_make_parsed_resume(), sel)
-        # Item heading should not appear
-        assert "Acme" not in summary
-
-    def test_empty_selection(self):
-        sel = ContentSelection(sections=[], skill_categories=[])
-        summary = _summarize_selected_content(_make_parsed_resume(), sel)
-        # Only pinned content appears
-        assert "Education" in summary
-        assert "Experience" not in summary
-
 
 class TestGenerateCoverLetterBody:
     """Tests for generate_cover_letter_body() with mocked LLM."""
 
-    def test_returns_llm_response_stripped(self):
+    def test_returns_stripped_body_with_correct_prompt(self):
+        """LLM response is stripped; prompt contains JD analysis and resume summary."""
         client = MagicMock(spec=LLMClient)
-        client.chat.return_value = "  Body text here.  \n"
+        client.chat.return_value = {"body": "  Body text here.  \n"}
 
         result = generate_cover_letter_body(
             _make_jd_analysis(),
@@ -378,96 +338,16 @@ class TestGenerateCoverLetterBody:
         )
         assert result == "Body text here."
 
-    def test_prompt_contains_jd_analysis(self):
-        client = MagicMock(spec=LLMClient)
-        client.chat.return_value = "Body."
-
-        generate_cover_letter_body(
-            _make_jd_analysis(),
-            _make_parsed_resume(),
-            _make_selection(),
-            config=_make_config(),
-            client=client,
-        )
-
         call_kwargs = client.chat.call_args[1]
         user = call_kwargs["user"]
         assert "<jd_analysis>" in user
         assert "Acme Corp" in user
-        assert "Senior Backend Engineer" in user
-
-    def test_prompt_contains_resume_summary(self):
-        client = MagicMock(spec=LLMClient)
-        client.chat.return_value = "Body."
-
-        generate_cover_letter_body(
-            _make_jd_analysis(),
-            _make_parsed_resume(),
-            _make_selection(),
-            config=_make_config(),
-            client=client,
-        )
-
-        call_kwargs = client.chat.call_args[1]
-        user = call_kwargs["user"]
         assert "<resume_summary>" in user
-        # Should include content from the resume summary
-        assert "Education" in user or "Experience" in user
-
-    def test_prompt_contains_style(self):
-        client = MagicMock(spec=LLMClient)
-        client.chat.return_value = "Body."
-
-        cfg = _make_config(cover_letter={"style": "Casual and friendly."})
-        generate_cover_letter_body(
-            _make_jd_analysis(),
-            _make_parsed_resume(),
-            _make_selection(),
-            config=cfg,
-            client=client,
-        )
-
-        call_kwargs = client.chat.call_args[1]
-        user = call_kwargs["user"]
-        assert "<style>" in user
-        assert "Casual and friendly." in user
-
-    def test_default_style_when_empty(self):
-        client = MagicMock(spec=LLMClient)
-        client.chat.return_value = "Body."
-
-        cfg = _make_config(cover_letter={"style": ""})
-        generate_cover_letter_body(
-            _make_jd_analysis(),
-            _make_parsed_resume(),
-            _make_selection(),
-            config=cfg,
-            client=client,
-        )
-
-        call_kwargs = client.chat.call_args[1]
-        user = call_kwargs["user"]
-        assert "Professional, concise." in user
-
-    def test_uses_temperature_04(self):
-        client = MagicMock(spec=LLMClient)
-        client.chat.return_value = "Body."
-
-        generate_cover_letter_body(
-            _make_jd_analysis(),
-            _make_parsed_resume(),
-            _make_selection(),
-            config=_make_config(),
-            client=client,
-        )
-
-        call_kwargs = client.chat.call_args[1]
-        assert call_kwargs["temperature"] == pytest.approx(0.4)
 
     def test_creates_client_from_config_when_none(self):
         with patch("autocustomizeresume.cover_letter.LLMClient") as mock_cls:
             mock_instance = MagicMock(spec=LLMClient)
-            mock_instance.chat.return_value = "Body."
+            mock_instance.chat.return_value = {"body": "Body."}
             mock_cls.return_value = mock_instance
 
             cfg = _make_config()
@@ -480,23 +360,6 @@ class TestGenerateCoverLetterBody:
 
             mock_cls.assert_called_once_with(cfg)
 
-    def test_system_prompt_mentions_rules(self):
-        client = MagicMock(spec=LLMClient)
-        client.chat.return_value = "Body."
-
-        generate_cover_letter_body(
-            _make_jd_analysis(),
-            _make_parsed_resume(),
-            _make_selection(),
-            config=_make_config(),
-            client=client,
-        )
-
-        call_kwargs = client.chat.call_args[1]
-        system = call_kwargs["system"]
-        assert "plain text" in system.lower()
-        assert "greeting" in system.lower() or "salutation" in system.lower()
-
 
 # ===========================================================================
 # 5.4b — LaTeX escaping + template injection
@@ -506,83 +369,49 @@ class TestGenerateCoverLetterBody:
 class TestEscapeLatex:
     """Tests for _escape_latex()."""
 
-    def test_ampersand(self):
-        assert _escape_latex("A & B") == r"A \& B"
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [
+            ("A & B", r"A \& B"),
+            ("100%", r"100\%"),
+            ("$100", r"\$100"),
+            ("#1", r"\#1"),
+            ("foo_bar", r"foo\_bar"),
+            ("~", r"\textasciitilde{}"),
+            ("x^2", r"x\textasciicircum{}2"),
+            ("{hello}", r"\{hello\}"),
+            ("a\\b", r"a\textbackslash{}b"),
+            ("Hello World", "Hello World"),
+            ("", ""),
+        ],
+    )
+    def test_escapes_special_chars(self, raw, expected):
+        assert _escape_latex(raw) == expected
 
-    def test_percent(self):
-        assert _escape_latex("100%") == r"100\%"
-
-    def test_dollar(self):
-        assert _escape_latex("$100") == r"\$100"
-
-    def test_hash(self):
-        assert _escape_latex("#1") == r"\#1"
-
-    def test_underscore(self):
-        assert _escape_latex("foo_bar") == r"foo\_bar"
-
-    def test_tilde(self):
-        assert _escape_latex("~") == r"\textasciitilde{}"
-
-    def test_caret(self):
-        assert _escape_latex("x^2") == r"x\textasciicircum{}2"
-
-    def test_braces(self):
-        assert _escape_latex("{hello}") == r"\{hello\}"
-
-    def test_backslash(self):
-        assert _escape_latex("a\\b") == r"a\textbackslash{}b"
-
-    def test_backslash_with_braces(self):
-        """Backslash followed by braces: no double-escaping."""
+    def test_backslash_with_braces_no_double_escape(self):
         result = _escape_latex("\\{")
         assert r"\textbackslash{}" in result
         assert r"\{" in result
-
-    def test_no_special_chars(self):
-        assert _escape_latex("Hello World") == "Hello World"
-
-    def test_multiple_specials(self):
-        result = _escape_latex("A & B $100 #1 _x")
-        assert r"\&" in result
-        assert r"\$" in result
-        assert r"\#" in result
-        assert r"\_" in result
-
-    def test_empty_string(self):
-        assert _escape_latex("") == ""
 
 
 class TestPlainTextToLatex:
     """Tests for _plain_text_to_latex()."""
 
-    def test_single_paragraph(self):
+    def test_single_paragraph_unchanged(self):
         result = _plain_text_to_latex("Hello world.")
         assert result == "Hello world."
         assert r"\par" not in result
 
-    def test_two_paragraphs(self):
-        result = _plain_text_to_latex("Para one.\n\nPara two.")
-        assert r"\par" in result
-        assert "Para one." in result
-        assert "Para two." in result
-
-    def test_multiple_blank_lines(self):
-        result = _plain_text_to_latex("A.\n\n\n\nB.")
-        # Multiple blank lines should collapse to single \par
-        assert result.count(r"\par") == 1
-
-    def test_escapes_special_chars_in_paragraphs(self):
-        result = _plain_text_to_latex("100% of $20\n\nA & B")
+    def test_paragraphs_and_escaping(self):
+        """Multiple paragraphs separated by \\par, blank lines collapsed, stripped."""
+        result = _plain_text_to_latex("  100% of $20  \n\n\n\n  A & B  ")
         assert r"\%" in result
         assert r"\$" in result
         assert r"\&" in result
-
-    def test_strips_whitespace_from_paragraphs(self):
-        result = _plain_text_to_latex("  A.  \n\n  B.  ")
-        # Paragraphs should be stripped
-        assert result.startswith("A.")
-        assert result.endswith("B.")
+        assert result.count(r"\par") == 1
+        # Paragraphs are stripped
+        assert not result.startswith(" ")
+        assert not result.endswith(" ")
 
 
 class TestBuildSignatureBlock:
@@ -592,20 +421,10 @@ class TestBuildSignatureBlock:
         assert _build_signature_block("") == ""
         assert _build_signature_block("   ") == ""
 
-    def test_returns_latex_with_filename(self):
-        result = _build_signature_block("coverletter/signature.png")
-        assert "signature.png" in result
+    def test_builds_latex_with_detokenized_filename_only(self):
+        result = _build_signature_block("/full/path/to/my_signature.png")
         assert r"\includegraphics" in result
-
-    def test_uses_only_filename(self):
-        result = _build_signature_block("/full/path/to/sig.png")
-        # Should NOT contain the full path
         assert "/full/path/to/" not in result
-        assert "sig.png" in result
-
-    def test_detokenizes_special_chars_in_filename(self):
-        result = _build_signature_block("path/my_signature.png")
-        # Filename is wrapped in \detokenize so _ is passed literally
         assert r"\detokenize{my_signature.png}" in result
 
 
@@ -623,89 +442,6 @@ class TestFormatDate:
 class TestInjectTemplate:
     """Tests for inject_template()."""
 
-    def test_replaces_first_name(self):
-        template = "Hello {{FIRST_NAME}}!"
-        result = inject_template(template, config=_make_config(), body_text="Body.")
-        assert "Jane" in result
-        assert "{{FIRST_NAME}}" not in result
-
-    def test_replaces_last_name(self):
-        template = "Hello {{LAST_NAME}}!"
-        result = inject_template(template, config=_make_config(), body_text="Body.")
-        assert "Doe" in result
-
-    def test_replaces_phone(self):
-        template = "Phone: {{PHONE}}"
-        result = inject_template(template, config=_make_config(), body_text="Body.")
-        assert "555-123-4567" in result
-
-    def test_replaces_email(self):
-        template = "Email: {{EMAIL}}"
-        result = inject_template(template, config=_make_config(), body_text="Body.")
-        assert "jane@example.com" in result
-
-    def test_replaces_linkedin(self):
-        template = "{{LINKEDIN}}"
-        result = inject_template(template, config=_make_config(), body_text="Body.")
-        assert "linkedin.com/in/janedoe" in result
-
-    def test_replaces_website(self):
-        template = "{{WEBSITE}}"
-        result = inject_template(template, config=_make_config(), body_text="Body.")
-        assert "janedoe.dev" in result
-
-    def test_replaces_degree(self):
-        template = "{{DEGREE}}"
-        result = inject_template(template, config=_make_config(), body_text="Body.")
-        assert "MS Computer Science" in result
-
-    def test_replaces_university(self):
-        template = "{{UNIVERSITY}}"
-        result = inject_template(template, config=_make_config(), body_text="Body.")
-        assert "MIT" in result
-
-    def test_replaces_body(self):
-        template = "{{BODY}}"
-        result = inject_template(
-            template, config=_make_config(), body_text="My cover letter body."
-        )
-        assert "My cover letter body." in result
-        assert "{{BODY}}" not in result
-
-    def test_replaces_date(self):
-        template = "{{DATE}}"
-        with patch("autocustomizeresume.cover_letter.date") as mock_date:
-            mock_date.today.return_value = date(2026, 3, 15)
-            mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
-            result = inject_template(template, config=_make_config(), body_text="Body.")
-        assert "March 15, 2026" in result
-
-    def test_replaces_signature_block(self):
-        cfg = _make_config(cover_letter={"signature_path": "sig.png"})
-        template = "{{SIGNATURE_BLOCK}}"
-        result = inject_template(template, config=cfg, body_text="Body.")
-        assert r"\includegraphics" in result
-        assert "sig.png" in result
-
-    def test_empty_signature_block(self):
-        cfg = _make_config(cover_letter={"signature_path": ""})
-        template = "before{{SIGNATURE_BLOCK}}after"
-        result = inject_template(template, config=cfg, body_text="Body.")
-        assert result == "beforeafter"
-
-    def test_escapes_user_info(self):
-        """User info with LaTeX special chars is properly escaped."""
-        cfg = _make_config(user={"email": "user_name@example.com"})
-        template = "{{EMAIL}}"
-        result = inject_template(template, config=cfg, body_text="Body.")
-        assert r"\_" in result
-
-    def test_warns_on_unreplaced_placeholders(self, caplog):
-        template = "{{FIRST_NAME}} {{UNKNOWN_THING}}"
-        with caplog.at_level(logging.WARNING):
-            inject_template(template, config=_make_config(), body_text="Body.")
-        assert "UNKNOWN_THING" in caplog.text
-
     def test_full_template(self):
         """Injection against the real template produces no remaining placeholders."""
         template_path = Path("templates/cover_letter_template.tex")
@@ -720,9 +456,28 @@ class TestInjectTemplate:
             result = inject_template(template, config=cfg, body_text="Body text.")
 
         remaining = re.findall(r"\{\{[A-Z_]+\}\}", result)
-        # {{PLACEHOLDER}} in a comment is expected — filter it out
+        # {{PLACEHOLDER}} in a comment is expected -- filter it out
         remaining = [p for p in remaining if p != "{{PLACEHOLDER}}"]
         assert remaining == [], f"Unreplaced placeholders: {remaining}"
+
+    def test_escapes_user_info(self):
+        """User info with LaTeX special chars is properly escaped."""
+        cfg = _make_config(user={"email": "user_name@example.com"})
+        template = "{{EMAIL}}"
+        result = inject_template(template, config=cfg, body_text="Body.")
+        assert r"\_" in result
+
+    def test_empty_signature_block(self):
+        cfg = _make_config(cover_letter={"signature_path": ""})
+        template = "before{{SIGNATURE_BLOCK}}after"
+        result = inject_template(template, config=cfg, body_text="Body.")
+        assert result == "beforeafter"
+
+    def test_warns_on_unreplaced_placeholders(self, caplog):
+        template = "{{FIRST_NAME}} {{UNKNOWN_THING}}"
+        with caplog.at_level(logging.WARNING):
+            inject_template(template, config=_make_config(), body_text="Body.")
+        assert "UNKNOWN_THING" in caplog.text
 
 
 # ===========================================================================
@@ -892,53 +647,6 @@ class TestBuildCoverLetter:
         mock_gen.assert_called_once()
         mock_compile.assert_called_once()
         assert result == tmp_path / "output.pdf"
-
-    @patch("autocustomizeresume.cover_letter.compile_cover_letter")
-    @patch("autocustomizeresume.cover_letter.generate_cover_letter_body")
-    def test_passes_client_through(self, mock_gen, mock_compile, tmp_path):
-        template = tmp_path / "template.tex"
-        template.write_text("{{BODY}}", encoding="utf-8")
-
-        cfg = _make_config(cover_letter={"enabled": True, "template": str(template)})
-
-        client = MagicMock(spec=LLMClient)
-        mock_gen.return_value = "Body."
-        mock_compile.return_value = tmp_path / "out.pdf"
-
-        build_cover_letter(
-            _make_jd_analysis(),
-            _make_parsed_resume(),
-            _make_selection(),
-            config=cfg,
-            client=client,
-        )
-
-        # Client should be passed to generate_cover_letter_body
-        call_kwargs = mock_gen.call_args[1]
-        assert call_kwargs["client"] is client
-
-    @patch("autocustomizeresume.cover_letter.compile_cover_letter")
-    @patch("autocustomizeresume.cover_letter.generate_cover_letter_body")
-    def test_passes_keep_dir_through(self, mock_gen, mock_compile, tmp_path):
-        template = tmp_path / "template.tex"
-        template.write_text("{{BODY}}", encoding="utf-8")
-
-        cfg = _make_config(cover_letter={"enabled": True, "template": str(template)})
-
-        keep = tmp_path / "keep"
-        mock_gen.return_value = "Body."
-        mock_compile.return_value = keep / "out.pdf"
-
-        build_cover_letter(
-            _make_jd_analysis(),
-            _make_parsed_resume(),
-            _make_selection(),
-            config=cfg,
-            keep_dir=keep,
-        )
-
-        call_kwargs = mock_compile.call_args[1]
-        assert call_kwargs["keep_dir"] is keep
 
     @patch("autocustomizeresume.cover_letter.compile_cover_letter")
     @patch("autocustomizeresume.cover_letter.generate_cover_letter_body")

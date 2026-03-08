@@ -10,8 +10,10 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any
 
+import httpx
 from openai import (
     APIConnectionError,
     APITimeoutError,
@@ -21,8 +23,27 @@ from openai import (
 )
 
 from autocustomizeresume.config import Config
+from autocustomizeresume.model_registry import get_model_params
 
 logger = logging.getLogger(__name__)
+
+
+_THINK_TAG_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
+
+
+def _strip_think_blocks(text: str) -> str:
+    """Strip ``<think>…</think>`` reasoning blocks from model output.
+
+    Reasoning models (e.g., minimax-m2.5, glm5) may prepend a thinking
+    block even when ``response_format=json_object`` is set.  The OpenAI
+    API spec keeps thinking content in a separate ``reasoning_content``
+    field, but not all providers follow that convention—some inline it
+    in the main ``content`` field wrapped in ``<think>`` tags.
+
+    This function removes those tags so the remaining text can be parsed
+    as JSON.
+    """
+    return _THINK_TAG_RE.sub("", text).strip()
 
 
 class LLMError(Exception):
@@ -39,12 +60,21 @@ class LLMClient:
         ``model``, ``api_key``) are read from ``config.llm``.
     """
 
-    def __init__(self, config: Config) -> None:
+    DEFAULT_TIMEOUT = 600.0  # seconds
+
+    def __init__(
+        self,
+        config: Config,
+        timeout: float | None = None,
+    ) -> None:
         self._model = config.llm.model
         self._api_key_env = config.llm.api_key_env
+        self._timeout = timeout if timeout is not None else self.DEFAULT_TIMEOUT
+        self._profile = get_model_params(self._model)
         self._client = OpenAI(
             base_url=config.llm.base_url,
             api_key=config.llm.api_key,
+            timeout=httpx.Timeout(self._timeout),
         )
 
     # ------------------------------------------------------------------
@@ -56,10 +86,15 @@ class LLMClient:
         *,
         system: str,
         user: str,
-        temperature: float = 0.2,
-        json_response: bool = False,
-    ) -> str:
-        """Send a chat completion request and return the assistant reply.
+        temperature: float | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Send a chat completion request and return parsed JSON.
+
+        Always requests ``response_format={"type": "json_object"}``,
+        strips any ``<think>`` blocks, and parses the response as JSON.
+        Sampling parameters are resolved from the model registry profile;
+        an explicit *temperature* overrides the profile value.
 
         Parameters
         ----------
@@ -68,38 +103,53 @@ class LLMClient:
         user:
             The user prompt.
         temperature:
-            Sampling temperature (default 0.2 for deterministic-ish output).
-        json_response:
-            If ``True``, requests ``response_format={"type": "json_object"}``
-            so the model is constrained to produce valid JSON.
+            Sampling temperature override.  When ``None`` (default) the
+            value from the model registry profile is used.
+        **kwargs:
+            Additional parameters to pass to the chat completion API.
 
         Returns
         -------
-        str
-            The assistant's response text.
+        dict
+            The parsed JSON object.
 
         Raises
         ------
         LLMError
-            On authentication, connection, timeout, rate-limit, or
-            unexpected API failures.
+            On authentication, connection, timeout, rate-limit,
+            unexpected API failures, or invalid JSON responses.
         """
         messages: list[dict[str, str]] = [
             {"role": "system", "content": system},
             {"role": "user", "content": user},
         ]
 
-        kwargs: dict[str, Any] = {
+        if temperature is None:
+            temperature = self._profile["temperature"]
+
+        request_kwargs: dict[str, Any] = {
             "model": self._model,
             "messages": messages,
             "temperature": temperature,
+            "top_p": self._profile["top_p"],
+            "max_tokens": self._profile["max_tokens"],
+            "response_format": {"type": "json_object"},
+            **self._profile.get("extra_params", {}),
+            **kwargs,
         }
 
-        if json_response:
-            kwargs["response_format"] = {"type": "json_object"}
+        logger.info("LLM request: model=%s", self._model)
+        logger.debug("LLM request kwargs: %s", request_kwargs)
 
         try:
-            response = self._client.chat.completions.create(**kwargs)
+            response = self._client.chat.completions.create(**request_kwargs)
+
+            if not response.choices:
+                raise LLMError("LLM returned no choices (empty choices list)")
+
+            raw = response.choices[0].message.content
+            if raw is None:
+                raise LLMError("LLM returned an empty response (content is None)")
         except AuthenticationError as exc:
             raise LLMError(
                 f"LLM authentication failed — check your API key "
@@ -113,51 +163,19 @@ class LLMClient:
             ) from exc
         except RateLimitError as exc:
             raise LLMError(f"LLM API rate limit exceeded: {exc}") from exc
+        except httpx.TimeoutException as exc:
+            raise LLMError(
+                f"LLM API request timed out after {self._timeout}s: {exc}"
+            ) from exc
+        except LLMError:
+            raise
         except Exception as exc:
             raise LLMError(f"LLM API call failed: {exc}") from exc
 
-        if not response.choices:
-            raise LLMError("LLM returned no choices (empty choices list)")
-
-        choice = response.choices[0]
-        content = choice.message.content
-
-        if content is None:
-            raise LLMError("LLM returned an empty response (content is None)")
-
-        return content
-
-    def chat_json(
-        self,
-        *,
-        system: str,
-        user: str,
-        temperature: float = 0.2,
-    ) -> dict[str, Any]:
-        """Send a chat request and parse the response as JSON.
-
-        Convenience wrapper around :meth:`chat` that sets
-        ``json_response=True`` and parses the result.
-
-        Returns
-        -------
-        dict
-            The parsed JSON object.
-
-        Raises
-        ------
-        LLMError
-            If the LLM call fails or the response is not valid JSON.
-        """
-        raw = self.chat(
-            system=system,
-            user=user,
-            temperature=temperature,
-            json_response=True,
-        )
+        json_text = _strip_think_blocks(raw)
 
         try:
-            parsed = json.loads(raw)
+            parsed = json.loads(json_text)
         except json.JSONDecodeError as exc:
             raise LLMError(
                 f"LLM returned invalid JSON: {exc}\nRaw response:\n{raw}"

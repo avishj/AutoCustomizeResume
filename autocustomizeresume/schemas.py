@@ -13,6 +13,24 @@ from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
 
+# Expected keys for each from_dict (used by _warn_unexpected_keys)
+_JD_KEYS = frozenset(
+    {
+        "company",
+        "role",
+        "seniority",
+        "domain",
+        "key_skills",
+        "technologies",
+        "priority_keywords",
+    }
+)
+_BULLET_KEYS = frozenset({"id", "include", "relevance_score", "edited_text"})
+_ITEM_KEYS = frozenset({"id", "include", "relevance_score", "bullets"})
+_SECTION_KEYS = frozenset({"id", "include", "items"})
+_SKILL_CAT_KEYS = frozenset({"name", "skills"})
+_CONTENT_SEL_KEYS = frozenset({"sections", "skill_categories"})
+
 
 # ---------------------------------------------------------------------------
 # JD analysis schema
@@ -46,10 +64,12 @@ class JDAnalysis:
     domain: str
     key_skills: list[str]
     technologies: list[str]
+    priority_keywords: list[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data: dict) -> JDAnalysis:
         """Parse and validate a dict (from LLM JSON) into a JDAnalysis."""
+        _warn_unexpected_keys("JDAnalysis", data, _JD_KEYS)
         return cls(
             company=str(data.get("company") or "Unknown").strip() or "Unknown",
             role=str(data.get("role") or "Unknown").strip() or "Unknown",
@@ -57,6 +77,7 @@ class JDAnalysis:
             domain=str(data.get("domain") or "unknown").strip(),
             key_skills=_str_list(data.get("key_skills", [])),
             technologies=_str_list(data.get("technologies", [])),
+            priority_keywords=_str_list(data.get("priority_keywords", [])),
         )
 
 
@@ -75,6 +96,8 @@ class BulletDecision:
         The bullet's tag ID (e.g. ``"acme-1"``).
     include:
         Whether to include this bullet.
+    relevance_score:
+        0-100 score indicating how relevant this bullet is to the JD.
     edited_text:
         If non-empty, a minor rephrasing of the bullet text to better
         match JD terminology.  Must preserve the core meaning.  Empty
@@ -83,10 +106,12 @@ class BulletDecision:
 
     id: str
     include: bool
+    relevance_score: int = 50
     edited_text: str = ""
 
     @classmethod
     def from_dict(cls, data: dict) -> BulletDecision:
+        _warn_unexpected_keys("BulletDecision", data, _BULLET_KEYS)
         if "include" not in data:
             logger.warning(
                 "BulletDecision missing 'include' for id=%s, defaulting to True",
@@ -95,6 +120,7 @@ class BulletDecision:
         return cls(
             id=str(data.get("id", "")),
             include=_coerce_bool(data.get("include", True)),
+            relevance_score=_coerce_score(data.get("relevance_score")),
             edited_text=str(data.get("edited_text", "")),
         )
 
@@ -123,6 +149,7 @@ class ItemDecision:
 
     @classmethod
     def from_dict(cls, data: dict) -> ItemDecision:
+        _warn_unexpected_keys("ItemDecision", data, _ITEM_KEYS)
         if "include" not in data:
             logger.warning(
                 "ItemDecision missing 'include' for id=%s, defaulting to True",
@@ -157,8 +184,13 @@ class SectionDecision:
     include: bool
     items: list[ItemDecision] = field(default_factory=list)
 
+    def find_item(self, item_id: str) -> ItemDecision | None:
+        """Find the ItemDecision for *item_id*, or ``None``."""
+        return next((itd for itd in self.items if itd.id == item_id), None)
+
     @classmethod
     def from_dict(cls, data: dict) -> SectionDecision:
+        _warn_unexpected_keys("SectionDecision", data, _SECTION_KEYS)
         if "include" not in data:
             logger.warning(
                 "SectionDecision missing 'include' for id=%s, defaulting to True",
@@ -192,6 +224,7 @@ class SkillCategoryDecision:
 
     @classmethod
     def from_dict(cls, data: dict) -> SkillCategoryDecision:
+        _warn_unexpected_keys("SkillCategoryDecision", data, _SKILL_CAT_KEYS)
         return cls(
             name=str(data.get("name", "")),
             skills=_str_list(data.get("skills", [])),
@@ -208,8 +241,20 @@ class ContentSelection:
     sections: list[SectionDecision] = field(default_factory=list)
     skill_categories: list[SkillCategoryDecision] = field(default_factory=list)
 
+    def find_section(self, section_id: str) -> SectionDecision | None:
+        """Find the SectionDecision for *section_id*, or ``None``."""
+        return next((sd for sd in self.sections if sd.id == section_id), None)
+
+    def find_skill_category(self, cat_name: str) -> SkillCategoryDecision | None:
+        """Find the SkillCategoryDecision for *cat_name*, or ``None``."""
+        return next(
+            (scd for scd in self.skill_categories if scd.name == cat_name),
+            None,
+        )
+
     @classmethod
     def from_dict(cls, data: dict) -> ContentSelection:
+        _warn_unexpected_keys("ContentSelection", data, _CONTENT_SEL_KEYS)
         return cls(
             sections=[
                 SectionDecision.from_dict(s) for s in _dict_list(data.get("sections"))
@@ -244,9 +289,11 @@ def _coerce_score(val: object, default: int = 50) -> int:
     """Coerce a value to an int score, clamped to 0-100."""
     if val is None:
         return default
+    if not isinstance(val, (int, float, str)):
+        return default
     try:
         return max(0, min(100, int(float(val))))
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         return default
 
 
@@ -262,3 +309,14 @@ def _dict_list(val: object) -> list[dict]:
     if not isinstance(val, list):
         return []
     return [item for item in val if isinstance(item, dict)]
+
+
+def _warn_unexpected_keys(cls_name: str, data: dict, expected: frozenset[str]) -> None:
+    """Log a debug message for any keys in *data* not in *expected*."""
+    unexpected = data.keys() - expected
+    if unexpected:
+        logger.debug(
+            "%s.from_dict: unexpected keys ignored: %s",
+            cls_name,
+            ", ".join(sorted(unexpected)),
+        )

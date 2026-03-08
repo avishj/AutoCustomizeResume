@@ -22,8 +22,8 @@ from autocustomizeresume.schemas import (
 from autocustomizeresume.selector import (
     select_content,
     _serialize_resume,
-    _latex_preview,
 )
+from autocustomizeresume.utils import latex_preview
 
 
 # ---------------------------------------------------------------------------
@@ -174,7 +174,7 @@ _SAMPLE_SELECTION_DICT = {
 
 def _make_client(response_dict: dict) -> MagicMock:
     client = MagicMock(spec=LLMClient)
-    client.chat_json.return_value = response_dict
+    client.chat.return_value = response_dict
     return client
 
 
@@ -302,7 +302,7 @@ class TestPromptConstruction:
             config=_make_config(),
             client=client,
         )
-        call_kwargs = client.chat_json.call_args[1]
+        call_kwargs = client.chat.call_args[1]
         user = call_kwargs["user"]
         assert "Acme Corp" in user
         assert "Senior Backend Engineer" in user
@@ -317,7 +317,7 @@ class TestPromptConstruction:
             config=_make_config(),
             client=client,
         )
-        call_kwargs = client.chat_json.call_args[1]
+        call_kwargs = client.chat.call_args[1]
         user = call_kwargs["user"]
         assert "experience" in user
         assert "acme" in user
@@ -331,7 +331,7 @@ class TestPromptConstruction:
             config=_make_config(),
             client=client,
         )
-        call_kwargs = client.chat_json.call_args[1]
+        call_kwargs = client.chat.call_args[1]
         system = call_kwargs["system"]
         assert "JSON" in system or "json" in system
 
@@ -343,12 +343,12 @@ class TestPromptConstruction:
             config=_make_config(),
             client=client,
         )
-        call_kwargs = client.chat_json.call_args[1]
+        call_kwargs = client.chat.call_args[1]
         system = call_kwargs["system"]
         assert "edited_text" in system
         assert "rephrasing" in system.lower() or "rephras" in system.lower()
 
-    def test_low_temperature(self):
+    def test_no_temperature_override(self):
         client = _make_client(_SAMPLE_SELECTION_DICT)
         select_content(
             _make_jd_analysis(),
@@ -356,8 +356,8 @@ class TestPromptConstruction:
             config=_make_config(),
             client=client,
         )
-        call_kwargs = client.chat_json.call_args[1]
-        assert call_kwargs["temperature"] == pytest.approx(0.1)
+        call_kwargs = client.chat.call_args[1]
+        assert "temperature" not in call_kwargs
 
 
 # ---------------------------------------------------------------------------
@@ -396,39 +396,51 @@ class TestSerializeResume:
         assert "Python" in result
         assert "Kubernetes" in result
 
+    def test_compact_flag_shown_when_set(self):
+        parsed = _make_parsed_resume()
+        exp = parsed.sections[1]
+        assert isinstance(exp, ResumeSection)
+        exp.items[0].compact_heading = r"\resumeProjectHeading{\textbf{Acme}}{2024}"
+        result = _serialize_resume(parsed)
+        assert "has_compact=yes" in result
+
+    def test_compact_flag_absent_when_not_set(self):
+        result = _serialize_resume(_make_parsed_resume())
+        assert "has_compact" not in result
+
 
 # ---------------------------------------------------------------------------
-# _latex_preview()
+# latex_preview()
 # ---------------------------------------------------------------------------
 
 
 class TestLatexPreview:
     def test_strips_resume_item(self):
-        result = _latex_preview(r"\resumeItem{Built a REST API}")
+        result = latex_preview(r"\resumeItem{Built a REST API}")
         assert "Built a REST API" in result
         assert r"\resumeItem" not in result
 
     def test_strips_textbf(self):
-        result = _latex_preview(r"\textbf{Languages}{: Python, Java}")
+        result = latex_preview(r"\textbf{Languages}{: Python, Java}")
         assert "Languages" in result
         assert r"\textbf" not in result
 
     def test_strips_href(self):
-        result = _latex_preview(r"\href{https://example.com}{My Site}")
+        result = latex_preview(r"\href{https://example.com}{My Site}")
         assert "My Site" in result
         assert "https://example.com" not in result
 
     def test_truncates_long_text(self):
         long_text = "x" * 400
-        result = _latex_preview(long_text)
+        result = latex_preview(long_text)
         assert len(result) <= 300
 
     def test_collapses_whitespace(self):
-        result = _latex_preview("hello   \n  world")
+        result = latex_preview("hello   \n  world")
         assert result == "hello world"
 
     def test_empty_input(self):
-        assert _latex_preview("") == ""
+        assert latex_preview("") == ""
 
 
 # ---------------------------------------------------------------------------
@@ -439,7 +451,7 @@ class TestLatexPreview:
 class TestSelectContentErrors:
     def test_llm_error_propagates(self):
         client = MagicMock(spec=LLMClient)
-        client.chat_json.side_effect = LLMError("boom")
+        client.chat.side_effect = LLMError("boom")
 
         with pytest.raises(LLMError, match="boom"):
             select_content(
@@ -452,7 +464,7 @@ class TestSelectContentErrors:
     def test_creates_client_from_config_when_none(self):
         with patch("autocustomizeresume.selector.LLMClient") as mock_cls:
             mock_instance = MagicMock(spec=LLMClient)
-            mock_instance.chat_json.return_value = _SAMPLE_SELECTION_DICT
+            mock_instance.chat.return_value = _SAMPLE_SELECTION_DICT
             mock_cls.return_value = mock_instance
 
             cfg = _make_config()

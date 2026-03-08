@@ -55,7 +55,6 @@ def _make_config(cover_letter_enabled=False) -> Config:
         cover_letter=CoverLetterConfig(
             enabled=cover_letter_enabled,
             template="templates/cover_letter_template.tex",
-            style="Professional.",
             signature_path="",
         ),
         paths=PathsConfig(
