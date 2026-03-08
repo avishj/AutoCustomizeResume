@@ -424,7 +424,7 @@ def compile_cover_letter(
 
         # Copy signature image if configured
         sig_path = config.cover_letter.signature_path
-        if sig_path.strip():
+        if sig_path and sig_path.strip():
             sig_src = Path(sig_path)
             if sig_src.exists():
                 sig_dst = work / sig_src.name
