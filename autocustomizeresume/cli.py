@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 from typing import Annotated
 
-import typer
+from cyclopts import App, Parameter
 from rich.console import Console
 
 from autocustomizeresume import __version__, status
@@ -19,20 +19,13 @@ from autocustomizeresume.namer import handle_output
 from autocustomizeresume.pipeline import run_pipeline
 from autocustomizeresume.watcher import watch
 
-app = typer.Typer(
+app = App(
     name="autocustomizeresume",
     help="Auto-customize a tagged LaTeX resume for a job description.",
-    rich_markup_mode="rich",
-    add_completion=False,
+    version=__version__,
+    version_flags=["--version", "-V"],
 )
 console = Console()
-
-
-def _version_callback(value: bool) -> None:  # noqa: FBT001
-    """Print version and exit."""
-    if value:
-        console.print(f"autocustomizeresume {__version__}")
-        raise typer.Exit
 
 
 def _run_oneshot(
@@ -56,38 +49,29 @@ def _run_oneshot(
     status.success(f"Output → {config.paths.output_dir}/")
 
 
-@app.callback(invoke_without_command=True)
+@app.default
 def main(
+    *,
     jd: Annotated[
         Path | None,
-        typer.Option(help="Path to JD text file (one-shot mode). Omit for watch mode."),
+        Parameter("--jd", help="Path to JD text file (one-shot mode). Omit for watch mode."),
     ] = None,
     company: Annotated[
         str | None,
-        typer.Option(help="Override LLM-extracted company name."),
+        Parameter("--company", help="Override LLM-extracted company name."),
     ] = None,
     role: Annotated[
         str | None,
-        typer.Option(help="Override LLM-extracted role title."),
+        Parameter("--role", help="Override LLM-extracted role title."),
     ] = None,
     verbose: Annotated[
         bool,
-        typer.Option("--verbose", "-v", help="Enable verbose debug logging."),
+        Parameter("--verbose", help="Enable verbose debug logging."),
     ] = False,
     keep_dir: Annotated[
         Path | None,
-        typer.Option(help="Keep build artifacts (tex, pdf) in this directory."),
+        Parameter("--keep-dir", help="Keep build artifacts (tex, pdf) in this directory."),
     ] = None,
-    _version: Annotated[
-        bool,
-        typer.Option(
-            "--version",
-            "-V",
-            help="Show version and exit.",
-            callback=_version_callback,
-            is_eager=True,
-        ),
-    ] = False,
 ) -> None:
     """Auto-customize a tagged LaTeX resume for a job description."""
     if verbose:
