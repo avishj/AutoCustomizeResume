@@ -34,7 +34,7 @@ Changelog = "https://github.com/avishj/AutoCustomizeResume/blob/main/CHANGELOG.m
 Issues = "https://github.com/avishj/AutoCustomizeResume/issues"
 
 [project.scripts]
-autocustomizeresume = "autocustomizeresume.cli:main"
+autocustomizeresume = "autocustomizeresume.cli:app"
 
 [tool.uv]
 python-preference = "managed"
