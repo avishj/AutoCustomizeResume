@@ -31,6 +31,7 @@ dependencies = [
 Homepage = "https://github.com/avishj/AutoCustomizeResume"
 Repository = "https://github.com/avishj/AutoCustomizeResume"
 Changelog = "https://github.com/avishj/AutoCustomizeResume/blob/main/CHANGELOG.md"
+Documentation = "https://avishj.github.io/AutoCustomizeResume"
 Issues = "https://github.com/avishj/AutoCustomizeResume/issues"
 
 [project.scripts]
