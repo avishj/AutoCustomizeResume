@@ -3,7 +3,7 @@ name = "autocustomizeresume"
 version = "0.1.0"
 description = "Auto-customize your LaTeX resume for different jobs using LLM-powered content selection"
 readme = "README.md"
-license = { file = "LICENSE" }
+license = "AGPL-3.0-or-later"
 requires-python = ">=3.13"
 authors = [{ name = "Avish Jha", email = "avish.j@pm.me" }]
 keywords = ["resume", "latex", "llm", "cli", "cover-letter", "job-application"]
