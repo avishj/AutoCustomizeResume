@@ -5,6 +5,18 @@ description = "Auto-customize your LaTeX resume for different jobs using LLM-pow
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.13"
+authors = [{ name = "Avish Jha", email = "avish.j@pm.me" }]
+keywords = ["resume", "latex", "llm", "cli", "cover-letter", "job-application"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Typing :: Typed",
+]
 dependencies = [
     "openai>=2.24.0",
     "pypdf>=6.7.4",
@@ -13,8 +25,17 @@ dependencies = [
     "watchdog>=6.0.0",
 ]
 
+[project.urls]
+Homepage = "https://github.com/avishj/AutoCustomizeResume"
+Repository = "https://github.com/avishj/AutoCustomizeResume"
+Changelog = "https://github.com/avishj/AutoCustomizeResume/blob/main/CHANGELOG.md"
+Issues = "https://github.com/avishj/AutoCustomizeResume/issues"
+
 [project.scripts]
 autocustomizeresume = "autocustomizeresume.cli:main"
+
+[tool.uv]
+python-preference = "managed"
 
 [build-system]
 requires = ["hatchling"]
