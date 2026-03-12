@@ -2,10 +2,15 @@
 
 Customize your LaTeX resume and cover letter for every job application, automatically. Paste a job description, get a tailored and optimized one-page resume and matching cover letter as compiled PDFs.
 
-[![License: AGPL-3.0](https://img.shields.io/github/license/avishj/AutoCustomizeResume)](./LICENSE)
-[![Python >= 3.10](https://img.shields.io/badge/python-%3E%3D3.10-blue)](./pyproject.toml)
+[![CI](https://github.com/avishj/AutoCustomizeResume/actions/workflows/ci.yml/badge.svg)](https://github.com/avishj/AutoCustomizeResume/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/avishj/AutoCustomizeResume/actions/workflows/codeql.yml/badge.svg)](https://github.com/avishj/AutoCustomizeResume/actions/workflows/codeql.yml)
+[![codecov](https://codecov.io/gh/avishj/AutoCustomizeResume/branch/main/graph/badge.svg)](https://codecov.io/gh/avishj/AutoCustomizeResume)
+[![License](https://img.shields.io/github/license/avishj/AutoCustomizeResume)](LICENSE)
+[![Python](https://img.shields.io/badge/python-%3E%3D3.13-blue)](./pyproject.toml)
 [![Stars](https://img.shields.io/github/stars/avishj/AutoCustomizeResume)](https://github.com/avishj/AutoCustomizeResume/stargazers)
 [![Last commit](https://img.shields.io/github/last-commit/avishj/AutoCustomizeResume)](https://github.com/avishj/AutoCustomizeResume/commits/main)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/avishj/AutoCustomizeResume/badge)](https://scorecard.dev/viewer/?uri=github.com/avishj/AutoCustomizeResume)
+[![Docker](https://img.shields.io/docker/v/avishj/autocustomizeresume?label=docker)](https://hub.docker.com/r/avishj/autocustomizeresume)
 
 ## What it does
 
