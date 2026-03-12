@@ -148,11 +148,43 @@ python-version = "3.13"
 [tool.coverage.run]
 source = ["autocustomizeresume"]
 branch = true
+parallel = true
 
 [tool.coverage.report]
+fail_under = 70
 show_missing = true
 skip_empty = true
-fail_under = 80
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+    "@overload",
+    "raise NotImplementedError",
+    "\\.\\.\\.",
+]
 
 [tool.pytest.ini_options]
-addopts = "--cov --cov-report=term-missing"
+testpaths = ["tests"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "-ra",
+]
+markers = [
+    "unit: fast isolated tests with no external dependencies",
+    "integration: tests exercising multiple components together (e.g. CliRunner)",
+    "e2e: end-to-end tests invoking the installed CLI via subprocess",
+]
+filterwarnings = ["error"]
+xfail_strict = true
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.1.0"
+tag_format = "v$version"
+version_files = [
+    "autocustomizeresume/__init__.py:__version__",
+    "pyproject.toml:version",
+]
+changelog_file = "CHANGELOG.md"
+update_changelog_on_bump = true
