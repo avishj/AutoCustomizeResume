@@ -145,6 +145,43 @@ The tool auto-drops lowest-scored optional items, but if your pinned content alo
 **Watch mode not triggering**
 Check that you are editing the file at `paths.jd_file` (default: `jd.txt`). The watcher debounces changes by `watcher.debounce_seconds` before running.
 
+## Development
+
+### Prerequisites
+
+- [uv](https://docs.astral.sh/uv/)
+- [just](https://github.com/casey/just)
+- [Tectonic](https://tectonic-typesetting.github.io) on PATH
+
+### Setup
+
+```bash
+git clone https://github.com/avishj/AutoCustomizeResume.git
+cd AutoCustomizeResume
+uv sync
+pre-commit install
+```
+
+### Common tasks
+
+```bash
+just lint        # lint and format check
+just typecheck   # run type checker
+just test        # run tests
+just cov         # run tests with coverage
+just ci          # run all quality gates
+just docs        # serve docs locally
+just clean       # remove build artifacts
+```
+
+## Documentation
+
+[https://avishj.github.io/AutoCustomizeResume](https://avishj.github.io/AutoCustomizeResume)
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
+
 ## License
 
 [GNU Affero General Public License v3.0 (AGPL-3.0)](./LICENSE)
