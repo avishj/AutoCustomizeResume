@@ -12,7 +12,7 @@ lint-fix:
     uv run ruff format .
 
 typecheck:
-    uv run ty check autocustomizeresume/ tests/
+    uv run ty check src/autocustomizeresume/ tests/
 
 test *args:
     uv run pytest -n auto {{ args }}
@@ -21,7 +21,7 @@ cov:
     uv run pytest --cov --cov-report=term --cov-report=html --cov-report=xml --cov-fail-under=80 --junitxml=results.xml -n auto
 
 complexity:
-    uv run complexipy autocustomizeresume/ --max-complexity 15
+    uv run complexipy src/autocustomizeresume/ --max-complexity 15
 
 semgrep:
     uv run semgrep scan --config=auto .
