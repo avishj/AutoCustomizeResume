@@ -1,10 +1,8 @@
-"""Tests for the cover letter generator."""
+"""Unit tests for the cover letter generator."""
 
 from __future__ import annotations
 
 import logging
-import re
-import shutil
 import tempfile as _tempfile
 from datetime import date
 from pathlib import Path
@@ -49,17 +47,6 @@ from autocustomizeresume.schemas import (
     JDAnalysis,
     SectionDecision,
     SkillCategoryDecision,
-)
-
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-
-# Minimal valid 1x1 RGB PNG (avoids struct/zlib at runtime).
-_MINIMAL_PNG = (
-    b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00"
-    b"\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\xf8"
-    b"\xff\xff?\x00\x05\xfe\x02\xfe\r\xefF\xb8\x00\x00\x00\x00IEND\xaeB`\x82"
 )
 
 
@@ -230,7 +217,7 @@ def _make_selection() -> ContentSelection:
 
 
 # ===========================================================================
-# 5.4a — Resume context serializer + body generation (mocked LLM)
+# Resume context serializer + body generation (mocked LLM)
 # ===========================================================================
 
 
@@ -240,22 +227,16 @@ class TestSummarizeSelectedContent:
     def test_included_content_appears(self):
         """Pinned sections/bullets and selected optional content all appear."""
         summary = _summarize_selected_content(_make_parsed_resume(), _make_selection())
-        # Pinned section + item
         assert "Education" in summary
         assert "MIT" in summary
-        # Pinned bullet
         assert "TA for Distributed Systems" in summary
-        # Optional section included by selection
         assert "Experience" in summary
         assert "Acme" in summary
-        # Optional bullet included by selection
         assert "unit tests" in summary or "coverage" in summary
-        # Skills section with selected subset
         assert "Languages" in summary
         assert "Python" in summary
         assert "Go" in summary
         assert "FastAPI" in summary
-        # Unselected skill excluded
         assert "Java" not in summary
 
     def test_excluded_content_absent(self):
@@ -278,10 +259,8 @@ class TestSummarizeSelectedContent:
             skill_categories=[],
         )
         summary = _summarize_selected_content(_make_parsed_resume(), sel)
-        # Item excluded
         assert "Acme" not in summary
 
-        # Entire section excluded
         sel2 = ContentSelection(
             sections=[SectionDecision(id="experience", include=False, items=[])],
             skill_categories=[],
@@ -289,7 +268,6 @@ class TestSummarizeSelectedContent:
         summary2 = _summarize_selected_content(_make_parsed_resume(), sel2)
         assert "Experience" not in summary2
 
-        # Empty selection: only pinned content
         sel3 = ContentSelection(sections=[], skill_categories=[])
         summary3 = _summarize_selected_content(_make_parsed_resume(), sel3)
         assert "Education" in summary3
@@ -330,7 +308,6 @@ class TestGenerateCoverLetterBody:
     """Tests for generate_cover_letter_body() with mocked LLM."""
 
     def test_returns_stripped_body_with_correct_prompt(self):
-        """LLM response is stripped; prompt contains JD analysis and resume summary."""
         client = MagicMock(spec=LLMClient)
         client.chat.return_value = {"body": "  Body text here.  \n"}
 
@@ -367,7 +344,7 @@ class TestGenerateCoverLetterBody:
 
 
 # ===========================================================================
-# 5.4b — LaTeX escaping + template injection
+# LaTeX escaping + template injection
 # ===========================================================================
 
 
@@ -414,7 +391,6 @@ class TestPlainTextToLatex:
         assert r"\$" in result
         assert r"\&" in result
         assert result.count(r"\par") == 1
-        # Paragraphs are stripped
         assert not result.startswith(" ")
         assert not result.endswith(" ")
 
@@ -445,25 +421,7 @@ class TestFormatDate:
 
 
 class TestInjectTemplate:
-    """Tests for inject_template()."""
-
-    def test_full_template(self):
-        """Injection against the real template produces no remaining placeholders."""
-        template_path = Path("templates/cover_letter_template.tex")
-        if not template_path.exists():
-            pytest.skip("Template not available")
-        template = template_path.read_text(encoding="utf-8")
-        cfg = _make_config(cover_letter={"signature_path": "sig.png"})
-
-        with patch("autocustomizeresume.cover_letter.date") as mock_date:
-            mock_date.today.return_value = date(2026, 1, 1)
-            mock_date.side_effect = date
-            result = inject_template(template, config=cfg, body_text="Body text.")
-
-        remaining = re.findall(r"\{\{[A-Z_]+\}\}", result)
-        # {{PLACEHOLDER}} in a comment is expected -- filter it out
-        remaining = [p for p in remaining if p != "{{PLACEHOLDER}}"]
-        assert remaining == [], f"Unreplaced placeholders: {remaining}"
+    """Tests for inject_template() — inline template strings only."""
 
     def test_escapes_user_info(self):
         """User info with LaTeX special chars is properly escaped."""
@@ -486,7 +444,7 @@ class TestInjectTemplate:
 
 
 # ===========================================================================
-# 5.4c — Config flag / skip logic + compile_cover_letter unit tests
+# Config flag / skip logic + compile_cover_letter unit tests
 # ===========================================================================
 
 
@@ -495,7 +453,6 @@ class TestCompileCoverLetter:
 
     @patch("autocustomizeresume.cover_letter.compile_tex")
     def test_copies_fonts(self, mock_compile, tmp_path):
-        # Set up font source
         template_dir = tmp_path / "tpl"
         template_dir.mkdir()
         fonts_dir = template_dir / "fonts"
@@ -511,7 +468,6 @@ class TestCompileCoverLetter:
 
         compile_cover_letter(r"\documentclass{}", config=cfg, keep_dir=work)
 
-        # Fonts should have been copied
         assert (work / "fonts" / "Regular.otf").exists()
 
     @patch("autocustomizeresume.cover_letter.compile_tex")
@@ -592,12 +548,11 @@ class TestCompileCoverLetter:
         with pytest.raises(CompileError):
             compile_cover_letter(r"\documentclass{}", config=cfg, keep_dir=work)
 
-        # keep_dir should NOT be deleted
         assert work.exists()
 
 
 class TestBuildCoverLetter:
-    """Tests for build_cover_letter() — config flag + orchestration."""
+    """Tests for build_cover_letter() — config flag + orchestration (no file I/O)."""
 
     def test_disabled_returns_none(self):
         cfg = _make_config(cover_letter={"enabled": False})
@@ -623,177 +578,3 @@ class TestBuildCoverLetter:
                 _make_selection(),
                 config=cfg,
             )
-
-    @patch("autocustomizeresume.cover_letter.compile_cover_letter")
-    @patch("autocustomizeresume.cover_letter.generate_cover_letter_body")
-    def test_calls_pipeline(self, mock_gen, mock_compile, tmp_path):
-        """build_cover_letter calls generate → escape → inject → compile."""
-        # Create template file
-        template = tmp_path / "template.tex"
-        template.write_text("{{BODY}}", encoding="utf-8")
-
-        cfg = _make_config(
-            cover_letter={
-                "enabled": True,
-                "template": str(template),
-            }
-        )
-
-        mock_gen.return_value = "Hello world."
-        mock_compile.return_value = tmp_path / "output.pdf"
-
-        result = build_cover_letter(
-            _make_jd_analysis(),
-            _make_parsed_resume(),
-            _make_selection(),
-            config=cfg,
-        )
-
-        mock_gen.assert_called_once()
-        mock_compile.assert_called_once()
-        assert result == tmp_path / "output.pdf"
-
-    @patch("autocustomizeresume.cover_letter.compile_cover_letter")
-    @patch("autocustomizeresume.cover_letter.generate_cover_letter_body")
-    def test_body_is_escaped_before_injection(self, mock_gen, mock_compile, tmp_path):
-        """Body text goes through _plain_text_to_latex before template injection."""
-        template = tmp_path / "template.tex"
-        template.write_text("{{BODY}}", encoding="utf-8")
-
-        cfg = _make_config(cover_letter={"enabled": True, "template": str(template)})
-
-        # Body with special chars + paragraph break
-        mock_gen.return_value = "100% of $20.\n\nA & B."
-        mock_compile.return_value = tmp_path / "out.pdf"
-
-        build_cover_letter(
-            _make_jd_analysis(),
-            _make_parsed_resume(),
-            _make_selection(),
-            config=cfg,
-        )
-
-        # Check the filled_tex passed to compile_cover_letter
-        filled_tex = mock_compile.call_args[0][0]
-        assert r"\%" in filled_tex
-        assert r"\$" in filled_tex
-        assert r"\par" in filled_tex
-
-
-# ===========================================================================
-# 5.4d — Integration test (requires tectonic)
-# ===========================================================================
-
-
-def _tectonic_available() -> bool:
-    return shutil.which("tectonic") is not None
-
-
-@pytest.mark.skipif(
-    not _tectonic_available(),
-    reason="tectonic not installed",
-)
-class TestCoverLetterIntegration:
-    """End-to-end compilation using the real template and tectonic."""
-
-    def test_compile_cover_letter_produces_pdf(self, tmp_path):
-        """Fill the real template and compile to a valid PDF."""
-        template_path = Path("templates/cover_letter_template.tex")
-        if not template_path.exists():
-            pytest.skip("Template not available")
-
-        cfg = _make_config(
-            cover_letter={
-                "enabled": True,
-                "template": str(template_path),
-                "signature_path": "",
-            }
-        )
-
-        template_tex = template_path.read_text(encoding="utf-8")
-
-        with patch("autocustomizeresume.cover_letter.date") as mock_date:
-            mock_date.today.return_value = date(2026, 2, 28)
-            mock_date.side_effect = date
-            filled_tex = inject_template(
-                template_tex,
-                config=cfg,
-                body_text="This is a test cover letter body paragraph.",
-            )
-
-        pdf_path = compile_cover_letter(filled_tex, config=cfg, keep_dir=tmp_path)
-
-        assert pdf_path.exists()
-        assert pdf_path.suffix == ".pdf"
-        # Verify it's a real PDF
-        header = pdf_path.read_bytes()[:5]
-        assert header == b"%PDF-"
-
-    def test_compile_with_signature(self, tmp_path):
-        """Compile with a signature image (fake PNG)."""
-        template_path = Path("templates/cover_letter_template.tex")
-        if not template_path.exists():
-            pytest.skip("Template not available")
-
-        sig_file = tmp_path / "signature.png"
-        sig_file.write_bytes(_MINIMAL_PNG)
-
-        cfg = _make_config(
-            cover_letter={
-                "enabled": True,
-                "template": str(template_path),
-                "signature_path": str(sig_file),
-            }
-        )
-
-        template_tex = template_path.read_text(encoding="utf-8")
-
-        with patch("autocustomizeresume.cover_letter.date") as mock_date:
-            mock_date.today.return_value = date(2026, 2, 28)
-            mock_date.side_effect = date
-            filled_tex = inject_template(
-                template_tex,
-                config=cfg,
-                body_text="Test body with signature.",
-            )
-
-        work = tmp_path / "build"
-        pdf_path = compile_cover_letter(filled_tex, config=cfg, keep_dir=work)
-
-        assert pdf_path.exists()
-        assert pdf_path.suffix == ".pdf"
-        # Signature should have been copied to build dir
-        assert (work / "signature.png").exists()
-
-    def test_compile_with_special_chars_in_body(self, tmp_path):
-        """Body with LaTeX special chars compiles cleanly after escaping."""
-        template_path = Path("templates/cover_letter_template.tex")
-        if not template_path.exists():
-            pytest.skip("Template not available")
-
-        cfg = _make_config(
-            cover_letter={
-                "enabled": True,
-                "template": str(template_path),
-                "signature_path": "",
-            }
-        )
-
-        # Body with special chars — this would break compilation if not escaped
-        body_plain = (
-            "I improved performance by 100% and saved $50k.\n\n"
-            "Technologies: C++ & Python. Used the #1 framework."
-        )
-        body_latex = _plain_text_to_latex(body_plain)
-
-        template_tex = template_path.read_text(encoding="utf-8")
-
-        with patch("autocustomizeresume.cover_letter.date") as mock_date:
-            mock_date.today.return_value = date(2026, 2, 28)
-            mock_date.side_effect = date
-            filled_tex = inject_template(template_tex, config=cfg, body_text=body_latex)
-
-        pdf_path = compile_cover_letter(filled_tex, config=cfg, keep_dir=tmp_path)
-
-        assert pdf_path.exists()
-        assert pdf_path.suffix == ".pdf"
