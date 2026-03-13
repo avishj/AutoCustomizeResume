@@ -158,6 +158,7 @@ python-version = "3.13"
 source = ["autocustomizeresume"]
 branch = true
 parallel = true
+relative_files = true
 
 [tool.coverage.report]
 fail_under = 70
