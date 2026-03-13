@@ -88,4 +88,4 @@ nav:
   - Home: index.md
 
 watch:
-  - autocustomizeresume
+  - src

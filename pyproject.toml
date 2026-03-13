@@ -64,7 +64,7 @@ dev = [
 [tool.ruff]
 target-version = "py313"
 line-length = 88
-src = ["src/autocustomizeresume", "tests"]
+src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = [
