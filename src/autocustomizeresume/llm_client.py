@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx
 from openai import (
@@ -22,8 +22,10 @@ from openai import (
     RateLimitError,
 )
 
-from autocustomizeresume.config import Config
 from autocustomizeresume.model_registry import get_model_params
+
+if TYPE_CHECKING:
+    from autocustomizeresume.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -108,12 +110,12 @@ class LLMClient:
         **kwargs:
             Additional parameters to pass to the chat completion API.
 
-        Returns
+        Returns:
         -------
         dict
             The parsed JSON object.
 
-        Raises
+        Raises:
         ------
         LLMError
             On authentication, connection, timeout, rate-limit,
@@ -145,45 +147,57 @@ class LLMClient:
             response = self._client.chat.completions.create(**request_kwargs)
 
             if not response.choices:
-                raise LLMError("LLM returned no choices (empty choices list)")
+                msg = "LLM returned no choices (empty choices list)"
+                raise LLMError(msg)
 
             raw = response.choices[0].message.content
             if raw is None:
-                raise LLMError("LLM returned an empty response (content is None)")
+                msg = "LLM returned an empty response (content is None)"
+                raise LLMError(msg)
         except AuthenticationError as exc:
-            raise LLMError(
+            msg = (
                 f"LLM authentication failed — check your API key "
                 f"(env var '{self._api_key_env}'): {exc}"
+            )
+            raise LLMError(
+                msg
             ) from exc
         except APITimeoutError as exc:
-            raise LLMError(f"LLM API request timed out: {exc}") from exc
+            msg = f"LLM API request timed out: {exc}"
+            raise LLMError(msg) from exc
         except APIConnectionError as exc:
+            msg = f"Could not connect to LLM API at {self._client.base_url}: {exc}"
             raise LLMError(
-                f"Could not connect to LLM API at {self._client.base_url}: {exc}"
+                msg
             ) from exc
         except RateLimitError as exc:
-            raise LLMError(f"LLM API rate limit exceeded: {exc}") from exc
+            msg = f"LLM API rate limit exceeded: {exc}"
+            raise LLMError(msg) from exc
         except httpx.TimeoutException as exc:
+            msg = f"LLM API request timed out after {self._timeout}s: {exc}"
             raise LLMError(
-                f"LLM API request timed out after {self._timeout}s: {exc}"
+                msg
             ) from exc
         except LLMError:
             raise
         except Exception as exc:
-            raise LLMError(f"LLM API call failed: {exc}") from exc
+            msg = f"LLM API call failed: {exc}"
+            raise LLMError(msg) from exc
 
         json_text = _strip_think_blocks(raw)
 
         try:
             parsed = json.loads(json_text)
         except json.JSONDecodeError as exc:
+            msg = f"LLM returned invalid JSON: {exc}\nRaw response:\n{raw}"
             raise LLMError(
-                f"LLM returned invalid JSON: {exc}\nRaw response:\n{raw}"
+                msg
             ) from exc
 
         if not isinstance(parsed, dict):
+            msg = f"Expected a JSON object (dict), got {type(parsed).__name__}: {raw}"
             raise LLMError(
-                f"Expected a JSON object (dict), got {type(parsed).__name__}: {raw}"
+                msg
             )
 
         return parsed

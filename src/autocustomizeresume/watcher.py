@@ -7,18 +7,22 @@ after a configurable debounce period.
 from __future__ import annotations
 
 import os
-import time
 import threading
+import time
 from pathlib import Path
-from typing import Callable
+from typing import TYPE_CHECKING
 
 from watchdog.events import DirModifiedEvent, FileModifiedEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 
 from autocustomizeresume import status
-from autocustomizeresume.config import Config
 from autocustomizeresume.namer import handle_output
 from autocustomizeresume.pipeline import run_pipeline
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from autocustomizeresume.config import Config
 
 
 class DebouncedHandler(FileSystemEventHandler):

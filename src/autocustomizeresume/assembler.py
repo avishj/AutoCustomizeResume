@@ -7,8 +7,7 @@ LaTeX document with only the selected items included.
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Sequence
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from autocustomizeresume.models import (
     Bullet,
@@ -18,13 +17,17 @@ from autocustomizeresume.models import (
     SkillCategory,
     SkillsSection,
 )
-from autocustomizeresume.schemas import (
-    ContentSelection,
-    ItemDecision,
-    SectionDecision,
-    SkillCategoryDecision,
-)
 from autocustomizeresume.utils import escape_latex_special
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Sequence
+
+    from autocustomizeresume.schemas import (
+        ContentSelection,
+        ItemDecision,
+        SectionDecision,
+        SkillCategoryDecision,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +58,7 @@ def _get_interstitial(interstitial: list[tuple[int, str]], position: int) -> str
     return next((text for pos, text in interstitial if pos == position), None)
 
 
-def _assemble_with_interstitials(
+def _assemble_with_interstitials[T](
     elements: Sequence[_T],
     interstitials: list[tuple[int, str]],
     assemble_fn: Callable[[_T], str | None],
@@ -131,9 +134,8 @@ def _assemble_item(
       (and it has no heading-only content).
     """
     # Determine inclusion
-    if item.tag_type == "optional":
-        if item_dec is None or not item_dec.include:
-            return None
+    if item.tag_type == "optional" and (item_dec is None or not item_dec.include):
+        return None
 
     # Build bullet list — only included bullets
     #
@@ -225,10 +227,7 @@ def _assemble_skill_category(
     If a SkillCategoryDecision is provided, use its skill list (already
     filtered and reordered by the LLM).  Otherwise, use the original.
     """
-    if cat_dec is not None:
-        skills = cat_dec.skills
-    else:
-        skills = cat.skills
+    skills = cat_dec.skills if cat_dec is not None else cat.skills
 
     if not skills:
         return None
@@ -291,7 +290,7 @@ def assemble_tex(
     selection:
         The LLM's content selection decisions.
 
-    Returns
+    Returns:
     -------
     str
         A complete LaTeX document ready for compilation.

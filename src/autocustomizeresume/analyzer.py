@@ -8,10 +8,13 @@ from __future__ import annotations
 
 import logging
 import re
+from typing import TYPE_CHECKING
 
-from autocustomizeresume.config import Config
 from autocustomizeresume.llm_client import LLMClient
 from autocustomizeresume.schemas import JDAnalysis
+
+if TYPE_CHECKING:
+    from autocustomizeresume.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +91,7 @@ def analyze_jd(
     client:
         Optional pre-built LLM client (useful for testing / reuse).
 
-    Returns
+    Returns:
     -------
     JDAnalysis
         Structured metadata parsed from the JD.

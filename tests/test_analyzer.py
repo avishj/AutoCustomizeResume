@@ -10,7 +10,6 @@ from autocustomizeresume.analyzer import analyze_jd
 from autocustomizeresume.llm_client import LLMClient, LLMError
 from autocustomizeresume.schemas import JDAnalysis
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

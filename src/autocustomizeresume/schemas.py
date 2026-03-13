@@ -41,7 +41,7 @@ _CONTENT_SEL_KEYS = frozenset({"sections", "skill_categories"})
 class JDAnalysis:
     """Structured metadata extracted from a job description.
 
-    Attributes
+    Attributes:
     ----------
     company:
         Company name (or ``"Unknown"`` if the JD doesn't name one).
@@ -90,7 +90,7 @@ class JDAnalysis:
 class BulletDecision:
     """Include/exclude decision for a single bullet, with optional edit.
 
-    Attributes
+    Attributes:
     ----------
     id:
         The bullet's tag ID (e.g. ``"acme-1"``).
@@ -129,7 +129,7 @@ class BulletDecision:
 class ItemDecision:
     """Include/exclude decision for a resume item (job, project, etc.).
 
-    Attributes
+    Attributes:
     ----------
     id:
         The item's tag ID (e.g. ``"snap"``, ``"siemens"``).
@@ -169,7 +169,7 @@ class ItemDecision:
 class SectionDecision:
     """Include/exclude decision for a resume section.
 
-    Attributes
+    Attributes:
     ----------
     id:
         The section's tag ID (e.g. ``"experience"``, ``"projects"``).
@@ -210,7 +210,7 @@ class SkillCategoryDecision:
     All subcategories are kept; the LLM decides which individual skills
     to include and in what order.
 
-    Attributes
+    Attributes:
     ----------
     name:
         The skill category tag name (e.g. ``"languages"``).

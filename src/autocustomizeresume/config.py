@@ -46,9 +46,12 @@ class LLMConfig:
     def api_key(self) -> str:
         key = os.getenv(self.api_key_env, "")
         if not key:
-            raise ValueError(
+            msg = (
                 f"API key not found. Set the '{self.api_key_env}' environment variable "
                 f"(or add it to your .env file)."
+            )
+            raise ValueError(
+                msg
             )
         return key
 
@@ -97,13 +100,15 @@ def _get(data: dict, key: str, section: str, default: Any = _MISSING) -> Any:
     If no default was provided, raises ConfigError.
     """
     if not isinstance(data, dict):
+        msg = f"Expected '{section}' to be a YAML mapping, got {type(data).__name__}"
         raise ConfigError(
-            f"Expected '{section}' to be a YAML mapping, got {type(data).__name__}"
+            msg
         )
     val = data.get(key, _MISSING)
     if val is _MISSING or val is None:
         if default is _MISSING:
-            raise ConfigError(f"Missing required config: {section}.{key}")
+            msg = f"Missing required config: {section}.{key}"
+            raise ConfigError(msg)
         return default
     return val
 
@@ -115,8 +120,9 @@ def _get_str(data: dict, key: str, section: str, default: Any = _MISSING) -> str
         return val
     if isinstance(val, (int, float, bool)):
         return str(val)
+    msg = f"{section}.{key} must be a string, got {type(val).__name__}: {val!r}"
     raise ConfigError(
-        f"{section}.{key} must be a string, got {type(val).__name__}: {val!r}"
+        msg
     )
 
 
@@ -131,8 +137,9 @@ def _get_bool(data: dict, key: str, section: str, default: Any = _MISSING) -> bo
             return True
         if lower in ("false", "no", "0", "off"):
             return False
+    msg = f"{section}.{key} must be a boolean, got {type(val).__name__}: {val!r}"
     raise ConfigError(
-        f"{section}.{key} must be a boolean, got {type(val).__name__}: {val!r}"
+        msg
     )
 
 
@@ -142,8 +149,9 @@ def _get_int(data: dict, key: str, section: str, default: Any = _MISSING) -> int
     try:
         return int(val)
     except (ValueError, TypeError):
+        msg = f"{section}.{key} must be an integer, got {type(val).__name__}: {val!r}"
         raise ConfigError(
-            f"{section}.{key} must be an integer, got {type(val).__name__}: {val!r}"
+            msg
         )
 
 
@@ -153,8 +161,9 @@ def _get_float(data: dict, key: str, section: str, default: Any = _MISSING) -> f
     try:
         return float(val)
     except (ValueError, TypeError):
+        msg = f"{section}.{key} must be a number, got {type(val).__name__}: {val!r}"
         raise ConfigError(
-            f"{section}.{key} must be a number, got {type(val).__name__}: {val!r}"
+            msg
         )
 
 
@@ -180,20 +189,25 @@ def load_config(config_path: str = "config.yaml") -> Config:
     # Load YAML
     path = Path(config_path)
     if not path.exists():
-        raise ConfigError(
+        msg = (
             f"Config file not found: {config_path}\n"
             f"Copy examples/config.example.yaml to config.yaml and fill in your details."
+        )
+        raise ConfigError(
+            msg
         )
 
     try:
         with open(path) as f:
             raw = yaml.safe_load(f)
     except yaml.YAMLError as e:
-        raise ConfigError(f"Invalid YAML in {config_path}: {e}") from e
+        msg = f"Invalid YAML in {config_path}: {e}"
+        raise ConfigError(msg) from e
 
     if not isinstance(raw, dict):
+        msg = f"Config file must be a YAML mapping, got {type(raw).__name__}"
         raise ConfigError(
-            f"Config file must be a YAML mapping, got {type(raw).__name__}"
+            msg
         )
 
     # Parse sections
@@ -210,9 +224,11 @@ def load_config(config_path: str = "config.yaml") -> Config:
     )
 
     if not user.first_name.strip():
-        raise ConfigError("user.first_name cannot be empty — required for file naming")
+        msg = "user.first_name cannot be empty — required for file naming"
+        raise ConfigError(msg)
     if not user.last_name.strip():
-        raise ConfigError("user.last_name cannot be empty — required for file naming")
+        msg = "user.last_name cannot be empty — required for file naming"
+        raise ConfigError(msg)
 
     naming_raw = _get(raw, "naming", "root")
     naming = NamingConfig(
@@ -247,7 +263,8 @@ def load_config(config_path: str = "config.yaml") -> Config:
     watcher_raw = _get(raw, "watcher", "root")
     debounce_seconds = _get_float(watcher_raw, "debounce_seconds", "watcher")
     if not math.isfinite(debounce_seconds) or debounce_seconds <= 0:
-        raise ConfigError("watcher.debounce_seconds must be a positive finite number")
+        msg = "watcher.debounce_seconds must be a positive finite number"
+        raise ConfigError(msg)
     watcher = WatcherConfig(
         debounce_seconds=debounce_seconds,
     )
@@ -267,13 +284,16 @@ def load_config(config_path: str = "config.yaml") -> Config:
     return config
 
 
-def _check_tectonic():
+def _check_tectonic() -> None:
     """Verify tectonic is installed and accessible."""
     if shutil.which("tectonic") is None:
-        raise ConfigError(
+        msg = (
             "tectonic is not installed or not on PATH.\n"
             "Install it:\n"
             "  macOS:  brew install tectonic\n"
             "  Linux:  https://tectonic-typesetting.github.io/en-US/install.html\n"
             "  cargo:  cargo install tectonic"
+        )
+        raise ConfigError(
+            msg
         )

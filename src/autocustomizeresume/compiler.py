@@ -12,20 +12,20 @@ import subprocess
 import tempfile
 from dataclasses import dataclass, replace
 from pathlib import Path
-from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from pypdf import PdfReader
 
-from autocustomizeresume.schemas import (
-    BulletDecision,
-    ContentSelection,
-    ItemDecision,
-    SectionDecision,
-)
-
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from autocustomizeresume.models import ParsedResume
+    from autocustomizeresume.schemas import (
+        BulletDecision,
+        ContentSelection,
+        ItemDecision,
+        SectionDecision,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -49,12 +49,12 @@ def compile_tex(tex_content: str, *, keep_dir: Path | None = None) -> Path:
         created; the caller owns cleanup of the directory containing
         the returned PDF path.
 
-    Returns
+    Returns:
     -------
     Path
         Path to the generated PDF file.
 
-    Raises
+    Raises:
     ------
     CompileError
         If tectonic exits with a non-zero code or times out.
@@ -81,13 +81,15 @@ def compile_tex(tex_content: str, *, keep_dir: Path | None = None) -> Path:
                 timeout=_COMPILE_TIMEOUT_SECS,
             )
         except subprocess.TimeoutExpired as exc:
+            msg = f"tectonic timed out after {_COMPILE_TIMEOUT_SECS}s"
             raise CompileError(
-                f"tectonic timed out after {_COMPILE_TIMEOUT_SECS}s"
+                msg
             ) from exc
 
         if result.returncode != 0:
+            msg = f"tectonic failed (exit {result.returncode}):\n{result.stderr.strip()}"
             raise CompileError(
-                f"tectonic failed (exit {result.returncode}):\n{result.stderr.strip()}"
+                msg
             )
 
         pdf_path = tex_path.with_suffix(".pdf")
@@ -108,7 +110,7 @@ def get_page_count(pdf_path: Path) -> int:
     pdf_path:
         Path to an existing PDF file.
 
-    Raises
+    Raises:
     ------
     CompileError
         If the file cannot be read as a valid PDF.
@@ -117,7 +119,8 @@ def get_page_count(pdf_path: Path) -> int:
         reader = PdfReader(pdf_path)
         return len(reader.pages)
     except Exception as exc:
-        raise CompileError(f"Failed to read page count from {pdf_path}: {exc}") from exc
+        msg = f"Failed to read page count from {pdf_path}: {exc}"
+        raise CompileError(msg) from exc
 
 
 # ---------------------------------------------------------------------------
@@ -271,7 +274,7 @@ _MAX_RETRIES = 10
 
 
 def compile_with_enforcement(
-    parsed: "ParsedResume",
+    parsed: ParsedResume,
     selection: ContentSelection,
     *,
     keep_dir: Path | None = None,
@@ -293,12 +296,12 @@ def compile_with_enforcement(
         temporary directory is created; the caller owns cleanup of the
         directory containing the returned PDF path.
 
-    Returns
+    Returns:
     -------
     tuple[Path, ContentSelection]
         The PDF path and the (possibly modified) selection used.
 
-    Raises
+    Raises:
     ------
     CompileError
         If tectonic fails or the document still exceeds 1 page after
@@ -362,14 +365,15 @@ def compile_with_enforcement(
         if pages > 1:
             if owns_dir:
                 shutil.rmtree(work_dir, ignore_errors=True)
+            msg = f"Resume still exceeds 1 page after {attempt + 1} attempts"
             raise CompileError(
-                f"Resume still exceeds 1 page after {attempt + 1} attempts"
+                msg
             )
 
         # Phase 2: Re-add excluded content to fill remaining space
         # Try adding back highest-scored excluded elements one at a time;
         # keep each addition only if the result still fits on 1 page.
-        for fill_attempt in range(_MAX_RETRIES * 3):
+        for _fill_attempt in range(_MAX_RETRIES * 3):
             addables = _find_addables(current_sel)
             if not addables:
                 break

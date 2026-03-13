@@ -20,11 +20,10 @@ from autocustomizeresume.schemas import (
     JDAnalysis,
 )
 from autocustomizeresume.selector import (
-    select_content,
     _serialize_resume,
+    select_content,
 )
 from autocustomizeresume.utils import latex_preview
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -650,9 +649,9 @@ class TestEdgeCases:
 
     def test_missing_include_warns_and_defaults_true(self, caplog):
         """Missing 'include' key should log a warning and default to True."""
-        from autocustomizeresume.schemas import BulletDecision
-
         import logging
+
+        from autocustomizeresume.schemas import BulletDecision
 
         with caplog.at_level(logging.WARNING, logger="autocustomizeresume.schemas"):
             bullet = BulletDecision.from_dict({"id": "b1"})

@@ -7,13 +7,13 @@ from pathlib import Path
 import pytest
 
 from autocustomizeresume.assembler import (
-    assemble_tex,
     _assemble_item,
     _assemble_regular_section,
-    _assemble_skills_section,
     _assemble_skill_category,
-    _is_bullet_included,
+    _assemble_skills_section,
     _bullet_text,
+    _is_bullet_included,
+    assemble_tex,
 )
 from autocustomizeresume.models import (
     Bullet,

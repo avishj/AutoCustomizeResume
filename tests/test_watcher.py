@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import threading
 import time
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
@@ -12,6 +12,8 @@ from watchdog.events import DirModifiedEvent, FileModifiedEvent
 
 from autocustomizeresume.watcher import DebouncedHandler
 
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # DebouncedHandler — debounce & filtering behavior
@@ -21,7 +23,7 @@ from autocustomizeresume.watcher import DebouncedHandler
 class TestDebouncedHandler:
     """Behavior tests for DebouncedHandler."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def watched_file(self, tmp_path: Path) -> Path:
         f = tmp_path / "jd.txt"
         f.write_text("some job description")
@@ -42,7 +44,7 @@ class TestDebouncedHandler:
             watched_file, debounce_seconds=0.15, callback=callback
         )
         fired = threading.Event()
-        callback.side_effect = lambda: fired.set()
+        callback.side_effect = fired.set
 
         for _ in range(5):
             handler.on_modified(self._make_event(watched_file))
@@ -68,7 +70,7 @@ class TestDebouncedHandler:
         assert callback.call_count == 0, "timer should have reset, still waiting"
 
         fired = threading.Event()
-        callback.side_effect = lambda: fired.set()
+        callback.side_effect = fired.set
         fired.wait(timeout=1.0)
         assert callback.call_count == 1
 

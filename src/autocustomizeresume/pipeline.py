@@ -9,16 +9,19 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from autocustomizeresume import status
 from autocustomizeresume.analyzer import analyze_jd
 from autocustomizeresume.compiler import compile_with_enforcement
-from autocustomizeresume.config import Config
 from autocustomizeresume.cover_letter import build_cover_letter
 from autocustomizeresume.llm_client import LLMClient
 from autocustomizeresume.parser import parse_resume
-from autocustomizeresume.schemas import ContentSelection, JDAnalysis
 from autocustomizeresume.selector import select_content
+
+if TYPE_CHECKING:
+    from autocustomizeresume.config import Config
+    from autocustomizeresume.schemas import ContentSelection, JDAnalysis
 
 _STEPS_BASE = 5
 _STEPS_WITH_CL = 6
@@ -57,7 +60,7 @@ def run_pipeline(
     keep_dir:
         If provided, keep build artifacts (tex, pdf) in this directory.
 
-    Returns
+    Returns:
     -------
     PipelineResult
         Contains resume PDF path, JD analysis, and content selection.

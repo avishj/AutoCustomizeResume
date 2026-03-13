@@ -19,8 +19,7 @@ from __future__ import annotations
 import logging
 import re
 import warnings
-from collections.abc import Callable
-from typing import TypeVar, cast
+from typing import TYPE_CHECKING, TypeVar, cast
 
 from autocustomizeresume.models import (
     Bullet,
@@ -31,6 +30,9 @@ from autocustomizeresume.models import (
     SkillsSection,
     TagType,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -135,7 +137,8 @@ def parse_resume(tex_content: str) -> ParsedResume:
     marker = r"\begin{document}"
     idx = tex_content.find(marker)
     if idx == -1:
-        raise ParseError(r"No \begin{document} found in resume")
+        msg = r"No \begin{document} found in resume"
+        raise ParseError(msg)
 
     preamble = tex_content[: idx + len(marker)]
     body = tex_content[idx + len(marker) :]
@@ -166,7 +169,7 @@ def parse_resume(tex_content: str) -> ParsedResume:
             if m:
                 found_first_section = True
                 in_section = True
-                section_depth_type = cast(TagType, m.group(1))
+                section_depth_type = cast("TagType", m.group(1))
                 section_depth_id = m.group(2)
                 section_chunks.append(
                     {
@@ -179,7 +182,8 @@ def parse_resume(tex_content: str) -> ParsedResume:
                 continue
             # Reject stray END tags before any section opens
             if TAG_END_RE.match(stripped):
-                raise ParseError(f"Unexpected END tag before any section: {stripped}")
+                msg = f"Unexpected END tag before any section: {stripped}"
+                raise ParseError(msg)
             header_lines.append(line)
             i += 1
             continue
@@ -195,7 +199,7 @@ def parse_resume(tex_content: str) -> ParsedResume:
                     )
                     interstitial_lines = []
                 in_section = True
-                section_depth_type = cast(TagType, m.group(1))
+                section_depth_type = cast("TagType", m.group(1))
                 section_depth_id = m.group(2)
                 section_chunks.append(
                     {
@@ -208,7 +212,8 @@ def parse_resume(tex_content: str) -> ParsedResume:
                 continue
             # Reject stray END tags between sections
             if TAG_END_RE.match(stripped):
-                raise ParseError(f"Unexpected END tag between sections: {stripped}")
+                msg = f"Unexpected END tag between sections: {stripped}"
+                raise ParseError(msg)
             interstitial_lines.append(line)
             i += 1
             continue
@@ -232,8 +237,9 @@ def parse_resume(tex_content: str) -> ParsedResume:
         i += 1
 
     if in_section:
+        msg = f"Unclosed section tag: %%% BEGIN:{section_depth_type}:{section_depth_id}"
         raise ParseError(
-            f"Unclosed section tag: %%% BEGIN:{section_depth_type}:{section_depth_id}"
+            msg
         )
 
     # Remaining interstitial after last section = postamble
@@ -244,7 +250,7 @@ def parse_resume(tex_content: str) -> ParsedResume:
     sections: list[ResumeSection | SkillsSection] = []
     for chunk in section_chunks:
         section = _parse_section(
-            cast(TagType, chunk["type"]), chunk["id"], chunk["lines"]
+            cast("TagType", chunk["type"]), chunk["id"], chunk["lines"]
         )
         sections.append(section)
 
@@ -272,9 +278,12 @@ def _validate_unique_ids(
 
     def _check(tag_id: str, context: str) -> None:
         if tag_id in seen:
-            raise ParseError(
+            msg = (
                 f"Duplicate ID '{tag_id}' — first seen in {seen[tag_id]}, "
                 f"also found in {context}"
+            )
+            raise ParseError(
+                msg
             )
         seen[tag_id] = context
 
@@ -316,7 +325,7 @@ _TChild = TypeVar("_TChild")
 _TIdent = TypeVar("_TIdent", bound=tuple)
 
 
-def _collect_tagged_children(
+def _collect_tagged_children[TIdent: tuple, TChild](
     lines: list[str],
     *,
     begin_re: re.Pattern[str],
@@ -391,10 +400,10 @@ def _parse_regular_section(
         lines,
         begin_re=TAG_BEGIN_RE,
         end_re=TAG_END_RE,
-        begin_identity=lambda m: (cast(TagType, m.group(1)), m.group(2)),
-        end_identity=lambda m: (cast(TagType, m.group(1)), m.group(2)),
+        begin_identity=lambda m: (cast("TagType", m.group(1)), m.group(2)),
+        end_identity=lambda m: (cast("TagType", m.group(1)), m.group(2)),
         build_child=lambda ident, child_lines: _parse_item(
-            cast(TagType, ident[0]), cast(str, ident[1]), child_lines
+            cast("TagType", ident[0]), cast("str", ident[1]), child_lines
         ),
         unexpected_end_error=lambda stripped: ParseError(
             f"Unexpected END tag outside any item in section '{tag_id}': {stripped}"
@@ -451,16 +460,19 @@ def _parse_item(tag_type: TagType, tag_id: str, lines: list[str]) -> ResumeItem:
                     interstitial.append((len(bullets), "\n".join(buffer)))
                     buffer = []
                 in_bullet = True
-                bullet_type = cast(TagType, m.group(1))
+                bullet_type = cast("TagType", m.group(1))
                 bullet_id = m.group(2)
                 bullet_lines = []
                 continue
 
             # Reject stray END tags outside any bullet
             if TAG_END_RE.match(stripped):
-                raise ParseError(
+                msg = (
                     f"Unexpected END tag outside any bullet in item "
                     f"'{tag_id}': {stripped}"
+                )
+                raise ParseError(
+                    msg
                 )
 
             if not found_first_bullet_tag:
@@ -490,7 +502,8 @@ def _parse_item(tag_type: TagType, tag_id: str, lines: list[str]) -> ResumeItem:
         bullet_lines.append(line)
 
     if in_bullet:
-        raise ParseError(f"Unclosed bullet tag: %%% BEGIN:{bullet_type}:{bullet_id}")
+        msg = f"Unclosed bullet tag: %%% BEGIN:{bullet_type}:{bullet_id}"
+        raise ParseError(msg)
 
     # Trailing interstitial
     if buffer:
@@ -509,7 +522,7 @@ def _parse_item(tag_type: TagType, tag_id: str, lines: list[str]) -> ResumeItem:
 def _parse_skills_section(
     tag_type: TagType, tag_id: str, lines: list[str]
 ) -> SkillsSection:
-    """Parse a skills section with SKILLS category tags.
+    r"""Parse a skills section with SKILLS category tags.
 
     Each category is delimited by %%% SKILLS:<name> / %%% END:SKILLS:<name>
     and contains a single \\textbf{DisplayName}{: skill1, skill2, ...} line.
@@ -521,7 +534,7 @@ def _parse_skills_section(
         begin_identity=lambda m: (m.group(1),),
         end_identity=lambda m: (m.group(1),),
         build_child=lambda ident, child_lines: _parse_skill_line(
-            cast(str, ident[0]), child_lines
+            cast("str", ident[0]), child_lines
         ),
         unexpected_end_error=lambda stripped: ParseError(
             f"Unexpected END:SKILLS tag outside any category in "
@@ -555,7 +568,7 @@ _SKILL_LINE_RE = re.compile(
 
 
 def _parse_skill_line(cat_name: str, lines: list[str]) -> SkillCategory:
-    """Parse the content lines of a single SKILLS category tag.
+    r"""Parse the content lines of a single SKILLS category tag.
 
     Expects a single logical line (possibly spread across multiple lines)
     of the form: \\textbf{Display}{: A, B, C.} \\\\
@@ -565,8 +578,9 @@ def _parse_skill_line(cat_name: str, lines: list[str]) -> SkillCategory:
 
     m = _SKILL_LINE_RE.match(content)
     if not m:
+        msg = f"Could not parse skills line for category '{cat_name}': {content!r}"
         raise ParseError(
-            f"Could not parse skills line for category '{cat_name}': {content!r}"
+            msg
         )
 
     prefix = m.group(1)

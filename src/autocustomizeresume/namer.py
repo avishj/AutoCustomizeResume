@@ -9,16 +9,18 @@ from __future__ import annotations
 import shutil
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from autocustomizeresume.config import Config
-from autocustomizeresume.pipeline import PipelineResult
-from autocustomizeresume.schemas import JDAnalysis
+if TYPE_CHECKING:
+    from autocustomizeresume.config import Config
+    from autocustomizeresume.pipeline import PipelineResult
+    from autocustomizeresume.schemas import JDAnalysis
 
 
 def build_variables(config: Config, analysis: JDAnalysis) -> dict[str, str]:
     """Build the template variable mapping from config and JD analysis.
 
-    Returns
+    Returns:
     -------
     dict[str, str]
         Keys are template variable names (without braces),
@@ -45,12 +47,12 @@ def build_name(template: str, variables: dict[str, str]) -> str:
     variables:
         Variable mapping from :func:`build_variables`.
 
-    Returns
+    Returns:
     -------
     str
         The resolved filename.
 
-    Raises
+    Raises:
     ------
     KeyError
         If the template references a variable not present in *variables*.

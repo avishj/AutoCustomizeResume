@@ -7,8 +7,7 @@ from __future__ import annotations
 
 import logging
 import sys
-from pathlib import Path
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from cyclopts import App, Parameter
 from rich.console import Console
@@ -18,6 +17,9 @@ from autocustomizeresume.config import ConfigError, load_config
 from autocustomizeresume.namer import handle_output
 from autocustomizeresume.pipeline import run_pipeline
 from autocustomizeresume.watcher import watch
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 app = App(
     name="autocustomizeresume",

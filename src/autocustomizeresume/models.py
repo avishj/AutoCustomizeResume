@@ -16,7 +16,7 @@ TagType = Literal["pinned", "optional"]
 
 @dataclass
 class Bullet:
-    """A single \\resumeItem bullet within a resume item.
+    r"""A single \\resumeItem bullet within a resume item.
 
     The LLM can include/exclude individual bullets and make minor
     text edits (keyword incorporation) to optional bullets.
@@ -29,7 +29,7 @@ class Bullet:
 
 @dataclass
 class ResumeItem:
-    """A single entry within a section (e.g. one job, project, publication).
+    r"""A single entry within a section (e.g. one job, project, publication).
 
     Contains heading lines (the \\resumeSubheading etc.) and optionally
     tagged bullets underneath.

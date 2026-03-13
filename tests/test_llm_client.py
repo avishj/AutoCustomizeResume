@@ -9,7 +9,6 @@ import pytest
 
 from autocustomizeresume.llm_client import LLMClient, LLMError
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

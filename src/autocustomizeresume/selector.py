@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import json
 import logging
+from typing import TYPE_CHECKING
 
-from autocustomizeresume.config import Config
 from autocustomizeresume.llm_client import LLMClient
 from autocustomizeresume.models import (
     ParsedResume,
@@ -20,6 +20,9 @@ from autocustomizeresume.models import (
 )
 from autocustomizeresume.schemas import ContentSelection, JDAnalysis
 from autocustomizeresume.utils import latex_preview
+
+if TYPE_CHECKING:
+    from autocustomizeresume.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -217,7 +220,7 @@ def select_content(
     client:
         Optional pre-built LLM client (useful for testing / reuse).
 
-    Returns
+    Returns:
     -------
     ContentSelection
         Per-section, per-item, per-bullet decisions plus skill ordering.

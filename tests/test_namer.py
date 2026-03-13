@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from autocustomizeresume.namer import build_variables, handle_output
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

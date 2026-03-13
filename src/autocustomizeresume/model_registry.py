@@ -11,7 +11,6 @@ import json
 from importlib import resources
 from typing import Any
 
-
 _DEFAULTS: dict[str, Any] = {
     "temperature": 1.0,
     "top_p": 1.0,

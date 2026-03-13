@@ -14,20 +14,23 @@ import tempfile
 from datetime import date
 from importlib import resources
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from autocustomizeresume.compiler import compile_tex
-from autocustomizeresume.config import Config
 from autocustomizeresume.llm_client import LLMClient, LLMError
 from autocustomizeresume.models import (
     ParsedResume,
     ResumeSection,
     SkillsSection,
 )
-from autocustomizeresume.schemas import (
-    ContentSelection,
-    JDAnalysis,
-)
 from autocustomizeresume.utils import latex_preview
+
+if TYPE_CHECKING:
+    from autocustomizeresume.config import Config
+    from autocustomizeresume.schemas import (
+        ContentSelection,
+        JDAnalysis,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -79,13 +82,12 @@ def _escape_latex(text: str) -> str:
         text = text.replace(char, replacement)
 
     # Replace placeholder with the proper LaTeX command
-    text = text.replace(placeholder, r"\textbackslash{}")
+    return text.replace(placeholder, r"\textbackslash{}")
 
-    return text
 
 
 def _plain_text_to_latex(text: str) -> str:
-    """Convert plain text (from LLM) to LaTeX-safe body content.
+    r"""Convert plain text (from LLM) to LaTeX-safe body content.
 
     1. Escapes LaTeX special characters.
     2. Converts blank-line-separated paragraphs to ``\\par`` separators.
@@ -163,7 +165,7 @@ def _summarize_regular_section(
                 bd = next((b for b in item_dec.bullets if b.id == bullet.id), None)
                 if bd is not None and bd.include:
                     # Use edited text if present
-                    raw = bd.edited_text if bd.edited_text else bullet.text
+                    raw = bd.edited_text or bullet.text
                     text = latex_preview(raw)
                     if text:
                         lines.append(f"  * {text}")
@@ -229,7 +231,7 @@ def generate_cover_letter_body(
     client:
         Optional pre-built LLM client.
 
-    Returns
+    Returns:
     -------
     str
         Plain text body (paragraphs separated by blank lines).
@@ -274,7 +276,8 @@ def generate_cover_letter_body(
 
     body = result.get("body", "")
     if not isinstance(body, str) or not body.strip():
-        raise LLMError("LLM returned no 'body' key in cover letter response")
+        msg = "LLM returned no 'body' key in cover letter response"
+        raise LLMError(msg)
 
     logger.info("Cover letter body generated (%d chars)", len(body))
     return body.strip()
@@ -291,7 +294,7 @@ _SIGNATURE_LATEX = (
 
 
 def _build_signature_block(signature_path: str) -> str:
-    """Build the LaTeX for the signature, or empty string if no path.
+    r"""Build the LaTeX for the signature, or empty string if no path.
 
     Uses only the filename since the image is copied to the compile
     directory alongside the .tex file.  The filename is wrapped in
@@ -327,7 +330,7 @@ def inject_template(
         The LLM-generated body text (already LaTeX-escaped via
         :func:`_plain_text_to_latex`).
 
-    Returns
+    Returns:
     -------
     str
         The filled-in LaTeX document ready for compilation.
@@ -393,12 +396,12 @@ def compile_cover_letter(
         If provided, write build artifacts here.  Otherwise a
         temporary directory is created; the caller owns cleanup.
 
-    Returns
+    Returns:
     -------
     Path
         Path to the generated PDF file.
 
-    Raises
+    Raises:
     ------
     CompileError
         If compilation fails.
@@ -479,12 +482,12 @@ def build_cover_letter(
     keep_dir:
         If provided, write build artifacts here.
 
-    Returns
+    Returns:
     -------
     Path or None
         Path to the generated PDF, or *None* if disabled.
 
-    Raises
+    Raises:
     ------
     CompileError
         If compilation fails.
@@ -498,7 +501,8 @@ def build_cover_letter(
     # Validate template exists
     template_path = Path(config.cover_letter.template)
     if not template_path.exists():
-        raise FileNotFoundError(f"Cover letter template not found: {template_path}")
+        msg = f"Cover letter template not found: {template_path}"
+        raise FileNotFoundError(msg)
 
     # 1. Generate body text via LLM
     body_plain = generate_cover_letter_body(

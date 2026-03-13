@@ -422,7 +422,7 @@ class TestCompileWithEnforcement:
         # Phase 2: re-adding the dropped bullet → 2 pages (overflow, skip).
         p1, p2 = self._patch_compile([2, 1, 2])
         with p1, p2:
-            pdf_path, final_sel = compile_with_enforcement(
+            _pdf_path, final_sel = compile_with_enforcement(
                 _make_parsed(), _full_selection()
             )
         # The lowest scored bullet (widgets-1 at 30) should have been dropped
@@ -441,9 +441,8 @@ class TestCompileWithEnforcement:
         # The fixture has 3 bullets + 2 items = 5 droppable elements,
         # so we need at least 6 attempts (initial + 5 drops) all returning 2.
         p1, p2 = self._patch_compile([2] * 12)
-        with p1, p2:
-            with pytest.raises(CompileError, match="still exceeds 1 page"):
-                compile_with_enforcement(_make_parsed(), _full_selection())
+        with p1, p2, pytest.raises(CompileError, match="still exceeds 1 page"):
+            compile_with_enforcement(_make_parsed(), _full_selection())
 
     def test_original_selection_not_mutated(self):
         """Enforcement should not modify the original selection object."""

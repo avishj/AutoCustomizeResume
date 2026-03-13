@@ -51,7 +51,6 @@ from autocustomizeresume.schemas import (
     SkillCategoryDecision,
 )
 
-
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
@@ -74,16 +73,16 @@ def _make_config(**overrides) -> Config:
     user_kw = overrides.pop("user", {})
     cl_kw = overrides.pop("cover_letter", {})
 
-    user_defaults = dict(
-        first_name="Jane",
-        last_name="Doe",
-        phone="555-123-4567",
-        email="jane@example.com",
-        linkedin="linkedin.com/in/janedoe",
-        website="janedoe.dev",
-        degree="MS Computer Science",
-        university="MIT",
-    )
+    user_defaults = {
+        "first_name": "Jane",
+        "last_name": "Doe",
+        "phone": "555-123-4567",
+        "email": "jane@example.com",
+        "linkedin": "linkedin.com/in/janedoe",
+        "website": "janedoe.dev",
+        "degree": "MS Computer Science",
+        "university": "MIT",
+    }
     user_defaults.update(user_kw)
 
     cl_enabled: bool = cl_kw.get("enabled", True)
@@ -434,7 +433,7 @@ class TestFormatDate:
     def test_format(self):
         with patch("autocustomizeresume.cover_letter.date") as mock_date:
             mock_date.today.return_value = date(2026, 2, 28)
-            mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+            mock_date.side_effect = date
             result = _format_date()
             assert result == "February 28, 2026"
 
@@ -452,7 +451,7 @@ class TestInjectTemplate:
 
         with patch("autocustomizeresume.cover_letter.date") as mock_date:
             mock_date.today.return_value = date(2026, 1, 1)
-            mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+            mock_date.side_effect = date
             result = inject_template(template, config=cfg, body_text="Body text.")
 
         remaining = re.findall(r"\{\{[A-Z_]+\}\}", result)
@@ -709,7 +708,7 @@ class TestCoverLetterIntegration:
 
         with patch("autocustomizeresume.cover_letter.date") as mock_date:
             mock_date.today.return_value = date(2026, 2, 28)
-            mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+            mock_date.side_effect = date
             filled_tex = inject_template(
                 template_tex,
                 config=cfg,
@@ -745,7 +744,7 @@ class TestCoverLetterIntegration:
 
         with patch("autocustomizeresume.cover_letter.date") as mock_date:
             mock_date.today.return_value = date(2026, 2, 28)
-            mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+            mock_date.side_effect = date
             filled_tex = inject_template(
                 template_tex,
                 config=cfg,
@@ -785,7 +784,7 @@ class TestCoverLetterIntegration:
 
         with patch("autocustomizeresume.cover_letter.date") as mock_date:
             mock_date.today.return_value = date(2026, 2, 28)
-            mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+            mock_date.side_effect = date
             filled_tex = inject_template(template_tex, config=cfg, body_text=body_latex)
 
         pdf_path = compile_cover_letter(filled_tex, config=cfg, keep_dir=tmp_path)
