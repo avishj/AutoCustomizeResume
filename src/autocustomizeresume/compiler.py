@@ -87,7 +87,10 @@ def compile_tex(tex_content: str, *, keep_dir: Path | None = None) -> Path:
             ) from exc
 
         if result.returncode != 0:
-            msg = f"tectonic failed (exit {result.returncode}):\n{result.stderr.strip()}"
+            msg = (
+                f"tectonic failed (exit {result.returncode}):\n"
+                f"{result.stderr.strip()}"
+            )
             raise CompileError(
                 msg
             )

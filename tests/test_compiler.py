@@ -488,7 +488,8 @@ class TestCompileWithEnforcement:
 
             compile_with_enforcement(_make_parsed(), _full_selection())
 
-        # Second call (first drop) should have one bullet dropped but all items still included
+        # Second call (first drop) should have one bullet dropped
+        # but all items still included
         assert len(call_log) >= 2
         second_sel = call_log[1]
         # All items should still be included after first drop

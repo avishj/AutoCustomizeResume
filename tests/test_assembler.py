@@ -439,7 +439,10 @@ class TestAssembleTexFixture:
                                     {
                                         "id": "acme-1",
                                         "include": True,
-                                        "edited_text": r"\resumeItem{Built a RESTful microservice.}",
+                                        "edited_text": (
+                                            r"\resumeItem{Built a RESTful"
+                                            r" microservice.}"
+                                        ),
                                     },
                                     {
                                         "id": "acme-2",

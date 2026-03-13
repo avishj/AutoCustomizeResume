@@ -7,7 +7,8 @@ from __future__ import annotations
 
 import logging
 import sys
-from typing import TYPE_CHECKING, Annotated
+from pathlib import Path
+from typing import Annotated
 
 from cyclopts import App, Parameter
 from rich.console import Console
@@ -17,9 +18,6 @@ from autocustomizeresume.config import ConfigError, load_config
 from autocustomizeresume.namer import handle_output
 from autocustomizeresume.pipeline import run_pipeline
 from autocustomizeresume.watcher import watch
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 app = App(
     name="autocustomizeresume",
@@ -56,23 +54,35 @@ def main(
     *,
     jd: Annotated[
         Path | None,
-        Parameter("--jd", help="Path to JD text file (one-shot mode). Omit for watch mode."),
+        Parameter(
+            "--jd",
+            help="Path to JD text file (one-shot mode). Omit for watch mode.",
+        ),
     ] = None,
     company: Annotated[
         str | None,
-        Parameter("--company", help="Override LLM-extracted company name."),
+        Parameter(
+            "--company", help="Override LLM-extracted company name."
+        ),
     ] = None,
     role: Annotated[
         str | None,
-        Parameter("--role", help="Override LLM-extracted role title."),
+        Parameter(
+            "--role", help="Override LLM-extracted role title."
+        ),
     ] = None,
     verbose: Annotated[
         bool,
-        Parameter("--verbose", help="Enable verbose debug logging."),
+        Parameter(
+            "--verbose", help="Enable verbose debug logging."
+        ),
     ] = False,
     keep_dir: Annotated[
         Path | None,
-        Parameter("--keep-dir", help="Keep build artifacts (tex, pdf) in this directory."),
+        Parameter(
+            "--keep-dir",
+            help="Keep build artifacts (tex, pdf) in this directory.",
+        ),
     ] = None,
 ) -> None:
     """Auto-customize a tagged LaTeX resume for a job description."""

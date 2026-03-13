@@ -169,7 +169,10 @@ def _make_parsed_resume() -> ParsedResume:
                             Bullet(
                                 tag_type="optional",
                                 id="acme-2",
-                                text=r"\resumeItem{Wrote unit tests with 90\% coverage}",
+                                text=(
+                                    r"\resumeItem{Wrote unit tests"
+                                    r" with 90\% coverage}"
+                                ),
                             ),
                         ],
                     ),
@@ -307,7 +310,10 @@ class TestSummarizeSelectedContent:
                                 BulletDecision(
                                     id="acme-2",
                                     include=True,
-                                    edited_text=r"\resumeItem{Achieved 95\% test coverage}",
+                                    edited_text=(
+                                        r"\resumeItem{Achieved 95\%"
+                                        r" test coverage}"
+                                    ),
                                 ),
                             ],
                         ),

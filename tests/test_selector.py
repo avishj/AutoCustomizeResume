@@ -102,7 +102,10 @@ def _make_parsed_resume() -> ParsedResume:
                     ResumeItem(
                         tag_type="optional",
                         id="widgets",
-                        heading_lines=r"\resumeSubheading{Widgets Inc}{2023}{Intern}{NY}",
+                        heading_lines=(
+                            r"\resumeSubheading"
+                            r"{Widgets Inc}{2023}{Intern}{NY}"
+                        ),
                         bullets=[
                             Bullet(
                                 tag_type="optional",
@@ -267,7 +270,10 @@ class TestSelectContent:
                                 {
                                     "id": "acme-1",
                                     "include": True,
-                                    "edited_text": "Built scalable REST API handling 10k rps",
+                                    "edited_text": (
+                                        "Built scalable REST API"
+                                        " handling 10k rps"
+                                    ),
                                 },
                             ],
                         },
