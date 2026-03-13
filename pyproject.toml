@@ -45,7 +45,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["autocustomizeresume"]
+packages = ["src/autocustomizeresume"]
 
 [dependency-groups]
 dev = [
@@ -64,7 +64,7 @@ dev = [
 [tool.ruff]
 target-version = "py313"
 line-length = 88
-src = ["autocustomizeresume", "tests"]
+src = ["src/autocustomizeresume", "tests"]
 
 [tool.ruff.lint]
 select = [
@@ -155,7 +155,7 @@ max-complexity = 15
 python-version = "3.13"
 
 [tool.coverage.run]
-source = ["autocustomizeresume"]
+source = ["src/autocustomizeresume"]
 branch = true
 parallel = true
 relative_files = true
@@ -174,6 +174,7 @@ exclude_lines = [
 ]
 
 [tool.pytest.ini_options]
+pythonpath = ["src"]
 testpaths = ["tests"]
 addopts = [
     "--strict-markers",
@@ -193,7 +194,7 @@ name = "cz_conventional_commits"
 version = "0.1.0"
 tag_format = "v$version"
 version_files = [
-    "autocustomizeresume/__init__.py:__version__",
+    "src/autocustomizeresume/__init__.py:__version__",
     "pyproject.toml:version",
 ]
 changelog_file = "CHANGELOG.md"
