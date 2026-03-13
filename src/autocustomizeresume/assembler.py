@@ -189,9 +189,10 @@ def _assemble_regular_section(
 ) -> str | None:
     """Assemble a regular section, or None if excluded/empty."""
     # Pinned sections always included; optional checked against decision
-    if section.tag_type == "optional":
-        if section_dec is None or not section_dec.include:
-            return None
+    if section.tag_type == "optional" and (
+        section_dec is None or not section_dec.include
+    ):
+        return None
 
     def _assemble(item: ResumeItem) -> str | None:
         item_dec = section_dec.find_item(item.id) if section_dec is not None else None

@@ -78,6 +78,7 @@ def compile_tex(tex_content: str, *, keep_dir: Path | None = None) -> Path:
                 ["tectonic", "-c", "minimal", str(tex_path)],
                 capture_output=True,
                 text=True,
+                check=False,
                 timeout=_COMPILE_TIMEOUT_SECS,
             )
         except subprocess.TimeoutExpired as exc:
@@ -157,9 +158,11 @@ def _find_droppables(selection: ContentSelection) -> list[_Candidate]:
         for it in sec.items:
             if not it.include:
                 continue
-            for bd in it.bullets:
-                if bd.include:
-                    bullets.append(_Candidate(sec.id, it.id, bd.id, bd.relevance_score))
+            bullets.extend(
+                _Candidate(sec.id, it.id, bd.id, bd.relevance_score)
+                for bd in it.bullets
+                if bd.include
+            )
             items.append(_Candidate(sec.id, it.id, None, it.relevance_score))
 
     bullets.sort(key=lambda d: d.score)
@@ -186,9 +189,11 @@ def _find_addables(selection: ContentSelection) -> list[_Candidate]:
                     continue  # already tried and overflowed
                 items.append(_Candidate(sec.id, it.id, None, it.relevance_score))
                 continue
-            for bd in it.bullets:
-                if not bd.include and bd.relevance_score >= 0:
-                    bullets.append(_Candidate(sec.id, it.id, bd.id, bd.relevance_score))
+            bullets.extend(
+                _Candidate(sec.id, it.id, bd.id, bd.relevance_score)
+                for bd in it.bullets
+                if not bd.include and bd.relevance_score >= 0
+            )
 
     items.sort(key=lambda a: a.score, reverse=True)
     bullets.sort(key=lambda a: a.score, reverse=True)
@@ -423,10 +428,10 @@ def compile_with_enforcement(
                 # to skip it. We set its score to -1 to deprioritize it.
                 current_sel = _mark_skip(current_sel, candidate)
 
-        return pdf_path, current_sel
-
     except Exception:
         # Clean up auto-created temp dir on failure so it doesn't leak
         if owns_dir:
             shutil.rmtree(work_dir, ignore_errors=True)
         raise
+    else:
+        return pdf_path, current_sel

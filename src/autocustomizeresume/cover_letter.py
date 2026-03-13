@@ -441,11 +441,12 @@ def compile_cover_letter(
         pdf_path = compile_tex(filled_tex, keep_dir=work)
 
         logger.info("Cover letter compiled: %s", pdf_path)
-        return pdf_path
     except Exception:
         if owns_dir:
             shutil.rmtree(work, ignore_errors=True)
         raise
+    else:
+        return pdf_path
 
 
 # ---------------------------------------------------------------------------

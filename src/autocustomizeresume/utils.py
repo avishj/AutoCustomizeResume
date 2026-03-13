@@ -24,6 +24,9 @@ def escape_latex_special(text: str) -> str:
     return _UNESCAPED_SPECIAL.sub(r"\1\\\2", text)
 
 
+_PREVIEW_MAX_LEN = 300
+
+
 def latex_preview(text: str) -> str:
     r"""Extract a readable preview from a LaTeX snippet.
 
@@ -48,6 +51,6 @@ def latex_preview(text: str) -> str:
     # Collapse whitespace
     preview = re.sub(r"\s+", " ", preview).strip()
     # Truncate for sanity
-    if len(preview) > 300:
-        preview = preview[:297] + "..."
+    if len(preview) > _PREVIEW_MAX_LEN:
+        preview = preview[: _PREVIEW_MAX_LEN - 3] + "..."
     return preview
