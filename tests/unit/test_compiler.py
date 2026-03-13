@@ -1,4 +1,4 @@
-"""Tests for the LaTeX compiler and 1-page enforcement logic."""
+"""Unit tests for the LaTeX compiler and 1-page enforcement logic."""
 
 from __future__ import annotations
 
@@ -14,7 +14,6 @@ from autocustomizeresume.compiler import (
     _find_droppables,
     compile_tex,
     compile_with_enforcement,
-    get_page_count,
 )
 from autocustomizeresume.models import (
     Bullet,
@@ -25,13 +24,6 @@ from autocustomizeresume.models import (
 from autocustomizeresume.schemas import (
     ContentSelection,
 )
-
-
-def _tectonic_available() -> bool:
-    """Check if tectonic is available on PATH."""
-    import shutil
-
-    return shutil.which("tectonic") is not None
 
 
 # ---------------------------------------------------------------------------
@@ -341,32 +333,6 @@ class TestCompileTex:
 
 
 # ---------------------------------------------------------------------------
-# get_page_count (unit tests with real tiny PDFs)
-# ---------------------------------------------------------------------------
-
-
-class TestGetPageCount:
-    def test_invalid_file_raises(self, tmp_path):
-        bad = tmp_path / "bad.pdf"
-        bad.write_bytes(b"not a pdf")
-        with pytest.raises(CompileError, match="Failed to read page count"):
-            get_page_count(bad)
-
-    def test_real_pdf(self, tmp_path):
-        """Create minimal valid PDFs via pypdf and verify page count."""
-        from pypdf import PdfWriter
-
-        for n_pages in (1, 3):
-            writer = PdfWriter()
-            for _ in range(n_pages):
-                writer.add_blank_page(width=612, height=792)
-            pdf_path = tmp_path / f"test_{n_pages}.pdf"
-            with open(pdf_path, "wb") as f:
-                writer.write(f)
-            assert get_page_count(pdf_path) == n_pages
-
-
-# ---------------------------------------------------------------------------
 # compile_with_enforcement (mocked compile_tex + get_page_count)
 # ---------------------------------------------------------------------------
 
@@ -496,36 +462,3 @@ class TestCompileWithEnforcement:
         for sec in second_sel.sections:
             for it in sec.items:
                 assert it.include is True, f"Item {it.id} should still be included"
-
-
-# ---------------------------------------------------------------------------
-# Integration test (requires tectonic)
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.skipif(
-    not _tectonic_available(),
-    reason="tectonic not installed",
-)
-class TestTectonicIntegration:
-    """Integration tests that invoke tectonic. Skipped if not installed."""
-
-    def test_compile_minimal(self, tmp_path):
-        tex = (
-            r"\documentclass{article}"
-            "\n"
-            r"\begin{document}"
-            "\n"
-            r"Hello, world!"
-            "\n"
-            r"\end{document}"
-        )
-        pdf_path = compile_tex(tex, keep_dir=tmp_path)
-        assert pdf_path.exists()
-        assert pdf_path.suffix == ".pdf"
-        assert get_page_count(pdf_path) == 1
-
-    def test_compile_error_bad_latex(self, tmp_path):
-        tex = r"\documentclass{article}\begin{document}\badcommand\end{document}"
-        with pytest.raises(CompileError):
-            compile_tex(tex, keep_dir=tmp_path)
