@@ -25,6 +25,8 @@ from autocustomizeresume.selector import (
 )
 from autocustomizeresume.utils import latex_preview
 
+pytestmark = pytest.mark.unit
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

@@ -5,12 +5,16 @@ from __future__ import annotations
 import warnings as _warnings
 from pathlib import Path
 
+import pytest
+
 from autocustomizeresume.models import (
     ParsedResume,
     ResumeSection,
     SkillsSection,
 )
 from autocustomizeresume.parser import parse_resume
+
+pytestmark = pytest.mark.integration
 
 FIXTURES = Path(__file__).resolve().parent.parent / "fixtures"
 

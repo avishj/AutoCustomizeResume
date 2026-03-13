@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import pytest
+
 from autocustomizeresume.model_registry import _DEFAULTS, get_model_params
+
+pytestmark = pytest.mark.unit
 
 
 class TestGetModelParams:

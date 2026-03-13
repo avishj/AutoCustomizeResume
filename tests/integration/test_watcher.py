@@ -15,6 +15,8 @@ from autocustomizeresume.watcher import DebouncedHandler
 if TYPE_CHECKING:
     from pathlib import Path
 
+pytestmark = pytest.mark.integration
+
 # ---------------------------------------------------------------------------
 # DebouncedHandler — debounce & filtering behavior
 # ---------------------------------------------------------------------------

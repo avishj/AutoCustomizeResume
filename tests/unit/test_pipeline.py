@@ -23,6 +23,8 @@ from autocustomizeresume.schemas import (
     SectionDecision,
 )
 
+pytestmark = pytest.mark.unit
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

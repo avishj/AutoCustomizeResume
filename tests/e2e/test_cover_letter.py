@@ -24,6 +24,8 @@ from autocustomizeresume.cover_letter import (
     inject_template,
 )
 
+pytestmark = pytest.mark.e2e
+
 # Minimal valid 1x1 RGB PNG (avoids struct/zlib at runtime).
 _MINIMAL_PNG = (
     b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00"

@@ -12,6 +12,8 @@ from autocustomizeresume.compiler import (
     get_page_count,
 )
 
+pytestmark = pytest.mark.e2e
+
 
 def _tectonic_available() -> bool:
     """Check if tectonic is available on PATH."""

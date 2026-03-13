@@ -4,8 +4,12 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
 from autocustomizeresume.namer import build_variables
 from autocustomizeresume.schemas import JDAnalysis
+
+pytestmark = pytest.mark.unit
 
 
 # ---------------------------------------------------------------------------

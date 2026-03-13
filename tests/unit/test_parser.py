@@ -9,6 +9,8 @@ from autocustomizeresume.models import (
 )
 from autocustomizeresume.parser import ParseError, parse_resume
 
+pytestmark = pytest.mark.unit
+
 
 # ---------------------------------------------------------------------------
 # Error cases

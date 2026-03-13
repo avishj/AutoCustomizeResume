@@ -9,6 +9,8 @@ from autocustomizeresume.compiler import (
     get_page_count,
 )
 
+pytestmark = pytest.mark.integration
+
 
 class TestGetPageCount:
     def test_invalid_file_raises(self, tmp_path):

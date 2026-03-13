@@ -4,9 +4,13 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
 from autocustomizeresume.namer import handle_output
 from autocustomizeresume.pipeline import PipelineResult
 from autocustomizeresume.schemas import JDAnalysis
+
+pytestmark = pytest.mark.integration
 
 
 # ---------------------------------------------------------------------------

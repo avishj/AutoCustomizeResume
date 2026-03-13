@@ -10,6 +10,8 @@ from autocustomizeresume.assembler import assemble_tex
 from autocustomizeresume.parser import parse_resume
 from autocustomizeresume.schemas import ContentSelection
 
+pytestmark = pytest.mark.integration
+
 FIXTURES = Path(__file__).resolve().parent.parent / "fixtures"
 
 

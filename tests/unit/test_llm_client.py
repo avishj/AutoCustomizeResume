@@ -9,6 +9,8 @@ import pytest
 
 from autocustomizeresume.llm_client import LLMClient, LLMError
 
+pytestmark = pytest.mark.unit
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

@@ -25,6 +25,8 @@ from autocustomizeresume.schemas import (
     ContentSelection,
 )
 
+pytestmark = pytest.mark.unit
+
 
 # ---------------------------------------------------------------------------
 # Helpers

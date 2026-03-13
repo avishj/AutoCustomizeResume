@@ -49,6 +49,8 @@ from autocustomizeresume.schemas import (
     SkillCategoryDecision,
 )
 
+pytestmark = pytest.mark.unit
+
 
 # ---------------------------------------------------------------------------
 # Shared helpers

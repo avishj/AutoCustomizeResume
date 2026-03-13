@@ -28,6 +28,8 @@ from autocustomizeresume.schemas import (
     SkillCategoryDecision,
 )
 
+pytestmark = pytest.mark.unit
+
 
 # ---------------------------------------------------------------------------
 # Helpers for building test data
