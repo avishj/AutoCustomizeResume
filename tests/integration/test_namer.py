@@ -1,8 +1,13 @@
-"""Tests for the file namer module."""
+"""Integration tests for the file namer module (real file I/O)."""
 
 from __future__ import annotations
 
-from autocustomizeresume.namer import build_variables, handle_output
+from types import SimpleNamespace
+
+from autocustomizeresume.namer import handle_output
+from autocustomizeresume.pipeline import PipelineResult
+from autocustomizeresume.schemas import JDAnalysis
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -20,8 +25,6 @@ def _make_config(
     history_dir="history",
 ):
     """Build a minimal Config-like object for namer tests."""
-    from types import SimpleNamespace
-
     user = SimpleNamespace(first_name=first, last_name=last)
     naming = SimpleNamespace(
         output_resume=output_resume,
@@ -34,8 +37,6 @@ def _make_config(
 
 
 def _make_analysis(company="Google", role="SWE"):
-    from autocustomizeresume.schemas import JDAnalysis
-
     return JDAnalysis(
         company=company,
         role=role,
@@ -47,26 +48,12 @@ def _make_analysis(company="Google", role="SWE"):
 
 
 # ---------------------------------------------------------------------------
-# build_variables
-# ---------------------------------------------------------------------------
-
-
-class TestBuildVariables:
-    def test_all_expected_keys_present(self):
-        v = build_variables(_make_config(), _make_analysis())
-        assert set(v) == {"first", "last", "company", "role", "date", "timestamp"}
-
-
-# ---------------------------------------------------------------------------
 # handle_output
 # ---------------------------------------------------------------------------
 
 
 class TestHandleOutput:
     def test_copies_resume_to_output_and_history(self, tmp_path):
-        from autocustomizeresume.pipeline import PipelineResult
-
-        # Create a fake PDF
         fake_pdf = tmp_path / "resume.pdf"
         fake_pdf.write_text("fake pdf content")
 
@@ -90,8 +77,6 @@ class TestHandleOutput:
         assert "Doe, Jane - Resume.pdf" in output_files[0].name
 
     def test_copies_cover_letter_when_present(self, tmp_path):
-        from autocustomizeresume.pipeline import PipelineResult
-
         fake_resume = tmp_path / "resume.pdf"
         fake_resume.write_text("resume")
         fake_cl = tmp_path / "cover.pdf"
@@ -117,8 +102,6 @@ class TestHandleOutput:
         assert any("Resume" in f for f in output_files)
 
     def test_creates_directories(self, tmp_path):
-        from autocustomizeresume.pipeline import PipelineResult
-
         fake_pdf = tmp_path / "resume.pdf"
         fake_pdf.write_text("fake")
 
