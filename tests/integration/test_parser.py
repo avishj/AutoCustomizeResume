@@ -28,9 +28,6 @@ def _load_fixture(name: str) -> str:
     return (FIXTURES / name).read_text()
 
 
-import pytest
-
-
 @pytest.fixture
 def sample_resume() -> ParsedResume:
     return parse_resume(_load_fixture("sample_tagged.tex"))
