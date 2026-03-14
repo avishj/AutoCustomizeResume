@@ -26,16 +26,15 @@ from autocustomizeresume.cover_letter import (
 
 pytestmark = pytest.mark.e2e
 
+if not shutil.which("tectonic"):
+    pytest.fail("tectonic is not installed — required for e2e tests", pytrace=False)
+
 # Minimal valid 1x1 RGB PNG (avoids struct/zlib at runtime).
 _MINIMAL_PNG = (
     b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00"
     b"\x01\x08\x02\x00\x00\x00\x90wS\xde\x00\x00\x00\x0cIDATx\x9cc\xf8"
     b"\xff\xff?\x00\x05\xfe\x02\xfe\r\xefF\xb8\x00\x00\x00\x00IEND\xaeB`\x82"
 )
-
-
-def _tectonic_available() -> bool:
-    return shutil.which("tectonic") is not None
 
 
 def _make_config(**overrides) -> Config:
@@ -87,10 +86,6 @@ def _make_config(**overrides) -> Config:
     )
 
 
-@pytest.mark.skipif(
-    not _tectonic_available(),
-    reason="tectonic not installed",
-)
 class TestCoverLetterIntegration:
     """E2E compilation using the real template and tectonic."""
 

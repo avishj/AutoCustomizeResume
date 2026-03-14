@@ -14,18 +14,12 @@ from autocustomizeresume.compiler import (
 
 pytestmark = pytest.mark.e2e
 
-
-def _tectonic_available() -> bool:
-    """Check if tectonic is available on PATH."""
-    return shutil.which("tectonic") is not None
+if not shutil.which("tectonic"):
+    pytest.fail("tectonic is not installed — required for e2e tests", pytrace=False)
 
 
-@pytest.mark.skipif(
-    not _tectonic_available(),
-    reason="tectonic not installed",
-)
 class TestTectonicIntegration:
-    """E2E tests that invoke tectonic. Skipped if not installed."""
+    """E2E tests that invoke tectonic."""
 
     def test_compile_minimal(self, tmp_path):
         tex = (
