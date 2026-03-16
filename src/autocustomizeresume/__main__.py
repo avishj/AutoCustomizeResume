@@ -2,4 +2,4 @@
 
 from autocustomizeresume.cli import app
 
-app()
+app.meta()
