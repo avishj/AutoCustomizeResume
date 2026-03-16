@@ -110,5 +110,10 @@ def main(
         sys.exit(1)
 
 
+def entrypoint() -> None:
+    """Package entrypoint for console_scripts."""
+    app.meta()
+
+
 if __name__ == "__main__":
-    app()
+    app.meta()

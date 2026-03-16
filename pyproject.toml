@@ -35,7 +35,7 @@ Documentation = "https://avishj.github.io/AutoCustomizeResume"
 Issues = "https://github.com/avishj/AutoCustomizeResume/issues"
 
 [project.scripts]
-autocustomizeresume = "autocustomizeresume.cli:app"
+autocustomizeresume = "autocustomizeresume.cli:entrypoint"
 
 [tool.uv]
 python-preference = "managed"
