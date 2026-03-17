@@ -20,10 +20,11 @@ def invoke(capsys: pytest.CaptureFixture[str]) -> Callable[..., CliResult]:
     """Invoke the CLI app and return a result with exit_code and output."""
     def _invoke(*args: str) -> CliResult:
         try:
-            app(list(args))
+            app.meta(list(args))
             captured = capsys.readouterr()
             return CliResult(exit_code=0, output=captured.out)
         except SystemExit as exc:
             captured = capsys.readouterr()
-            return CliResult(exit_code=exc.code or 0, output=captured.out)
+            code = exc.code if isinstance(exc.code, int) else (0 if exc.code is None else 1)
+            return CliResult(exit_code=code, output=captured.out)
     return _invoke

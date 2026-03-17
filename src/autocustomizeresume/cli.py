@@ -71,12 +71,6 @@ def main(
             "--role", help="Override LLM-extracted role title."
         ),
     ] = None,
-    verbose: Annotated[
-        bool,
-        Parameter(
-            "--verbose", help="Enable verbose debug logging."
-        ),
-    ] = False,
     keep_dir: Annotated[
         Path | None,
         Parameter(
@@ -86,13 +80,6 @@ def main(
     ] = None,
 ) -> None:
     """Auto-customize a tagged LaTeX resume for a job description."""
-    if verbose:
-        logging.basicConfig(
-            level=logging.DEBUG,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            datefmt="%H:%M:%S",
-        )
-
     try:
         if jd:
             _run_oneshot(jd, company=company, role=role, keep_dir=keep_dir)
@@ -108,6 +95,24 @@ def main(
     except Exception as exc:
         status.error(f"Pipeline failed: {exc}")
         sys.exit(1)
+
+
+@app.meta.default
+def meta(
+    *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
+    verbose: Annotated[
+        bool,
+        Parameter("--verbose", help="Enable verbose debug logging."),
+    ] = False,
+) -> None:
+    """Run the autocustomizeresume CLI."""
+    if verbose:
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%H:%M:%S",
+        )
+    app(tokens)
 
 
 def entrypoint() -> None:
