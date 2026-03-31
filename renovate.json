@@ -6,11 +6,13 @@
   ],
   "timezone": "America/New_York",
   "schedule": ["* 0 * * 0"],
+  "minimumReleaseAge": "3 days",
+  "abandonmentThreshold": "2 years",
   "osvVulnerabilityAlerts": true,
-  "osvVulnerabilitySeverityThreshold": "LOW",
   "dependencyDashboardOSVVulnerabilitySummary": "all",
   "vulnerabilityAlerts": {
-    "labels": ["security"]
+    "labels": ["security"],
+    "minimumReleaseAge": null
   },
   "configMigration": true,
   "platformCommit": "enabled",
@@ -20,17 +22,12 @@
   "prHourlyLimit": 4,
   "labels": ["dependencies"],
   "rangeStrategy": "auto",
-  "semanticCommitType": "deps",
-  "semanticCommitScope": "",
+  "semanticCommitType": "chore",
+  "semanticCommitScope": "deps",
   "lockFileMaintenance": {
     "schedule": ["* 0 * * 0"]
   },
   "packageRules": [
-    {
-      "description": "Label major updates",
-      "matchUpdateTypes": ["major"],
-      "labels": ["dependencies"]
-    },
     {
       "description": "Label and pin GitHub Actions updates",
       "matchManagers": ["github-actions"],
