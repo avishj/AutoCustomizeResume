@@ -9,11 +9,19 @@ import math
 import os
 import shutil
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
 import yaml
 from dotenv import load_dotenv
+
+
+class LogFormat(StrEnum):
+    """Supported log output formats."""
+
+    PRETTY = "pretty"
+    JSON = "json"
 
 
 @dataclass(frozen=True)
@@ -50,9 +58,7 @@ class LLMConfig:
                 f"API key not found. Set the '{self.api_key_env}' environment variable "
                 f"(or add it to your .env file)."
             )
-            raise ValueError(
-                msg
-            )
+            raise ValueError(msg)
         return key
 
 
@@ -101,9 +107,7 @@ def _get(data: dict, key: str, section: str, default: Any = _MISSING) -> Any:
     """
     if not isinstance(data, dict):
         msg = f"Expected '{section}' to be a YAML mapping, got {type(data).__name__}"
-        raise ConfigError(
-            msg
-        )
+        raise ConfigError(msg)
     val = data.get(key, _MISSING)
     if val is _MISSING or val is None:
         if default is _MISSING:
@@ -121,9 +125,7 @@ def _get_str(data: dict, key: str, section: str, default: Any = _MISSING) -> str
     if isinstance(val, (int, float, bool)):
         return str(val)
     msg = f"{section}.{key} must be a string, got {type(val).__name__}: {val!r}"
-    raise ConfigError(
-        msg
-    )
+    raise ConfigError(msg)
 
 
 def _get_bool(data: dict, key: str, section: str, default: Any = _MISSING) -> bool:
@@ -138,9 +140,7 @@ def _get_bool(data: dict, key: str, section: str, default: Any = _MISSING) -> bo
         if lower in ("false", "no", "0", "off"):
             return False
     msg = f"{section}.{key} must be a boolean, got {type(val).__name__}: {val!r}"
-    raise ConfigError(
-        msg
-    )
+    raise ConfigError(msg)
 
 
 def _get_int(data: dict, key: str, section: str, default: Any = _MISSING) -> int:
@@ -150,9 +150,7 @@ def _get_int(data: dict, key: str, section: str, default: Any = _MISSING) -> int
         return int(val)
     except (ValueError, TypeError):
         msg = f"{section}.{key} must be an integer, got {type(val).__name__}: {val!r}"
-        raise ConfigError(
-            msg
-        )
+        raise ConfigError(msg)
 
 
 def _get_float(data: dict, key: str, section: str, default: Any = _MISSING) -> float:
@@ -162,9 +160,7 @@ def _get_float(data: dict, key: str, section: str, default: Any = _MISSING) -> f
         return float(val)
     except (ValueError, TypeError):
         msg = f"{section}.{key} must be a number, got {type(val).__name__}: {val!r}"
-        raise ConfigError(
-            msg
-        )
+        raise ConfigError(msg)
 
 
 def load_config(config_path: str = "config.yaml") -> Config:
@@ -194,9 +190,7 @@ def load_config(config_path: str = "config.yaml") -> Config:
             f"Copy examples/config.example.yaml to config.yaml "
             f"and fill in your details."
         )
-        raise ConfigError(
-            msg
-        )
+        raise ConfigError(msg)
 
     try:
         with open(path) as f:
@@ -207,9 +201,7 @@ def load_config(config_path: str = "config.yaml") -> Config:
 
     if not isinstance(raw, dict):
         msg = f"Config file must be a YAML mapping, got {type(raw).__name__}"
-        raise ConfigError(
-            msg
-        )
+        raise ConfigError(msg)
 
     # Parse sections
     user_raw = _get(raw, "user", "root")
@@ -295,6 +287,4 @@ def _check_tectonic() -> None:
             "  Linux:  https://tectonic-typesetting.github.io/en-US/install.html\n"
             "  cargo:  cargo install tectonic"
         )
-        raise ConfigError(
-            msg
-        )
+        raise ConfigError(msg)

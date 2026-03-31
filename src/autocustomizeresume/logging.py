@@ -1,0 +1,60 @@
+# SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+"""Logging configuration."""
+
+import logging
+import json as _json
+from datetime import datetime, timezone
+
+import cyclopts
+from rich.logging import RichHandler
+from rich.traceback import install as _install_traceback
+
+from autocustomizeresume.config import LogFormat
+
+
+class _JSONFormatter(logging.Formatter):
+    """Structured JSON log formatter for production environments."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        """Format a log record as a JSON string."""
+        entry = {
+            "timestamp": datetime.fromtimestamp(
+                record.created, tz=timezone.utc
+            ).isoformat(),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        if record.exc_info and record.exc_info[0] is not None:
+            entry["exception"] = self.formatException(record.exc_info)
+        return _json.dumps(entry)
+
+
+def setup_logging(*, verbose: bool, log_format: LogFormat) -> None:
+    """Configure the root logger for the application.
+
+    Args:
+        verbose: When True, sets log level to DEBUG; otherwise INFO.
+        log_format: Output format - pretty (RichHandler) or json.
+    """
+    _install_traceback(show_locals=verbose, suppress=[cyclopts])
+    level = logging.DEBUG if verbose else logging.INFO
+    root = logging.getLogger()
+    root.setLevel(level)
+
+    root.handlers.clear()
+
+    if log_format is LogFormat.JSON:
+        handler = logging.StreamHandler()
+        handler.setFormatter(_JSONFormatter())
+    else:
+        handler = RichHandler(
+            rich_tracebacks=True,
+            show_time=verbose,
+            show_path=verbose,
+        )
+
+    root.addHandler(handler)
