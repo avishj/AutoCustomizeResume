@@ -29,7 +29,11 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # 3.13-slim
 FROM python:3.13-slim@sha256:739e7213785e88c0f702dcdc12c0973afcbd606dbf021a589cab77d6b00b579d AS runtime
 
-RUN groupadd --system app && useradd --system --gid app --no-create-home app
+RUN apt-get update \
+    && apt-get install --no-install-recommends -y tectonic \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system app \
+    && useradd --system --gid app --no-create-home app
 
 COPY --from=builder --chown=app:app /app /app
 
