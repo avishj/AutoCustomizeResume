@@ -1,3 +1,11 @@
+# SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "autocustomizeresume"
 version = "0.1.0"
@@ -11,6 +19,7 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
     "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.13",
@@ -18,21 +27,21 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "cyclopts>=3.16.1",
-    "openai>=2.24.0",
+    "cyclopts>=4.10.1",
+    "rich>=14.3.3",
     "pydantic-settings>=2.13.1",
+    "openai>=2.24.0",
     "pypdf>=6.7.4",
     "pyyaml>=6.0.3",
-    "rich>=14.3.3",
     "watchdog>=6.0.0",
 ]
 
 [project.urls]
-Homepage = "https://github.com/avishj/AutoCustomizeResume"
-Repository = "https://github.com/avishj/AutoCustomizeResume"
-Changelog = "https://github.com/avishj/AutoCustomizeResume/blob/main/CHANGELOG.md"
-Documentation = "https://avishj.github.io/AutoCustomizeResume"
-Issues = "https://github.com/avishj/AutoCustomizeResume/issues"
+Homepage = "https://github.com/avishj/autocustomizeresume"
+Documentation = "https://avishj.github.io/autocustomizeresume"
+Repository = "https://github.com/avishj/autocustomizeresume"
+Changelog = "https://github.com/avishj/autocustomizeresume/blob/main/CHANGELOG.md"
+Issues = "https://github.com/avishj/autocustomizeresume/issues"
 
 [project.scripts]
 autocustomizeresume = "autocustomizeresume.cli:entrypoint"
@@ -40,25 +49,26 @@ autocustomizeresume = "autocustomizeresume.cli:entrypoint"
 [tool.uv]
 python-preference = "managed"
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-cov>=7.1.0",
+    "pytest-randomly>=4.0.1",
+    "pytest-timeout>=2.4.0",
+    "pytest-xdist>=3.8.0",
+    "pytest-mock>=3.15.1",
+    "pytest-github-actions-annotate-failures>=0.4.0",
+    "mkdocs-material>=9.7.6",
+    "mkdocstrings[python]>=1.0.3",
+    "commitizen>=4.13.9",
+    "complexipy>=5.2.0",
+    "pre-commit>=4.5.1",
+    "ruff>=0.15.8",
+    "ty>=0.0.27",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/autocustomizeresume"]
-
-[dependency-groups]
-dev = [
-    "commitizen>=4.13.9",
-    "mkdocs-material>=9.7.5",
-    "mkdocstrings[python]>=1.0.3",
-    "pre-commit>=4.5.1",
-    "pytest>=9.0.2",
-    "pytest-cov>=7.0.0",
-    "pytest-xdist>=3.8.0",
-    "ruff>=0.15.6",
-    "ty>=0.0.23",
-]
 
 [tool.ruff]
 target-version = "py313"
@@ -154,7 +164,7 @@ max-complexity = 15
 python-version = "3.13"
 
 [tool.coverage.run]
-source = ["src/autocustomizeresume"]
+source = ["autocustomizeresume"]
 branch = true
 parallel = true
 relative_files = true
@@ -173,8 +183,8 @@ exclude_lines = [
 ]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
 testpaths = ["tests"]
+pythonpath = ["src"]
 addopts = [
     "--strict-markers",
     "--strict-config",
@@ -185,6 +195,7 @@ markers = [
     "integration: tests exercising multiple components together (e.g. CliRunner)",
     "e2e: end-to-end tests invoking the installed CLI via subprocess",
 ]
+timeout = 60
 filterwarnings = ["error"]
 xfail_strict = true
 
@@ -193,7 +204,6 @@ name = "cz_conventional_commits"
 version = "0.1.0"
 tag_format = "v$version"
 version_files = [
-    "src/autocustomizeresume/__init__.py:__version__",
     "pyproject.toml:version",
 ]
 changelog_file = "CHANGELOG.md"
