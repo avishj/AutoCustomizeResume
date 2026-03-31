@@ -1,3 +1,9 @@
-"""AutoCustomizeResume: LLM-powered resume customization tool."""
+# SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
 
-__version__ = "0.1.0"
+"""autocustomizeresume."""
+
+from importlib.metadata import version
+
+__version__ = version("autocustomizeresume")
