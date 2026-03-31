@@ -12,7 +12,7 @@ All versions are supported.
 
 **Do not open a public issue for security vulnerabilities.**
 
-Please report vulnerabilities via [GitHub private security advisories](https://github.com/avishj/AutoCustomizeResume/security/advisories/new).
+Please report vulnerabilities via [GitHub private security advisories](https://github.com/avishj/autocustomizeresume/security/advisories/new).
 
 Include:
 
