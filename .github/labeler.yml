@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+---
 bug:
   - head-branch: ['^fix']
 
@@ -32,6 +36,7 @@ security:
           - SECURITY.md
           - .github/workflows/_security.yml
           - .github/workflows/_codeql.yml
+          - .github/workflows/_trivy-image.yml
 
 tooling:
   - changed-files:
