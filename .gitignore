@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 # Python
 __pycache__/
 *.py[cod]
@@ -23,6 +27,9 @@ results.xml
 
 # Type checking
 .ty/
+
+# SonarCloud
+.scannerwork/
 
 # Docs
 site/
