@@ -165,12 +165,11 @@ pre-commit install
 ### Common tasks
 
 ```bash
-just lint        # lint and format check
-just typecheck   # run type checker
-just test        # run tests
-just cov         # run tests with coverage
-just ci          # run all quality gates
-just docs        # serve docs locally
+just lint        # run pre-commit checks
+just test        # run tests with terminal coverage
+just build       # build + twine check + CLI smoke test
+just ci          # full local quality gate
+just docs        # build docs and serve locally
 just clean       # remove build artifacts
 ```
 
