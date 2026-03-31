@@ -16,8 +16,8 @@ Thanks for your interest in contributing!
    Install [`just`](https://github.com/casey/just) if not already available, then:
 
    ```bash
-   git clone https://github.com/<your_username>/AutoCustomizeResume.git
-   cd AutoCustomizeResume
+   git clone https://github.com/<your_username>/autocustomizeresume.git
+   cd autocustomizeresume
    uv sync
    pre-commit install
    ```
@@ -63,7 +63,7 @@ This gives you the same rules that run in CI directly in your editor, catching i
 
 ## Reporting Bugs
 
-Open a [GitHub issue](https://github.com/avishj/AutoCustomizeResume/issues/new/choose) using the appropriate template.
+Open a [GitHub issue](https://github.com/avishj/autocustomizeresume/issues/new/choose) using the appropriate template.
 
 ## Security
 
