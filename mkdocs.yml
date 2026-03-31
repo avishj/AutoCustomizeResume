@@ -2,14 +2,14 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 ---
-site_name: AutoCustomizeResume
-site_description: AutoCustomizeResume documentation.
-site_url: https://avishj.github.io/AutoCustomizeResume/
-repo_url: https://github.com/avishj/AutoCustomizeResume
-repo_name: avishj/AutoCustomizeResume
+site_name: autocustomizeresume
+site_description: autocustomizeresume documentation.
+site_url: https://avishj.github.io/autocustomizeresume/
+repo_url: https://github.com/avishj/autocustomizeresume
+repo_name: avishj/autocustomizeresume
 edit_uri: edit/main/docs/
 
-copyright: Copyright &copy; 2026 &ndash; Present AutoCustomizeResume contributors
+copyright: Copyright &copy; 2026 &ndash; Present Avish Jha and contributors
 
 theme:
   name: material
