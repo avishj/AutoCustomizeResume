@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+---
 codecov:
   require_ci_to_pass: true
   max_report_age: 24h
@@ -24,7 +28,7 @@ coverage:
 flags:
   unit:
     paths:
-      - src/myapp/
+      - src/autocustomizeresume/
     carryforward: false
     statuses:
       - type: project
@@ -33,7 +37,7 @@ flags:
         target: 70%
   integration:
     paths:
-      - src/myapp/
+      - src/autocustomizeresume/
     carryforward: false
     statuses:
       - type: project
@@ -42,7 +46,7 @@ flags:
         target: 70%
   e2e:
     paths:
-      - src/myapp/
+      - src/autocustomizeresume/
     carryforward: false
     statuses:
       - type: project
