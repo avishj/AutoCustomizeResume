@@ -50,7 +50,6 @@ packages = ["src/autocustomizeresume"]
 [dependency-groups]
 dev = [
     "commitizen>=4.13.9",
-    "complexipy>=5.2.0",
     "mkdocs-material>=9.7.5",
     "mkdocstrings[python]>=1.0.3",
     "pre-commit>=4.5.1",
