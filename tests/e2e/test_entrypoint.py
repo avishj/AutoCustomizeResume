@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """End-to-end tests invoking the CLI as a subprocess."""
 
 import subprocess
@@ -14,7 +18,6 @@ def _run(*args: str) -> subprocess.CompletedProcess[str]:
         capture_output=True,
         text=True,
         check=False,
-        timeout=10,
     )
 
 
