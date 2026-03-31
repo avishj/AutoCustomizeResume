@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 .git/
 .github/
 .venv/
@@ -7,6 +11,7 @@
 .coverage.*
 .ty/
 .ruff_cache/
+.scannerwork/
 .env
 .env.*
 
@@ -30,3 +35,4 @@ tests/
 CHANGELOG.md
 LICENSE
 mkdocs.yml
+sonar-project.properties
