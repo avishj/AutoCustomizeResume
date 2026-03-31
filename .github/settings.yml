@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 ---
 repository:
-  name: AutoCustomizeResume
+  name: autocustomizeresume
   description: Auto-customize your LaTeX resume for different jobs using LLM-powered content selection
   homepage: https://avishj.github.io/autocustomizeresume
   topics: python, cli, latex, llm, resume
@@ -12,6 +12,7 @@ repository:
   has_issues: true
   has_projects: false
   has_wiki: false
+
   default_branch: main
 
   allow_squash_merge: false
