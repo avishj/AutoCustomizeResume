@@ -27,9 +27,6 @@ results.xml
 # Docs
 site/
 
-# IDE
-.vscode/
-
 # OS
 .DS_Store
 
