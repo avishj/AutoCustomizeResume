@@ -99,7 +99,7 @@ def meta(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
     verbose: Annotated[
         bool,
-        Parameter("--verbose", help="Enable verbose debug logging."),
+        Parameter(alias=("--verbose", "-v"), help="Enable verbose debug logging."),
     ] = False,
 ) -> None:
     """Run the autocustomizeresume CLI."""

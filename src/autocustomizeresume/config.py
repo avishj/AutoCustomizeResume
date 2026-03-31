@@ -32,6 +32,7 @@ class Settings(BaseSettings):
         env_prefix="AUTOCUSTOMIZERESUME_",
         env_file=".env",
         env_file_encoding="utf-8",
+        extra="ignore",
     )
 
     verbose: bool = False
