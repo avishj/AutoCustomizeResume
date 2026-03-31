@@ -38,7 +38,7 @@ def setup_logging(*, verbose: bool, log_format: LogFormat) -> None:
 
     Args:
         verbose: When True, sets log level to DEBUG; otherwise INFO.
-        log_format: Output format - pretty (RichHandler) or json.
+        log_format: Output format — pretty (RichHandler) or json.
     """
     _install_traceback(show_locals=verbose, suppress=[cyclopts])
     level = logging.DEBUG if verbose else logging.INFO
