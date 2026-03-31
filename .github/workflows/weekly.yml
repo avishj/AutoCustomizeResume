@@ -1,8 +1,13 @@
+# SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
 name: Weekly
 
 on:
   schedule:
-    - cron: "0 0 * * 0" 
+    - cron: "0 0 * * 0"
   workflow_dispatch:
 
 permissions: {}
@@ -17,31 +22,26 @@ jobs:
       id-token: write
       actions: read
     steps:
-      - name: Harden runner
-        uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc # v2.15.1
+      - name: Setup
+        uses: avishj/blueprints/stacks/python-cli/actions/setup@main
         with:
-          egress-policy: audit
-
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
+          setup-python: "false"
 
       - name: Run Scorecard
-        uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a # v2.4.3
+        uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a  # v2.4.3
         with:
           results_file: scorecard.sarif
           results_format: sarif
           publish_results: true
 
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@0d579ffd059c29b07949a3cce3983f0780820c98 # v4.32.6
+        uses: github/codeql-action/upload-sarif@c10b8064de6f491fea524254123dbe5e09572f13  # v4.35.1
         with:
           sarif_file: scorecard.sarif
           category: scorecard
 
       - name: Upload artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f  # v7.0.0
         with:
           name: scorecard-results
           path: scorecard.sarif
@@ -59,12 +59,19 @@ jobs:
     name: Security Scans
     uses: ./.github/workflows/_security.yml
     permissions:
-      contents: read
       security-events: write
     secrets: inherit
 
   codeql:
     name: CodeQL
     uses: ./.github/workflows/_codeql.yml
+    permissions:
+      security-events: write
+
+  osv-scanner:
+    name: OSV-Scanner
+    uses: ./.github/workflows/_osv-scanner.yml
+    with:
+      scan-mode: weekly
     permissions:
       security-events: write
