@@ -1,15 +1,17 @@
+# SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+---
 repository:
   name: AutoCustomizeResume
-  description: Quick tool to auto customize your LaTeX resume for different jobs.
-  homepage: https://avishj.github.io/AutoCustomizeResume
-  topics: python, cli
+  description: Auto-customize your LaTeX resume for different jobs using LLM-powered content selection
+  homepage: https://avishj.github.io/autocustomizeresume
+  topics: python, cli, latex, llm, resume
 
   private: false
   has_issues: true
   has_projects: false
   has_wiki: false
-  has_downloads: true
-
   default_branch: main
 
   allow_squash_merge: false
@@ -43,6 +45,9 @@ labels:
   - name: security
     color: "b60205"
     description: "Security vulnerability or improvement"
+  - name: tooling
+    color: "c5def5"
+    description: "Developer tooling and config changes"
 
 branches:
   - name: main
