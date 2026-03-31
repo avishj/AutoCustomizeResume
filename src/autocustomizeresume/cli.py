@@ -14,7 +14,8 @@ from cyclopts import App, Parameter
 from rich.console import Console
 
 from autocustomizeresume import __version__, status
-from autocustomizeresume.config import ConfigError, load_config
+from autocustomizeresume.config import ConfigError, Settings, load_config
+from autocustomizeresume.logging import setup_logging
 from autocustomizeresume.namer import handle_output
 from autocustomizeresume.pipeline import run_pipeline
 from autocustomizeresume.watcher import watch
@@ -61,15 +62,11 @@ def main(
     ] = None,
     company: Annotated[
         str | None,
-        Parameter(
-            "--company", help="Override LLM-extracted company name."
-        ),
+        Parameter("--company", help="Override LLM-extracted company name."),
     ] = None,
     role: Annotated[
         str | None,
-        Parameter(
-            "--role", help="Override LLM-extracted role title."
-        ),
+        Parameter("--role", help="Override LLM-extracted role title."),
     ] = None,
     keep_dir: Annotated[
         Path | None,
@@ -106,12 +103,9 @@ def meta(
     ] = False,
 ) -> None:
     """Run the autocustomizeresume CLI."""
-    if verbose:
-        logging.basicConfig(
-            level=logging.DEBUG,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            datefmt="%H:%M:%S",
-        )
+    settings = Settings()
+    effective_verbose = verbose or settings.verbose
+    setup_logging(verbose=effective_verbose, log_format=settings.log_format)
     app(tokens)
 
 
