@@ -13,6 +13,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
+from pydantic_settings import BaseSettings, SettingsConfigDict
 import yaml
 from dotenv import load_dotenv
 
@@ -22,6 +23,19 @@ class LogFormat(StrEnum):
 
     PRETTY = "pretty"
     JSON = "json"
+
+
+class Settings(BaseSettings):
+    """Application settings loaded from environment variables."""
+
+    model_config = SettingsConfigDict(
+        env_prefix="AUTOCUSTOMIZERESUME_",
+        env_file=".env",
+        env_file_encoding="utf-8",
+    )
+
+    verbose: bool = False
+    log_format: LogFormat = LogFormat.PRETTY
 
 
 @dataclass(frozen=True)
