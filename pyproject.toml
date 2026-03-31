@@ -163,6 +163,23 @@ max-complexity = 15
 [tool.ty]
 python-version = "3.13"
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "-ra",
+]
+markers = [
+    "unit: fast isolated tests with no external dependencies",
+    "integration: tests exercising multiple components together (e.g. CliRunner)",
+    "e2e: end-to-end tests invoking the installed CLI via subprocess",
+]
+timeout = 60
+filterwarnings = ["error"]
+xfail_strict = true
+
 [tool.coverage.run]
 source = ["autocustomizeresume"]
 branch = true
@@ -181,23 +198,6 @@ exclude_lines = [
     "raise NotImplementedError",
     "\\.\\.\\.",
 ]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["src"]
-addopts = [
-    "--strict-markers",
-    "--strict-config",
-    "-ra",
-]
-markers = [
-    "unit: fast isolated tests with no external dependencies",
-    "integration: tests exercising multiple components together (e.g. CliRunner)",
-    "e2e: end-to-end tests invoking the installed CLI via subprocess",
-]
-timeout = 60
-filterwarnings = ["error"]
-xfail_strict = true
 
 [tool.commitizen]
 name = "cz_conventional_commits"
