@@ -47,7 +47,7 @@ Then follow the setup instructions in [`examples/`](./examples/) to configure yo
 
 ## Prerequisites
 
-- **Python 3.10+**
+- **Python 3.13+**
 - **[uv](https://docs.astral.sh/uv/)** (recommended)
 - **[Tectonic](https://tectonic-typesetting.github.io)** on PATH
   - macOS: `brew install tectonic`
