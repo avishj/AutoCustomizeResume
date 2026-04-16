@@ -1,9 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:best-practices",
-    ":enablePreCommit"
-  ],
+  "extends": ["config:best-practices", ":enablePreCommit"],
   "timezone": "America/New_York",
   "schedule": ["* 0 * * 0"],
   "minimumReleaseAge": "3 days",
