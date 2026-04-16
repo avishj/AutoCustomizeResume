@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Tests for the LLM client wrapper."""
 
 from __future__ import annotations
