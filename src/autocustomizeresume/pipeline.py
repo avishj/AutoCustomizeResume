@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Pipeline orchestrator: runs the full resume customization pipeline.
 
 Reads the master resume and JD, calls each module in sequence

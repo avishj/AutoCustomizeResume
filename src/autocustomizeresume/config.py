@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Configuration loader for AutoCustomizeResume.
 
 Loads config.yaml and .env, provides typed access to all settings.

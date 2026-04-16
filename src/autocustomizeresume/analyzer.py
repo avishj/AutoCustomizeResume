@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """JD analyzer: extracts structured metadata from job descriptions.
 
 Uses LLM to identify company name, role title, key skills,

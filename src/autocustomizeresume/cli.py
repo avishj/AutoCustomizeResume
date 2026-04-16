@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """CLI entry point: watch mode and one-shot mode.
 
 Handles argument parsing, dispatches to pipeline or watcher.

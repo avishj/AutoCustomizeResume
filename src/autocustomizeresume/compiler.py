@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """LaTeX compiler: invokes tectonic and enforces 1-page limit.
 
 Compiles .tex to PDF via tectonic, checks page count, and retries

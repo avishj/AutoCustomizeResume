@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """Cover letter generator: produces a cover letter PDF.
 
 Uses LLM to generate body text from JD + selected resume content,

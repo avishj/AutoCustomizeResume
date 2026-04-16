@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 """File watcher with debounce for jd.txt.
 
 Monitors the JD file for changes and triggers the pipeline
