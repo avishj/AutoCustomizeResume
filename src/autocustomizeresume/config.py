@@ -18,7 +18,6 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -196,11 +195,6 @@ def load_config(config_path: str = "config.yaml") -> Config:
     Raises:
         ConfigError: If the config file is missing, invalid, or incomplete.
     """
-    # Load .env if present
-    dotenv_path = Path(config_path).parent / ".env"
-    if dotenv_path.exists():
-        load_dotenv(dotenv_path)
-
     # Load YAML
     path = Path(config_path)
     if not path.exists():
