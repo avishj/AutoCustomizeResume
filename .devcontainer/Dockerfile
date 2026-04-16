@@ -2,12 +2,12 @@
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
-# v0.11.2
-FROM ghcr.io/astral-sh/uv:0.11.2@sha256:c4f5de312ee66d46810635ffc5df34a1973ba753e7241ce3a08ef979ddd7bea5 AS uv
+# v0.11.7
+FROM ghcr.io/astral-sh/uv:0.11.7@sha256:240fb85ab0f263ef12f492d8476aa3a2e4e1e333f7d67fbdd923d00a506a516a AS uv
 
 # 3.13
 FROM mcr.microsoft.com/devcontainers/python:3.13@sha256:9b0762901a555c31c2c63824cb5b1ade77da939500e034317b8d09578b94ba0e
 
 COPY --from=uv /uv /uvx /usr/local/bin/
 
-RUN UV_TOOL_BIN_DIR=/usr/local/bin uv tool install just==1.48.1
+RUN UV_TOOL_BIN_DIR=/usr/local/bin uv tool install just==1.49.0
