@@ -19,7 +19,7 @@ Thanks for your interest in contributing!
    git clone https://github.com/<your_username>/autocustomizeresume.git
    cd autocustomizeresume
    uv sync
-   pre-commit install
+   uv run pre-commit install
    ```
 
 ## Development Workflow

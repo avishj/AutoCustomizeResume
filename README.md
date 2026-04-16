@@ -169,7 +169,7 @@ Check that you are editing the file at `paths.jd_file` (default: `jd.txt`). The 
 git clone https://github.com/avishj/autocustomizeresume.git
 cd autocustomizeresume
 uv sync
-pre-commit install
+uv run pre-commit install
 ```
 
 ### Common tasks
