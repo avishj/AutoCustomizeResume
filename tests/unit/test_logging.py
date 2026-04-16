@@ -12,7 +12,6 @@ from rich.logging import RichHandler
 from autocustomizeresume.config import LogFormat
 from autocustomizeresume.logging import setup_logging
 
-
 pytestmark = pytest.mark.unit
 
 

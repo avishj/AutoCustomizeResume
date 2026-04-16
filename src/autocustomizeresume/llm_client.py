@@ -159,25 +159,19 @@ class LLMClient:
                 f"LLM authentication failed — check your API key "
                 f"(env var '{self._api_key_env}'): {exc}"
             )
-            raise LLMError(
-                msg
-            ) from exc
+            raise LLMError(msg) from exc
         except APITimeoutError as exc:
             msg = f"LLM API request timed out: {exc}"
             raise LLMError(msg) from exc
         except APIConnectionError as exc:
             msg = f"Could not connect to LLM API at {self._client.base_url}: {exc}"
-            raise LLMError(
-                msg
-            ) from exc
+            raise LLMError(msg) from exc
         except RateLimitError as exc:
             msg = f"LLM API rate limit exceeded: {exc}"
             raise LLMError(msg) from exc
         except httpx.TimeoutException as exc:
             msg = f"LLM API request timed out after {self._timeout}s: {exc}"
-            raise LLMError(
-                msg
-            ) from exc
+            raise LLMError(msg) from exc
         except LLMError:
             raise
         except Exception as exc:
@@ -190,14 +184,10 @@ class LLMClient:
             parsed = json.loads(json_text)
         except json.JSONDecodeError as exc:
             msg = f"LLM returned invalid JSON: {exc}\nRaw response:\n{raw}"
-            raise LLMError(
-                msg
-            ) from exc
+            raise LLMError(msg) from exc
 
         if not isinstance(parsed, dict):
             msg = f"Expected a JSON object (dict), got {type(parsed).__name__}: {raw}"
-            raise LLMError(
-                msg
-            )
+            raise LLMError(msg)
 
         return parsed

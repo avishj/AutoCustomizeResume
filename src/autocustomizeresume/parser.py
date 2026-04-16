@@ -238,9 +238,7 @@ def parse_resume(tex_content: str) -> ParsedResume:
 
     if in_section:
         msg = f"Unclosed section tag: %%% BEGIN:{section_depth_type}:{section_depth_id}"
-        raise ParseError(
-            msg
-        )
+        raise ParseError(msg)
 
     # Remaining interstitial after last section = postamble
     if interstitial_lines:
@@ -282,9 +280,7 @@ def _validate_unique_ids(
                 f"Duplicate ID '{tag_id}' — first seen in {seen[tag_id]}, "
                 f"also found in {context}"
             )
-            raise ParseError(
-                msg
-            )
+            raise ParseError(msg)
         seen[tag_id] = context
 
     for section in sections:
@@ -471,9 +467,7 @@ def _parse_item(tag_type: TagType, tag_id: str, lines: list[str]) -> ResumeItem:
                     f"Unexpected END tag outside any bullet in item "
                     f"'{tag_id}': {stripped}"
                 )
-                raise ParseError(
-                    msg
-                )
+                raise ParseError(msg)
 
             if not found_first_bullet_tag:
                 heading_lines.append(line)
@@ -579,9 +573,7 @@ def _parse_skill_line(cat_name: str, lines: list[str]) -> SkillCategory:
     m = _SKILL_LINE_RE.match(content)
     if not m:
         msg = f"Could not parse skills line for category '{cat_name}': {content!r}"
-        raise ParseError(
-            msg
-        )
+        raise ParseError(msg)
 
     prefix = m.group(1)
     display_name = m.group(2)

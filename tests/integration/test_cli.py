@@ -9,7 +9,6 @@ import pytest
 from autocustomizeresume import __version__
 from autocustomizeresume.exit_codes import ExitCode
 
-
 pytestmark = pytest.mark.integration
 
 

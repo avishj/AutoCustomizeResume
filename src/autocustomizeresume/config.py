@@ -13,9 +13,9 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
 import yaml
 from dotenv import load_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class LogFormat(StrEnum):

@@ -85,7 +85,6 @@ def _escape_latex(text: str) -> str:
     return text.replace(placeholder, r"\textbackslash{}")
 
 
-
 def _plain_text_to_latex(text: str) -> str:
     r"""Convert plain text (from LLM) to LaTeX-safe body content.
 

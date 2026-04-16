@@ -273,8 +273,7 @@ class TestSelectContent:
                                     "id": "acme-1",
                                     "include": True,
                                     "edited_text": (
-                                        "Built scalable REST API"
-                                        " handling 10k rps"
+                                        "Built scalable REST API handling 10k rps"
                                     ),
                                 },
                             ],
@@ -353,7 +352,7 @@ class TestPromptConstruction:
         call_kwargs = client.chat.call_args[1]
         system = call_kwargs["system"]
         assert "edited_text" in system
-        assert "rephrasing" in system.lower() or "rephras" in system.lower()
+        assert "rephrasing" in system.lower() or "rephrase" in system.lower()
 
     def test_no_temperature_override(self):
         client = _make_client(_SAMPLE_SELECTION_DICT)

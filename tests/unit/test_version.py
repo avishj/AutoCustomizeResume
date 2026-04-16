@@ -8,7 +8,6 @@ import pytest
 
 from autocustomizeresume import __version__
 
-
 pytestmark = pytest.mark.unit
 
 

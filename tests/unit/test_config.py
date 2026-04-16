@@ -8,7 +8,6 @@ import pytest
 
 from autocustomizeresume.config import Settings
 
-
 pytestmark = pytest.mark.unit
 
 

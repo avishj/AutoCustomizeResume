@@ -83,18 +83,13 @@ def compile_tex(tex_content: str, *, keep_dir: Path | None = None) -> Path:
             )
         except subprocess.TimeoutExpired as exc:
             msg = f"tectonic timed out after {_COMPILE_TIMEOUT_SECS}s"
-            raise CompileError(
-                msg
-            ) from exc
+            raise CompileError(msg) from exc
 
         if result.returncode != 0:
             msg = (
-                f"tectonic failed (exit {result.returncode}):\n"
-                f"{result.stderr.strip()}"
+                f"tectonic failed (exit {result.returncode}):\n{result.stderr.strip()}"
             )
-            raise CompileError(
-                msg
-            )
+            raise CompileError(msg)
 
         pdf_path = tex_path.with_suffix(".pdf")
     except Exception:
@@ -374,9 +369,7 @@ def compile_with_enforcement(
             if owns_dir:
                 shutil.rmtree(work_dir, ignore_errors=True)
             msg = f"Resume still exceeds 1 page after {attempt + 1} attempts"
-            raise CompileError(
-                msg
-            )
+            raise CompileError(msg)
 
         # Phase 2: Re-add excluded content to fill remaining space
         # Try adding back highest-scored excluded elements one at a time;
