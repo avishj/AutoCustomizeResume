@@ -11,7 +11,7 @@ LaTeX document with only the selected items included.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING
 
 from autocustomizeresume.models import (
     Bullet,
@@ -34,8 +34,6 @@ if TYPE_CHECKING:
     )
 
 logger = logging.getLogger(__name__)
-
-_T = TypeVar("_T")
 
 
 # ---------------------------------------------------------------------------
@@ -63,9 +61,9 @@ def _get_interstitial(interstitial: list[tuple[int, str]], position: int) -> str
 
 
 def _assemble_with_interstitials[T](
-    elements: Sequence[_T],
+    elements: Sequence[T],
     interstitials: list[tuple[int, str]],
-    assemble_fn: Callable[[_T], str | None],
+    assemble_fn: Callable[[T], str | None],
     *,
     keep_trailing_pending: bool = False,
 ) -> list[str]:

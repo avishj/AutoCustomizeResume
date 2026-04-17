@@ -23,7 +23,7 @@ from __future__ import annotations
 import logging
 import re
 import warnings
-from typing import TYPE_CHECKING, TypeVar, cast
+from typing import TYPE_CHECKING, cast
 
 from autocustomizeresume.models import (
     Bullet,
@@ -321,21 +321,17 @@ def _parse_section(
     return _parse_regular_section(tag_type, tag_id, lines)
 
 
-_TChild = TypeVar("_TChild")
-_TIdent = TypeVar("_TIdent", bound=tuple)
-
-
 def _collect_tagged_children[TIdent: tuple, TChild](
     lines: list[str],
     *,
     begin_re: re.Pattern[str],
     end_re: re.Pattern[str],
-    begin_identity: Callable[[re.Match[str]], _TIdent],
-    end_identity: Callable[[re.Match[str]], _TIdent],
-    build_child: Callable[[_TIdent, list[str]], _TChild],
+    begin_identity: Callable[[re.Match[str]], TIdent],
+    end_identity: Callable[[re.Match[str]], TIdent],
+    build_child: Callable[[TIdent, list[str]], TChild],
     unexpected_end_error: Callable[[str], ParseError],
-    unclosed_error: Callable[[_TIdent], ParseError],
-) -> tuple[list[_TChild], list[tuple[int, str]]]:
+    unclosed_error: Callable[[TIdent], ParseError],
+) -> tuple[list[TChild], list[tuple[int, str]]]:
     """Collect tagged child blocks with interstitial content.
 
     Generic state-machine shared by regular sections (items) and skills
@@ -345,12 +341,12 @@ def _collect_tagged_children[TIdent: tuple, TChild](
     Returns ``(children, interstitial)`` where interstitial entries are
     ``(child_index, text)`` pairs.
     """
-    children: list[_TChild] = []
+    children: list[TChild] = []
     interstitial: list[tuple[int, str]] = []
     buffer: list[str] = []
 
     in_child = False
-    cur_ident: _TIdent | None = None
+    cur_ident: TIdent | None = None
     child_lines: list[str] = []
 
     for line in lines:
