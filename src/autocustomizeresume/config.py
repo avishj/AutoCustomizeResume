@@ -15,7 +15,6 @@ import shutil
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
 
 import yaml
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -132,7 +131,12 @@ class ConfigError(Exception):
 _MISSING = object()
 
 
-def _get(data: dict, key: str, section: str, default: Any = _MISSING) -> Any:
+def _get(
+    data: dict,
+    key: str,
+    section: str,
+    default: object = _MISSING,
+) -> object:
     """Get a value from a dict with a clear error if missing and no default.
 
     If the key is absent or its value is None (YAML null), the default is used.
@@ -150,7 +154,12 @@ def _get(data: dict, key: str, section: str, default: Any = _MISSING) -> Any:
     return val
 
 
-def _get_str(data: dict, key: str, section: str, default: Any = _MISSING) -> str:
+def _get_str(
+    data: dict,
+    key: str,
+    section: str,
+    default: object = _MISSING,
+) -> str:
     """Get a string value, coercing non-string scalars to str."""
     val = _get(data, key, section, default)
     if isinstance(val, str):
@@ -161,7 +170,12 @@ def _get_str(data: dict, key: str, section: str, default: Any = _MISSING) -> str
     raise ConfigError(msg)
 
 
-def _get_bool(data: dict, key: str, section: str, default: Any = _MISSING) -> bool:
+def _get_bool(
+    data: dict,
+    key: str,
+    section: str,
+    default: object = _MISSING,
+) -> bool:
     """Get a boolean value, coercing common string literals."""
     val = _get(data, key, section, default)
     if isinstance(val, bool):
@@ -176,24 +190,34 @@ def _get_bool(data: dict, key: str, section: str, default: Any = _MISSING) -> bo
     raise ConfigError(msg)
 
 
-def _get_int(data: dict, key: str, section: str, default: Any = _MISSING) -> int:
+def _get_int(
+    data: dict,
+    key: str,
+    section: str,
+    default: object = _MISSING,
+) -> int:
     """Get an integer value with a clear error on failure."""
     val = _get(data, key, section, default)
     try:
         return int(val)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError) as exc:
         msg = f"{section}.{key} must be an integer, got {type(val).__name__}: {val!r}"
-        raise ConfigError(msg)
+        raise ConfigError(msg) from exc
 
 
-def _get_float(data: dict, key: str, section: str, default: Any = _MISSING) -> float:
+def _get_float(
+    data: dict,
+    key: str,
+    section: str,
+    default: object = _MISSING,
+) -> float:
     """Get a float value with a clear error on failure."""
     val = _get(data, key, section, default)
     try:
         return float(val)
-    except (ValueError, TypeError):
+    except (ValueError, TypeError) as exc:
         msg = f"{section}.{key} must be a number, got {type(val).__name__}: {val!r}"
-        raise ConfigError(msg)
+        raise ConfigError(msg) from exc
 
 
 def load_config(config_path: str = "config.yaml") -> Config:
@@ -221,7 +245,7 @@ def load_config(config_path: str = "config.yaml") -> Config:
         raise ConfigError(msg)
 
     try:
-        with open(path) as f:
+        with path.open() as f:
             raw = yaml.safe_load(f)
     except yaml.YAMLError as e:
         msg = f"Invalid YAML in {config_path}: {e}"

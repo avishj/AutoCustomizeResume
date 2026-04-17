@@ -117,7 +117,6 @@ def run_pipeline(
             parsed,
             selection,
             config=config,
-            client=client,
         )
 
     # Final step

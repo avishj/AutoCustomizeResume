@@ -11,7 +11,7 @@ history/ (permanent archive with timestamps).
 from __future__ import annotations
 
 import shutil
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -30,7 +30,7 @@ def build_variables(config: Config, analysis: JDAnalysis) -> dict[str, str]:
         Keys are template variable names (without braces),
         values are the resolved strings.
     """
-    now = datetime.now()
+    now = datetime.now(UTC)
     return {
         "first": config.user.first_name,
         "last": config.user.last_name,
@@ -83,15 +83,16 @@ def _copy(src: Path, dest_dir: Path, filename: str) -> Path:
 
 def _copy_to_dirs(
     src: Path,
+    *,
     output_dir: Path,
     history_dir: Path,
-    output_template: str,
-    history_template: str,
+    names: tuple[str, str],
     variables: dict[str, str],
 ) -> None:
     """Copy *src* to both output/ and history/ with template-derived names."""
-    _copy(src, output_dir, build_name(output_template, variables))
-    _copy(src, history_dir, build_name(history_template, variables))
+    output_name, history_name = names
+    _copy(src, output_dir, build_name(output_name, variables))
+    _copy(src, history_dir, build_name(history_name, variables))
 
 
 def handle_output(result: PipelineResult, config: Config) -> None:
@@ -110,19 +111,17 @@ def handle_output(result: PipelineResult, config: Config) -> None:
 
     _copy_to_dirs(
         result.resume_pdf,
-        output_dir,
-        history_dir,
-        config.naming.output_resume,
-        config.naming.history_resume,
-        variables,
+        output_dir=output_dir,
+        history_dir=history_dir,
+        names=(config.naming.output_resume, config.naming.history_resume),
+        variables=variables,
     )
 
     if result.cover_letter_pdf is not None:
         _copy_to_dirs(
             result.cover_letter_pdf,
-            output_dir,
-            history_dir,
-            config.naming.output_cover,
-            config.naming.history_cover,
-            variables,
+            output_dir=output_dir,
+            history_dir=history_dir,
+            names=(config.naming.output_cover, config.naming.history_cover),
+            variables=variables,
         )

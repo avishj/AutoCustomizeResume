@@ -15,7 +15,8 @@ from __future__ import annotations
 import json
 import logging
 import re
-from typing import TYPE_CHECKING, Any
+from collections.abc import Mapping
+from typing import TYPE_CHECKING
 
 import httpx
 from openai import (
@@ -56,6 +57,21 @@ class LLMError(Exception):
     """Raised when an LLM call fails after all attempts."""
 
 
+def _validate_response_content(raw: str | None) -> str:
+    """Return validated response content or raise LLMError."""
+    if raw is None:
+        msg = "LLM returned an empty response (content is None)"
+        raise LLMError(msg)
+    return raw
+
+
+def _validate_choices(choices: object) -> None:
+    """Ensure response includes at least one choice."""
+    if not choices:
+        msg = "LLM returned no choices (empty choices list)"
+        raise LLMError(msg)
+
+
 class LLMClient:
     """Reusable client for OpenAI-compatible chat completions.
 
@@ -94,8 +110,7 @@ class LLMClient:
         system: str,
         user: str,
         temperature: float | None = None,
-        **kwargs: Any,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         """Send a chat completion request and return parsed JSON.
 
         Always requests ``response_format={"type": "json_object"}``,
@@ -117,7 +132,7 @@ class LLMClient:
 
         Returns:
         -------
-        dict
+        dict[str, object]
             The parsed JSON object.
 
         Raises:
@@ -134,7 +149,7 @@ class LLMClient:
         if temperature is None:
             temperature = self._profile["temperature"]
 
-        request_kwargs: dict[str, Any] = {
+        request_kwargs = {
             "model": self._model,
             "messages": messages,
             "temperature": temperature,
@@ -142,7 +157,6 @@ class LLMClient:
             "max_tokens": self._profile["max_tokens"],
             "response_format": {"type": "json_object"},
             **self._profile.get("extra_params", {}),
-            **kwargs,
         }
 
         logger.info("LLM request: model=%s", self._model)
@@ -150,15 +164,8 @@ class LLMClient:
 
         try:
             response = self._client.chat.completions.create(**request_kwargs)
-
-            if not response.choices:
-                msg = "LLM returned no choices (empty choices list)"
-                raise LLMError(msg)
-
-            raw = response.choices[0].message.content
-            if raw is None:
-                msg = "LLM returned an empty response (content is None)"
-                raise LLMError(msg)
+            _validate_choices(response.choices)
+            raw = _validate_response_content(response.choices[0].message.content)
         except AuthenticationError as exc:
             msg = (
                 f"LLM authentication failed — check your API key "
@@ -174,11 +181,11 @@ class LLMClient:
         except RateLimitError as exc:
             msg = f"LLM API rate limit exceeded: {exc}"
             raise LLMError(msg) from exc
+        except LLMError:
+            raise
         except httpx.TimeoutException as exc:
             msg = f"LLM API request timed out after {self._timeout}s: {exc}"
             raise LLMError(msg) from exc
-        except LLMError:
-            raise
         except Exception as exc:
             msg = f"LLM API call failed: {exc}"
             raise LLMError(msg) from exc
@@ -191,8 +198,8 @@ class LLMClient:
             msg = f"LLM returned invalid JSON: {exc}\nRaw response:\n{raw}"
             raise LLMError(msg) from exc
 
-        if not isinstance(parsed, dict):
+        if not isinstance(parsed, Mapping):
             msg = f"Expected a JSON object (dict), got {type(parsed).__name__}: {raw}"
             raise LLMError(msg)
 
-        return parsed
+        return dict(parsed)
