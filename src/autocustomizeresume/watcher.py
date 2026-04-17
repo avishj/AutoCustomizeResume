@@ -10,7 +10,6 @@ after a configurable debounce period.
 
 from __future__ import annotations
 
-import os
 import threading
 import time
 from pathlib import Path
@@ -20,7 +19,10 @@ from watchdog.events import DirModifiedEvent, FileModifiedEvent, FileSystemEvent
 from watchdog.observers import Observer
 
 from autocustomizeresume import status
+from autocustomizeresume.compiler import CompileError
+from autocustomizeresume.llm_client import LLMError
 from autocustomizeresume.namer import handle_output
+from autocustomizeresume.parser import ParseError
 from autocustomizeresume.pipeline import run_pipeline
 
 if TYPE_CHECKING:
@@ -64,7 +66,7 @@ class DebouncedHandler(FileSystemEventHandler):
         """Handle a file-modified event, debouncing rapid successive saves."""
         if event.is_directory:
             return
-        src_path = os.path.abspath(os.fsdecode(event.src_path))
+        src_path = str(Path(event.src_path).resolve())
         if src_path != self._watch_path:
             return
         # Ignore empty-file saves
@@ -120,7 +122,14 @@ def watch(
             result = run_pipeline(jd_text, config, company=company, role=role)
             handle_output(result, config)
             status.success(f"Output → {config.paths.output_dir}/")
-        except Exception as exc:
+        except (
+            CompileError,
+            ParseError,
+            LLMError,
+            OSError,
+            ValueError,
+            KeyError,
+        ) as exc:
             status.error(f"Pipeline failed: {exc}")
         finally:
             with _run_lock:

@@ -9,17 +9,20 @@ Handles argument parsing, dispatches to pipeline or watcher.
 
 from __future__ import annotations
 
+import pathlib
 import sys
-from pathlib import Path
 from typing import Annotated
 
 from cyclopts import App, Parameter
 from rich.console import Console
 
 from autocustomizeresume import __version__, status
+from autocustomizeresume.compiler import CompileError
 from autocustomizeresume.config import ConfigError, Settings, load_config
+from autocustomizeresume.llm_client import LLMError
 from autocustomizeresume.logging import setup_logging
 from autocustomizeresume.namer import handle_output
+from autocustomizeresume.parser import ParseError
 from autocustomizeresume.pipeline import run_pipeline
 from autocustomizeresume.watcher import watch
 
@@ -33,7 +36,11 @@ console = Console()
 
 
 def _run_oneshot(
-    jd_path: Path, *, company: str | None, role: str | None, keep_dir: Path | None
+    jd_path: pathlib.Path,
+    *,
+    company: str | None,
+    role: str | None,
+    keep_dir: pathlib.Path | None,
 ) -> None:
     """Execute a single pipeline run."""
     if not jd_path.is_file():
@@ -57,7 +64,7 @@ def _run_oneshot(
 def main(
     *,
     jd: Annotated[
-        Path | None,
+        pathlib.Path | None,
         Parameter(
             "--jd",
             help="Path to JD text file (one-shot mode). Omit for watch mode.",
@@ -72,7 +79,7 @@ def main(
         Parameter("--role", help="Override LLM-extracted role title."),
     ] = None,
     keep_dir: Annotated[
-        Path | None,
+        pathlib.Path | None,
         Parameter(
             "--keep-dir",
             help="Keep build artifacts (tex, pdf) in this directory.",
@@ -82,7 +89,12 @@ def main(
     """Auto-customize a tagged LaTeX resume for a job description."""
     try:
         if jd:
-            _run_oneshot(jd, company=company, role=role, keep_dir=keep_dir)
+            _run_oneshot(
+                pathlib.Path(jd),
+                company=company,
+                role=role,
+                keep_dir=pathlib.Path(keep_dir) if keep_dir else None,
+            )
         else:
             config = load_config()
             watch(config, company=company, role=role)
@@ -92,7 +104,14 @@ def main(
     except KeyboardInterrupt:
         console.print()
         sys.exit(0)
-    except Exception as exc:
+    except (
+        CompileError,
+        ParseError,
+        LLMError,
+        OSError,
+        ValueError,
+        KeyError,
+    ) as exc:
         status.error(f"Pipeline failed: {exc}")
         sys.exit(1)
 
