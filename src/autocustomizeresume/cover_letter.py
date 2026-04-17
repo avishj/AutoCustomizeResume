@@ -15,7 +15,7 @@ import logging
 import re
 import shutil
 import tempfile
-from datetime import date
+from datetime import UTC, datetime
 from importlib import resources
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -312,7 +312,7 @@ def _build_signature_block(signature_path: str) -> str:
 
 def _format_date() -> str:
     """Return today's date in 'Month DD, YYYY' format."""
-    return date.today().strftime("%B %d, %Y")
+    return datetime.now(UTC).date().strftime("%B %d, %Y")
 
 
 def inject_template(
@@ -457,13 +457,12 @@ def compile_cover_letter(
 # ---------------------------------------------------------------------------
 
 
-def build_cover_letter(
+def _build_cover_letter(
     jd_analysis: JDAnalysis,
     parsed_resume: ParsedResume,
     selection: ContentSelection,
     *,
     config: Config,
-    client: LLMClient | None = None,
     keep_dir: Path | None = None,
 ) -> Path | None:
     """Generate and compile a cover letter PDF end-to-end.
@@ -481,8 +480,6 @@ def build_cover_letter(
         The content selection decisions.
     config:
         Application config.
-    client:
-        Optional pre-built LLM client.
     keep_dir:
         If provided, write build artifacts here.
 
@@ -514,7 +511,6 @@ def build_cover_letter(
         parsed_resume,
         selection,
         config=config,
-        client=client,
     )
 
     # 2. Post-process: escape special chars + convert paragraphs
@@ -537,3 +533,6 @@ def build_cover_letter(
 
     logger.info("Cover letter build complete: %s", pdf_path)
     return pdf_path
+
+
+build_cover_letter = _build_cover_letter

@@ -419,9 +419,8 @@ class TestFormatDate:
     """Tests for _format_date()."""
 
     def test_format(self):
-        with patch("autocustomizeresume.cover_letter.date") as mock_date:
-            mock_date.today.return_value = date(2026, 2, 28)
-            mock_date.side_effect = date
+        with patch("autocustomizeresume.cover_letter.datetime") as mock_datetime:
+            mock_datetime.now.return_value.date.return_value = date(2026, 2, 28)
             result = _format_date()
             assert result == "February 28, 2026"
 

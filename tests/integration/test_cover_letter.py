@@ -228,9 +228,8 @@ class TestInjectTemplate:
         template = template_path.read_text(encoding="utf-8")
         cfg = _make_config(cover_letter={"signature_path": "sig.png"})
 
-        with patch("autocustomizeresume.cover_letter.date") as mock_date:
-            mock_date.today.return_value = date(2026, 1, 1)
-            mock_date.side_effect = date
+        with patch("autocustomizeresume.cover_letter.datetime") as mock_datetime:
+            mock_datetime.now.return_value.date.return_value = date(2026, 1, 1)
             result = inject_template(template, config=cfg, body_text="Body text.")
 
         remaining = re.findall(r"\{\{[A-Z_]+\}\}", result)

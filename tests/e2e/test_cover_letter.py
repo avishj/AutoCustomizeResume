@@ -109,9 +109,8 @@ class TestCoverLetterIntegration:
 
         template_tex = template_path.read_text(encoding="utf-8")
 
-        with patch("autocustomizeresume.cover_letter.date") as mock_date:
-            mock_date.today.return_value = date(2026, 2, 28)
-            mock_date.side_effect = date
+        with patch("autocustomizeresume.cover_letter.datetime") as mock_datetime:
+            mock_datetime.now.return_value.date.return_value = date(2026, 2, 28)
             filled_tex = inject_template(
                 template_tex,
                 config=cfg,
@@ -144,9 +143,8 @@ class TestCoverLetterIntegration:
 
         template_tex = template_path.read_text(encoding="utf-8")
 
-        with patch("autocustomizeresume.cover_letter.date") as mock_date:
-            mock_date.today.return_value = date(2026, 2, 28)
-            mock_date.side_effect = date
+        with patch("autocustomizeresume.cover_letter.datetime") as mock_datetime:
+            mock_datetime.now.return_value.date.return_value = date(2026, 2, 28)
             filled_tex = inject_template(
                 template_tex,
                 config=cfg,
@@ -182,9 +180,8 @@ class TestCoverLetterIntegration:
 
         template_tex = template_path.read_text(encoding="utf-8")
 
-        with patch("autocustomizeresume.cover_letter.date") as mock_date:
-            mock_date.today.return_value = date(2026, 2, 28)
-            mock_date.side_effect = date
+        with patch("autocustomizeresume.cover_letter.datetime") as mock_datetime:
+            mock_datetime.now.return_value.date.return_value = date(2026, 2, 28)
             filled_tex = inject_template(template_tex, config=cfg, body_text=body_latex)
 
         pdf_path = compile_cover_letter(filled_tex, config=cfg, keep_dir=tmp_path)
