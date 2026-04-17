@@ -73,6 +73,7 @@ class LLMClient:
         config: Config,
         timeout: float | None = None,
     ) -> None:
+        """Initialise the client from application config."""
         self._model = config.llm.model
         self._api_key_env = config.llm.api_key_env
         self._timeout = timeout if timeout is not None else self.DEFAULT_TIMEOUT

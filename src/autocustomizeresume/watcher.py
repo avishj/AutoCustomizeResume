@@ -52,6 +52,7 @@ class DebouncedHandler(FileSystemEventHandler):
         debounce_seconds: float,
         callback: Callable[[], None],
     ) -> None:
+        """Set up the handler with a debounced callback for *watch_path*."""
         super().__init__()
         self._watch_path = str(watch_path.resolve())
         self._debounce = debounce_seconds
@@ -60,6 +61,7 @@ class DebouncedHandler(FileSystemEventHandler):
         self._lock = threading.Lock()
 
     def on_modified(self, event: DirModifiedEvent | FileModifiedEvent) -> None:
+        """Handle a file-modified event, debouncing rapid successive saves."""
         if event.is_directory:
             return
         src_path = os.path.abspath(os.fsdecode(event.src_path))
