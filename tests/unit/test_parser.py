@@ -14,6 +14,7 @@ from autocustomizeresume.models import (
 from autocustomizeresume.parser import ParseError, parse_resume
 
 pytestmark = pytest.mark.unit
+warnings = pytest.importorskip("warnings")
 
 
 # ---------------------------------------------------------------------------
@@ -357,8 +358,6 @@ class TestCompactHeading:
 
     def test_compact_heading_no_malformed_warning(self):
         """COMPACT tag should not trigger a malformed-tag warning."""
-        import warnings as _warnings
-
         tex = r"""\documentclass{article}
 \begin{document}
 %%% BEGIN:pinned:exp
@@ -370,6 +369,6 @@ class TestCompactHeading:
 %%% END:pinned:exp
 \end{document}
 """
-        with _warnings.catch_warnings():
-            _warnings.simplefilter("error")
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
             parse_resume(tex)

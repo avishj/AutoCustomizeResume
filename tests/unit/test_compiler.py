@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+import subprocess
+import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -315,9 +317,7 @@ class TestCompileTex:
 
     @patch("autocustomizeresume.compiler.subprocess.run")
     def test_timeout_raises_compile_error(self, mock_run, tmp_path):
-        import subprocess as _subprocess
-
-        mock_run.side_effect = _subprocess.TimeoutExpired(cmd=["tectonic"], timeout=120)
+        mock_run.side_effect = subprocess.TimeoutExpired(cmd=["tectonic"], timeout=120)
         with pytest.raises(CompileError, match="timed out"):
             compile_tex(r"\documentclass{article}", keep_dir=tmp_path)
 
@@ -325,9 +325,7 @@ class TestCompileTex:
     def test_temp_dir_cleaned_on_failure(self, mock_run):
         """Temp dir is removed when compile_tex raises CompileError (no keep_dir)."""
         mock_run.return_value = MagicMock(returncode=1, stderr="error")
-        import tempfile as _tempfile
-
-        td = _tempfile.mkdtemp(prefix="test_acr_leak_")
+        td = tempfile.mkdtemp(prefix="test_acr_leak_")
         td_path = Path(td)
 
         with patch("autocustomizeresume.compiler.tempfile") as mock_tempmod:
@@ -352,7 +350,7 @@ class TestCompileWithEnforcement:
         page_counts: sequence of page counts returned on successive calls.
         """
         call_idx = {"n": 0}
-        fake_pdf = Path("/tmp/fake/resume.pdf")
+        fake_pdf = Path("fake_resume.pdf")
 
         def mock_compile(tex, *, keep_dir=None):
             return fake_pdf
@@ -379,7 +377,7 @@ class TestCompileWithEnforcement:
             pdf_path, final_sel = compile_with_enforcement(
                 _make_parsed(), _full_selection()
             )
-        assert pdf_path == Path("/tmp/fake/resume.pdf")
+        assert pdf_path == Path("fake_resume.pdf")
         # Selection should be unchanged
         assert final_sel.sections[0].items[0].include is True
         assert final_sel.sections[0].items[1].include is True
@@ -437,7 +435,7 @@ class TestCompileWithEnforcement:
         call_log: list[ContentSelection] = []
 
         def mock_compile(tex, *, keep_dir=None):
-            return Path("/tmp/fake/resume.pdf")
+            return Path("fake_resume.pdf")
 
         page_calls = iter([2, 1])
 
