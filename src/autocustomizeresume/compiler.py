@@ -20,6 +20,8 @@ from typing import TYPE_CHECKING
 
 from pypdf import PdfReader
 
+from autocustomizeresume import assembler as resume_assembler
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -38,6 +40,15 @@ _COMPILE_TIMEOUT_SECS = 120
 
 class CompileError(Exception):
     """Raised when tectonic compilation fails."""
+
+
+def _resolve_tectonic_executable() -> str:
+    """Return the absolute path to the tectonic binary."""
+    tectonic = shutil.which("tectonic")
+    if tectonic is None:
+        msg = "tectonic executable not found in PATH"
+        raise CompileError(msg)
+    return tectonic
 
 
 def compile_tex(tex_content: str, *, keep_dir: Path | None = None) -> Path:
@@ -75,32 +86,45 @@ def compile_tex(tex_content: str, *, keep_dir: Path | None = None) -> Path:
     tex_path.write_text(tex_content, encoding="utf-8")
 
     logger.debug("Compiling %s with tectonic", tex_path)
+    tectonic = _resolve_tectonic_executable()
+    timeout_exc: subprocess.TimeoutExpired | None = None
+    result: subprocess.CompletedProcess[str] | None = None
 
     try:
         try:
-            result = subprocess.run(
-                ["tectonic", "-c", "minimal", str(tex_path)],
+            result = subprocess.run(  # noqa: S603
+                [tectonic, "-c", "minimal", str(tex_path)],
                 capture_output=True,
                 text=True,
                 check=False,
                 timeout=_COMPILE_TIMEOUT_SECS,
             )
         except subprocess.TimeoutExpired as exc:
-            msg = f"tectonic timed out after {_COMPILE_TIMEOUT_SECS}s"
-            raise CompileError(msg) from exc
-
-        if result.returncode != 0:
-            msg = (
-                f"tectonic failed (exit {result.returncode}):\n{result.stderr.strip()}"
-            )
-            raise CompileError(msg)
-
-        pdf_path = tex_path.with_suffix(".pdf")
+            timeout_exc = exc
     except Exception:
         if owns_dir:
             shutil.rmtree(work, ignore_errors=True)
         raise
 
+    if timeout_exc is not None:
+        if owns_dir:
+            shutil.rmtree(work, ignore_errors=True)
+        msg = f"tectonic timed out after {_COMPILE_TIMEOUT_SECS}s"
+        raise CompileError(msg) from timeout_exc
+
+    if result is None:
+        if owns_dir:
+            shutil.rmtree(work, ignore_errors=True)
+        msg = "tectonic did not return a compilation result"
+        raise CompileError(msg)
+
+    if result.returncode != 0:
+        if owns_dir:
+            shutil.rmtree(work, ignore_errors=True)
+        msg = f"tectonic failed (exit {result.returncode}):\n{result.stderr.strip()}"
+        raise CompileError(msg)
+
+    pdf_path = tex_path.with_suffix(".pdf")
     logger.info("Compiled PDF: %s", pdf_path)
     return pdf_path
 
@@ -280,7 +304,7 @@ def _mark_skip(selection: ContentSelection, candidate: _Candidate) -> ContentSel
 _MAX_RETRIES = 10
 
 
-def compile_with_enforcement(
+def compile_with_enforcement(  # noqa: PLR0912, PLR0915
     parsed: ParsedResume,
     selection: ContentSelection,
     *,
@@ -314,8 +338,6 @@ def compile_with_enforcement(
         If tectonic fails or the document still exceeds 1 page after
         all retry attempts.
     """
-    from autocustomizeresume.assembler import assemble_tex
-
     # Use a single working directory for all retries to avoid temp dir leaks
     if keep_dir is not None:
         work_dir = keep_dir
@@ -327,11 +349,13 @@ def compile_with_enforcement(
     # Work on an immutable selection, producing new copies on each drop
     current_sel = selection
     attempt = 0
+    pages = 0
+    pdf_path: Path | None = None
 
     try:
         # Phase 1: Drop content until it fits on 1 page
         for attempt in range(_MAX_RETRIES + 1):
-            tex = assemble_tex(parsed, current_sel)
+            tex = resume_assembler.assemble_tex(parsed, current_sel)
             pdf_path = compile_tex(tex, keep_dir=work_dir)
             pages = get_page_count(pdf_path)
 
@@ -369,66 +393,75 @@ def compile_with_enforcement(
 
             current_sel = _drop_element(current_sel, target)
 
-        if pages > 1:
-            if owns_dir:
-                shutil.rmtree(work_dir, ignore_errors=True)
-            msg = f"Resume still exceeds 1 page after {attempt + 1} attempts"
-            raise CompileError(msg)
-
         # Phase 2: Re-add excluded content to fill remaining space
         # Try adding back highest-scored excluded elements one at a time;
         # keep each addition only if the result still fits on 1 page.
-        for _fill_attempt in range(_MAX_RETRIES * 3):
-            addables = _find_addables(current_sel)
-            if not addables:
-                break
+        if pages <= 1:
+            for _fill_attempt in range(_MAX_RETRIES * 3):
+                addables = _find_addables(current_sel)
+                if not addables:
+                    break
 
-            candidate = addables[0]
-            trial_sel = _add_element(current_sel, candidate)
+                candidate = addables[0]
+                trial_sel = _add_element(current_sel, candidate)
 
-            tex = assemble_tex(parsed, trial_sel)
-            trial_pdf = compile_tex(tex, keep_dir=work_dir)
-            pages = get_page_count(trial_pdf)
+                tex = resume_assembler.assemble_tex(parsed, trial_sel)
+                trial_pdf = compile_tex(tex, keep_dir=work_dir)
+                pages = get_page_count(trial_pdf)
 
-            kind = (
-                f"bullet '{candidate.bullet_id}'"
-                if candidate.bullet_id
-                else f"item '{candidate.item_id}'"
-            )
-
-            if pages <= 1:
-                logger.info(
-                    "Re-added %s (score=%d) from section '%s' — still fits",
-                    kind,
-                    candidate.score,
-                    candidate.section_id,
+                kind = (
+                    f"bullet '{candidate.bullet_id}'"
+                    if candidate.bullet_id
+                    else f"item '{candidate.item_id}'"
                 )
-                current_sel = trial_sel
-                pdf_path = trial_pdf
-            else:
-                # Re-compile with current_sel to restore the on-disk PDF
-                # (compile_tex overwrites the same file in work_dir).
-                tex = assemble_tex(parsed, current_sel)
-                pdf_path = compile_tex(tex, keep_dir=work_dir)
-                logger.info(
-                    "Re-adding %s (score=%d) from section '%s' overflows — skipping",
-                    kind,
-                    candidate.score,
-                    candidate.section_id,
-                )
-                # Mark this element as permanently excluded so we don't retry it
-                # by dropping it from the current selection (it's already excluded,
-                # but we need to remove it from addables consideration).
-                # We do this by moving to the next candidate — _find_addables will
-                # return the same list, so we need to actually exclude it.
-                # The element is already excluded in current_sel, so we just need
-                # to skip it. We set its score to -1 to deprioritize it.
-                current_sel = _mark_skip(current_sel, candidate)
+
+                if pages <= 1:
+                    logger.info(
+                        "Re-added %s (score=%d) from section '%s' — still fits",
+                        kind,
+                        candidate.score,
+                        candidate.section_id,
+                    )
+                    current_sel = trial_sel
+                    pdf_path = trial_pdf
+                else:
+                    # Re-compile with current_sel to restore the on-disk PDF
+                    # (compile_tex overwrites the same file in work_dir).
+                    tex = resume_assembler.assemble_tex(parsed, current_sel)
+                    pdf_path = compile_tex(tex, keep_dir=work_dir)
+                    pages = get_page_count(pdf_path)
+                    logger.info(
+                        (
+                            "Re-adding %s (score=%d) from section '%s' "
+                            "overflows — skipping"
+                        ),
+                        kind,
+                        candidate.score,
+                        candidate.section_id,
+                    )
+                    # Mark this element as permanently excluded so we don't retry it
+                    # by dropping it from the current selection (it's already excluded,
+                    # but we need to remove it from addables consideration).
+                    # We do this by moving to the next candidate — _find_addables will
+                    # return the same list, so we need to actually exclude it.
+                    # The element is already excluded in current_sel, so we just need
+                    # to skip it. We set its score to -1 to deprioritize it.
+                    current_sel = _mark_skip(current_sel, candidate)
 
     except Exception:
         # Clean up auto-created temp dir on failure so it doesn't leak
         if owns_dir:
             shutil.rmtree(work_dir, ignore_errors=True)
         raise
-    else:
-        return pdf_path, current_sel
+
+    if pages > 1:
+        if owns_dir:
+            shutil.rmtree(work_dir, ignore_errors=True)
+        msg = f"Resume still exceeds 1 page after {attempt + 1} attempts"
+        raise CompileError(msg)
+
+    if pdf_path is None:
+        msg = "No compiled PDF produced"
+        raise CompileError(msg)
+
+    return pdf_path, current_sel
