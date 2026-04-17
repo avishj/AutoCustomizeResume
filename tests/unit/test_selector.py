@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -20,8 +21,11 @@ from autocustomizeresume.models import (
     SkillsSection,
 )
 from autocustomizeresume.schemas import (
+    BulletDecision,
     ContentSelection,
+    ItemDecision,
     JDAnalysis,
+    SectionDecision,
 )
 from autocustomizeresume.selector import (
     _serialize_resume,
@@ -370,11 +374,6 @@ class TestPromptConstruction:
         assert "temperature" not in call_kwargs
 
 
-# ---------------------------------------------------------------------------
-# _serialize_resume()
-# ---------------------------------------------------------------------------
-
-
 class TestSerializeResume:
     def test_contains_section_ids(self):
         result = _serialize_resume(_make_parsed_resume())
@@ -417,11 +416,6 @@ class TestSerializeResume:
     def test_compact_flag_absent_when_not_set(self):
         result = _serialize_resume(_make_parsed_resume())
         assert "has_compact" not in result
-
-
-# ---------------------------------------------------------------------------
-# latex_preview()
-# ---------------------------------------------------------------------------
 
 
 class TestLatexPreview:
@@ -547,7 +541,6 @@ class TestEdgeCases:
 
     def test_float_relevance_score(self):
         """LLM may return a float relevance_score — should be truncated to int."""
-        from autocustomizeresume.schemas import ItemDecision
 
         item = ItemDecision.from_dict(
             {
@@ -561,7 +554,6 @@ class TestEdgeCases:
 
     def test_string_float_relevance_score(self):
         """LLM may return relevance_score as a string like '85.5'."""
-        from autocustomizeresume.schemas import ItemDecision
 
         item = ItemDecision.from_dict(
             {
@@ -575,7 +567,6 @@ class TestEdgeCases:
 
     def test_null_relevance_score(self):
         """LLM may return relevance_score as null — should default to 50."""
-        from autocustomizeresume.schemas import ItemDecision
 
         item = ItemDecision.from_dict(
             {
@@ -589,7 +580,6 @@ class TestEdgeCases:
 
     def test_zero_relevance_score_preserved(self):
         """A relevance_score of 0 is valid and must not become 50."""
-        from autocustomizeresume.schemas import ItemDecision
 
         item = ItemDecision.from_dict(
             {
@@ -603,7 +593,6 @@ class TestEdgeCases:
 
     def test_null_jd_fields_default_gracefully(self):
         """LLM may return null for JDAnalysis fields — should use defaults."""
-        from autocustomizeresume.schemas import JDAnalysis
 
         analysis = JDAnalysis.from_dict(
             {
@@ -624,12 +613,6 @@ class TestEdgeCases:
 
     def test_null_lists_default_to_empty(self):
         """LLM may return null for list fields — should not crash."""
-        from autocustomizeresume.schemas import (
-            ContentSelection,
-            ItemDecision,
-            SectionDecision,
-        )
-
         sel = ContentSelection.from_dict(
             {
                 "sections": None,
@@ -660,10 +643,6 @@ class TestEdgeCases:
 
     def test_missing_include_warns_and_defaults_true(self, caplog):
         """Missing 'include' key should log a warning and default to True."""
-        import logging
-
-        from autocustomizeresume.schemas import BulletDecision
-
         with caplog.at_level(logging.WARNING, logger="autocustomizeresume.schemas"):
             bullet = BulletDecision.from_dict({"id": "b1"})
 

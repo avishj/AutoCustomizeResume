@@ -10,6 +10,12 @@ from unittest.mock import MagicMock, patch
 
 import httpx
 import pytest
+from openai import (
+    APIConnectionError,
+    APITimeoutError,
+    AuthenticationError,
+    RateLimitError,
+)
 
 from autocustomizeresume.llm_client import LLMClient, LLMError
 
@@ -176,8 +182,6 @@ class TestChat:
 class TestChatErrors:
     @patch("autocustomizeresume.llm_client.OpenAI")
     def test_auth_error(self, mock_openai_cls: MagicMock):
-        from openai import AuthenticationError
-
         mock_client = mock_openai_cls.return_value
         mock_resp = MagicMock()
         mock_resp.status_code = 401
@@ -195,8 +199,6 @@ class TestChatErrors:
 
     @patch("autocustomizeresume.llm_client.OpenAI")
     def test_timeout_error(self, mock_openai_cls: MagicMock):
-        from openai import APITimeoutError
-
         mock_client = mock_openai_cls.return_value
         mock_client.chat.completions.create.side_effect = APITimeoutError(
             request=MagicMock(),
@@ -208,8 +210,6 @@ class TestChatErrors:
 
     @patch("autocustomizeresume.llm_client.OpenAI")
     def test_connection_error(self, mock_openai_cls: MagicMock):
-        from openai import APIConnectionError
-
         mock_client = mock_openai_cls.return_value
         mock_client.chat.completions.create.side_effect = APIConnectionError(
             request=MagicMock(),
@@ -221,8 +221,6 @@ class TestChatErrors:
 
     @patch("autocustomizeresume.llm_client.OpenAI")
     def test_rate_limit_error(self, mock_openai_cls: MagicMock):
-        from openai import RateLimitError
-
         mock_client = mock_openai_cls.return_value
         mock_resp = MagicMock()
         mock_resp.status_code = 429
