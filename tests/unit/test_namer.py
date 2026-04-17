@@ -21,25 +21,31 @@ pytestmark = pytest.mark.unit
 # ---------------------------------------------------------------------------
 
 
-def _make_config(
-    first="Jane",
-    last="Doe",
-    output_resume="{last}, {first} - Resume.pdf",
-    output_cover="{last}, {first} - Cover Letter.pdf",
-    history_resume="{company} - {role} - Resume - {timestamp}.pdf",
-    history_cover="{company} - {role} - Cover Letter - {timestamp}.pdf",
-    output_dir="output",
-    history_dir="history",
-):
+def _make_config(**overrides):
     """Build a minimal Config-like object for namer tests."""
-    user = SimpleNamespace(first_name=first, last_name=last)
-    naming = SimpleNamespace(
-        output_resume=output_resume,
-        output_cover=output_cover,
-        history_resume=history_resume,
-        history_cover=history_cover,
+    user = SimpleNamespace(
+        first_name=overrides.get("first", "Jane"),
+        last_name=overrides.get("last", "Doe"),
     )
-    paths = SimpleNamespace(output_dir=output_dir, history_dir=history_dir)
+    naming = SimpleNamespace(
+        output_resume=overrides.get("output_resume", "{last}, {first} - Resume.pdf"),
+        output_cover=overrides.get(
+            "output_cover",
+            "{last}, {first} - Cover Letter.pdf",
+        ),
+        history_resume=overrides.get(
+            "history_resume",
+            "{company} - {role} - Resume - {timestamp}.pdf",
+        ),
+        history_cover=overrides.get(
+            "history_cover",
+            "{company} - {role} - Cover Letter - {timestamp}.pdf",
+        ),
+    )
+    paths = SimpleNamespace(
+        output_dir=overrides.get("output_dir", "output"),
+        history_dir=overrides.get("history_dir", "history"),
+    )
     return SimpleNamespace(user=user, naming=naming, paths=paths)
 
 

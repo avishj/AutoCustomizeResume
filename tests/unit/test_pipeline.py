@@ -112,142 +112,121 @@ def _make_selection() -> ContentSelection:
 
 
 class TestRunPipeline:
-    @patch("autocustomizeresume.pipeline.compile_with_enforcement")
-    @patch("autocustomizeresume.pipeline.select_content")
-    @patch("autocustomizeresume.pipeline.analyze_jd")
-    @patch("autocustomizeresume.pipeline.LLMClient")
-    @patch("autocustomizeresume.pipeline.parse_resume")
-    def test_resume_pipeline(
-        self,
-        mock_parse,
-        _mock_llm_cls,
-        mock_analyze,
-        mock_select,
-        mock_compile,
-        tmp_path,
-        resume_config,
-    ):
-        parsed = MagicMock()
-        mock_parse.return_value = parsed
-        analysis = _make_analysis()
-        mock_analyze.return_value = analysis
-        selection = _make_selection()
-        mock_select.return_value = selection
+    def test_resume_pipeline(self, tmp_path, resume_config):
+        with (
+            patch("autocustomizeresume.pipeline.parse_resume") as mock_parse,
+            patch("autocustomizeresume.pipeline.LLMClient"),
+            patch("autocustomizeresume.pipeline.analyze_jd") as mock_analyze,
+            patch("autocustomizeresume.pipeline.select_content") as mock_select,
+            patch(
+                "autocustomizeresume.pipeline.compile_with_enforcement"
+            ) as mock_compile,
+        ):
+            parsed = MagicMock()
+            mock_parse.return_value = parsed
+            analysis = _make_analysis()
+            mock_analyze.return_value = analysis
+            selection = _make_selection()
+            mock_select.return_value = selection
 
-        fake_pdf = tmp_path / "resume.pdf"
-        fake_pdf.write_text("pdf")
-        mock_compile.return_value = (fake_pdf, selection)
+            fake_pdf = tmp_path / "resume.pdf"
+            fake_pdf.write_text("pdf")
+            mock_compile.return_value = (fake_pdf, selection)
 
-        # Run
-        result = run_pipeline("Some JD text", resume_config)
+            # Run
+            result = run_pipeline("Some JD text", resume_config)
 
-        # Verify
-        assert isinstance(result, PipelineResult)
-        assert result.resume_pdf == fake_pdf
-        assert result.analysis == analysis
-        assert result.selection == selection
-        assert result.cover_letter_pdf is None
+            # Verify
+            assert isinstance(result, PipelineResult)
+            assert result.resume_pdf == fake_pdf
+            assert result.analysis == analysis
+            assert result.selection == selection
+            assert result.cover_letter_pdf is None
 
-        mock_parse.assert_called_once()
-        mock_analyze.assert_called_once()
-        mock_select.assert_called_once()
-        mock_compile.assert_called_once()
+            mock_parse.assert_called_once()
+            mock_analyze.assert_called_once()
+            mock_select.assert_called_once()
+            mock_compile.assert_called_once()
 
-    @patch("autocustomizeresume.pipeline.build_cover_letter")
-    @patch("autocustomizeresume.pipeline.compile_with_enforcement")
-    @patch("autocustomizeresume.pipeline.select_content")
-    @patch("autocustomizeresume.pipeline.analyze_jd")
-    @patch("autocustomizeresume.pipeline.LLMClient")
-    @patch("autocustomizeresume.pipeline.parse_resume")
-    def test_cover_letter_enabled(
-        self,
-        mock_parse,
-        _mock_llm_cls,
-        mock_analyze,
-        mock_select,
-        mock_compile,
-        mock_build_cl,
-        tmp_path,
-        resume_config,
-    ):
-        config = replace(
-            resume_config,
-            cover_letter=replace(resume_config.cover_letter, enabled=True),
-        )
+    def test_cover_letter_enabled(self, tmp_path, resume_config):
+        with (
+            patch("autocustomizeresume.pipeline.parse_resume") as mock_parse,
+            patch("autocustomizeresume.pipeline.LLMClient"),
+            patch("autocustomizeresume.pipeline.analyze_jd") as mock_analyze,
+            patch("autocustomizeresume.pipeline.select_content") as mock_select,
+            patch(
+                "autocustomizeresume.pipeline.compile_with_enforcement"
+            ) as mock_compile,
+            patch("autocustomizeresume.pipeline.build_cover_letter") as mock_build_cl,
+        ):
+            config = replace(
+                resume_config,
+                cover_letter=replace(resume_config.cover_letter, enabled=True),
+            )
 
-        mock_parse.return_value = MagicMock()
-        mock_analyze.return_value = _make_analysis()
-        selection = _make_selection()
-        mock_select.return_value = selection
+            mock_parse.return_value = MagicMock()
+            mock_analyze.return_value = _make_analysis()
+            selection = _make_selection()
+            mock_select.return_value = selection
 
-        fake_pdf = tmp_path / "resume.pdf"
-        fake_pdf.write_text("pdf")
-        mock_compile.return_value = (fake_pdf, selection)
+            fake_pdf = tmp_path / "resume.pdf"
+            fake_pdf.write_text("pdf")
+            mock_compile.return_value = (fake_pdf, selection)
 
-        cl_pdf = tmp_path / "cover.pdf"
-        cl_pdf.write_text("cl")
-        mock_build_cl.return_value = cl_pdf
+            cl_pdf = tmp_path / "cover.pdf"
+            cl_pdf.write_text("cl")
+            mock_build_cl.return_value = cl_pdf
 
-        result = run_pipeline("Some JD text", config)
+            result = run_pipeline("Some JD text", config)
 
-        assert result.cover_letter_pdf == cl_pdf
-        mock_build_cl.assert_called_once()
+            assert result.cover_letter_pdf == cl_pdf
+            mock_build_cl.assert_called_once()
 
-    @patch("autocustomizeresume.pipeline.compile_with_enforcement")
-    @patch("autocustomizeresume.pipeline.select_content")
-    @patch("autocustomizeresume.pipeline.analyze_jd")
-    @patch("autocustomizeresume.pipeline.LLMClient")
-    @patch("autocustomizeresume.pipeline.parse_resume")
-    def test_company_role_overrides(
-        self,
-        mock_parse,
-        _mock_llm_cls,
-        mock_analyze,
-        mock_select,
-        mock_compile,
-        tmp_path,
-        resume_config,
-    ):
-        mock_parse.return_value = MagicMock()
-        mock_analyze.return_value = _make_analysis()
-        selection = _make_selection()
-        mock_select.return_value = selection
+    def test_company_role_overrides(self, tmp_path, resume_config):
+        with (
+            patch("autocustomizeresume.pipeline.parse_resume") as mock_parse,
+            patch("autocustomizeresume.pipeline.LLMClient"),
+            patch("autocustomizeresume.pipeline.analyze_jd") as mock_analyze,
+            patch("autocustomizeresume.pipeline.select_content") as mock_select,
+            patch(
+                "autocustomizeresume.pipeline.compile_with_enforcement"
+            ) as mock_compile,
+        ):
+            mock_parse.return_value = MagicMock()
+            mock_analyze.return_value = _make_analysis()
+            selection = _make_selection()
+            mock_select.return_value = selection
 
-        fake_pdf = tmp_path / "resume.pdf"
-        fake_pdf.write_text("pdf")
-        mock_compile.return_value = (fake_pdf, selection)
+            fake_pdf = tmp_path / "resume.pdf"
+            fake_pdf.write_text("pdf")
+            mock_compile.return_value = (fake_pdf, selection)
 
-        result = run_pipeline(
-            "Some JD text", resume_config, company="Override Corp", role="Lead Dev"
-        )
+            result = run_pipeline(
+                "Some JD text", resume_config, company="Override Corp", role="Lead Dev"
+            )
 
-        assert result.analysis.company == "Override Corp"
-        assert result.analysis.role == "Lead Dev"
+            assert result.analysis.company == "Override Corp"
+            assert result.analysis.role == "Lead Dev"
 
-    @patch("autocustomizeresume.pipeline.compile_with_enforcement")
-    @patch("autocustomizeresume.pipeline.select_content")
-    @patch("autocustomizeresume.pipeline.analyze_jd")
-    @patch("autocustomizeresume.pipeline.LLMClient")
-    @patch("autocustomizeresume.pipeline.parse_resume")
-    def test_cover_letter_disabled(
-        self,
-        mock_parse,
-        _mock_llm_cls,
-        mock_analyze,
-        mock_select,
-        mock_compile,
-        tmp_path,
-        resume_config,
-    ):
-        mock_parse.return_value = MagicMock()
-        mock_analyze.return_value = _make_analysis()
-        selection = _make_selection()
-        mock_select.return_value = selection
+    def test_cover_letter_disabled(self, tmp_path, resume_config):
+        with (
+            patch("autocustomizeresume.pipeline.parse_resume") as mock_parse,
+            patch("autocustomizeresume.pipeline.LLMClient"),
+            patch("autocustomizeresume.pipeline.analyze_jd") as mock_analyze,
+            patch("autocustomizeresume.pipeline.select_content") as mock_select,
+            patch(
+                "autocustomizeresume.pipeline.compile_with_enforcement"
+            ) as mock_compile,
+        ):
+            mock_parse.return_value = MagicMock()
+            mock_analyze.return_value = _make_analysis()
+            selection = _make_selection()
+            mock_select.return_value = selection
 
-        fake_pdf = tmp_path / "resume.pdf"
-        fake_pdf.write_text("pdf")
-        mock_compile.return_value = (fake_pdf, selection)
+            fake_pdf = tmp_path / "resume.pdf"
+            fake_pdf.write_text("pdf")
+            mock_compile.return_value = (fake_pdf, selection)
 
-        result = run_pipeline("Some JD text", resume_config)
+            result = run_pipeline("Some JD text", resume_config)
 
-        assert result.cover_letter_pdf is None
+            assert result.cover_letter_pdf is None

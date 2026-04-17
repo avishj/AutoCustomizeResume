@@ -51,18 +51,18 @@ def _make_bullet(
 def _make_item(
     tag_type: TagType = "optional",
     item_id: str = "it1",
-    heading: str = r"\resumeSubheading{Co}{2024}{Role}{City}",
-    bullets: list[Bullet] | None = None,
-    interstitial: list[tuple[int, str]] | None = None,
-    compact_heading: str | None = None,
+    **overrides,
 ) -> ResumeItem:
     return ResumeItem(
         tag_type=tag_type,
         id=item_id,
-        heading_lines=heading,
-        bullets=bullets or [],
-        interstitial=interstitial or [],
-        compact_heading=compact_heading,
+        heading_lines=overrides.get(
+            "heading",
+            r"\resumeSubheading{Co}{2024}{Role}{City}",
+        ),
+        bullets=overrides.get("bullets") or [],
+        interstitial=overrides.get("interstitial") or [],
+        compact_heading=overrides.get("compact_heading"),
     )
 
 
