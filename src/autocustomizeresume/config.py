@@ -44,6 +44,8 @@ class Settings(BaseSettings):
 
 @dataclass(frozen=True)
 class UserConfig:
+    """Personal details used in resume and cover letter headers."""
+
     first_name: str
     last_name: str
     phone: str
@@ -56,6 +58,8 @@ class UserConfig:
 
 @dataclass(frozen=True)
 class NamingConfig:
+    """Filename templates for output and history artifacts."""
+
     output_resume: str
     output_cover: str
     history_resume: str
@@ -64,12 +68,15 @@ class NamingConfig:
 
 @dataclass(frozen=True)
 class LLMConfig:
+    """Connection settings for the LLM provider."""
+
     base_url: str
     model: str
     api_key_env: str
 
     @property
     def api_key(self) -> str:
+        """Resolve the API key from the environment variable."""
         key = os.getenv(self.api_key_env, "")
         if not key:
             msg = (
@@ -82,6 +89,8 @@ class LLMConfig:
 
 @dataclass(frozen=True)
 class CoverLetterConfig:
+    """Settings controlling cover letter generation."""
+
     enabled: bool
     template: str
     signature_path: str
@@ -89,6 +98,8 @@ class CoverLetterConfig:
 
 @dataclass(frozen=True)
 class PathsConfig:
+    """File and directory paths for input and output."""
+
     master_resume: str
     jd_file: str
     output_dir: str
@@ -97,11 +108,15 @@ class PathsConfig:
 
 @dataclass(frozen=True)
 class WatcherConfig:
+    """File-watcher debounce configuration."""
+
     debounce_seconds: float
 
 
 @dataclass(frozen=True)
 class Config:
+    """Top-level application configuration."""
+
     user: UserConfig
     naming: NamingConfig
     llm: LLMConfig
