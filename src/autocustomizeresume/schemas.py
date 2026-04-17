@@ -115,6 +115,7 @@ class BulletDecision:
 
     @classmethod
     def from_dict(cls, data: dict) -> BulletDecision:
+        """Construct a ``BulletDecision`` from a raw LLM dict."""
         _warn_unexpected_keys("BulletDecision", data, _BULLET_KEYS)
         if "include" not in data:
             logger.warning(
@@ -153,6 +154,7 @@ class ItemDecision:
 
     @classmethod
     def from_dict(cls, data: dict) -> ItemDecision:
+        """Construct an ``ItemDecision`` from a raw LLM dict."""
         _warn_unexpected_keys("ItemDecision", data, _ITEM_KEYS)
         if "include" not in data:
             logger.warning(
@@ -194,6 +196,7 @@ class SectionDecision:
 
     @classmethod
     def from_dict(cls, data: dict) -> SectionDecision:
+        """Construct a ``SectionDecision`` from a raw LLM dict."""
         _warn_unexpected_keys("SectionDecision", data, _SECTION_KEYS)
         if "include" not in data:
             logger.warning(
@@ -228,6 +231,7 @@ class SkillCategoryDecision:
 
     @classmethod
     def from_dict(cls, data: dict) -> SkillCategoryDecision:
+        """Construct a ``SkillCategoryDecision`` from a raw LLM dict."""
         _warn_unexpected_keys("SkillCategoryDecision", data, _SKILL_CAT_KEYS)
         return cls(
             name=str(data.get("name", "")),
@@ -258,6 +262,7 @@ class ContentSelection:
 
     @classmethod
     def from_dict(cls, data: dict) -> ContentSelection:
+        """Construct a ``ContentSelection`` from a raw LLM dict."""
         _warn_unexpected_keys("ContentSelection", data, _CONTENT_SEL_KEYS)
         return cls(
             sections=[
