@@ -23,6 +23,7 @@ from __future__ import annotations
 import logging
 import re
 import warnings
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, cast
 
 from autocustomizeresume.models import (
@@ -121,6 +122,86 @@ def _warn_malformed_tags(tex_content: str) -> None:
 # ---------------------------------------------------------------------------
 
 
+def _split_body(
+    body: str,
+) -> tuple[list[str], list[dict], list[tuple[int, str]], list[str]]:
+    """Walk body lines and split into header, sections, interstitial, postamble."""
+    header_lines, remaining = _collect_header(body.split("\n"))
+    section_chunks, top_interstitial, postamble_lines = _collect_sections(remaining)
+    return header_lines, section_chunks, top_interstitial, postamble_lines
+
+
+def _collect_header(lines: list[str]) -> tuple[list[str], list[str]]:
+    """Consume lines until the first section BEGIN tag, returning header and rest."""
+    header_lines: list[str] = []
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if TAG_BEGIN_RE.match(stripped):
+            return header_lines, lines[i:]
+        if TAG_END_RE.match(stripped):
+            msg = f"Unexpected END tag before any section: {stripped}"
+            raise ParseError(msg)
+        header_lines.append(line)
+    return header_lines, []
+
+
+def _collect_sections(
+    lines: list[str],
+) -> tuple[list[dict], list[tuple[int, str]], list[str]]:
+    """Parse section-level BEGIN/END pairs from pre-trimmed lines."""
+    section_chunks: list[dict] = []
+    top_interstitial: list[tuple[int, str]] = []
+    interstitial_lines: list[str] = []
+
+    in_section = False
+    section_type: TagType | None = None
+    section_id: str | None = None
+
+    for line in lines:
+        stripped = line.strip()
+
+        if not in_section:
+            m = TAG_BEGIN_RE.match(stripped)
+            if m:
+                if interstitial_lines:
+                    top_interstitial.append(
+                        (len(section_chunks), "\n".join(interstitial_lines))
+                    )
+                    interstitial_lines = []
+                in_section = True
+                section_type = cast("TagType", m.group(1))
+                section_id = m.group(2)
+                section_chunks.append(
+                    {"type": section_type, "id": section_id, "lines": []}
+                )
+                continue
+            if TAG_END_RE.match(stripped):
+                msg = f"Unexpected END tag between sections: {stripped}"
+                raise ParseError(msg)
+            interstitial_lines.append(line)
+            continue
+
+        m_end = TAG_END_RE.match(stripped)
+        if (
+            m_end
+            and m_end.group(1) == section_type
+            and m_end.group(2) == section_id
+        ):
+            in_section = False
+            section_type = None
+            section_id = None
+            interstitial_lines = []
+            continue
+
+        section_chunks[-1]["lines"].append(line)
+
+    if in_section:
+        msg = f"Unclosed section tag: %%% BEGIN:{section_type}:{section_id}"
+        raise ParseError(msg)
+
+    return section_chunks, top_interstitial, interstitial_lines or []
+
+
 def parse_resume(tex_content: str) -> ParsedResume:
     """Parse a tagged LaTeX resume into structured data.
 
@@ -134,10 +215,8 @@ def parse_resume(tex_content: str) -> ParsedResume:
     Raises:
         ParseError: If tags are malformed, mismatched, or improperly nested.
     """
-    # --- 0. Warn about malformed tag-like lines ---
     _warn_malformed_tags(tex_content)
 
-    # --- 1. Split preamble from body at \begin{document} ---
     marker = r"\begin{document}"
     idx = tex_content.find(marker)
     if idx == -1:
@@ -147,116 +226,12 @@ def parse_resume(tex_content: str) -> ParsedResume:
     preamble = tex_content[: idx + len(marker)]
     body = tex_content[idx + len(marker) :]
 
-    # --- 2. Walk lines, split into header / sections / postamble ---
-    lines = body.split("\n")
-    header_lines: list[str] = []
-    section_chunks: list[dict] = []  # each: {type, id, lines}
-    postamble_lines: list[str] = []
-    interstitial_lines: list[str] = []  # between sections
+    header_lines, section_chunks, top_interstitial, postamble_lines = _split_body(body)
 
-    # Top-level interstitial tracking
-    top_interstitial: list[tuple[int, str]] = []
-
-    in_section = False
-    section_depth_type: TagType | None = None
-    section_depth_id: str | None = None
-    found_first_section = False
-
-    i = 0
-    while i < len(lines):
-        line = lines[i]
-        stripped = line.strip()
-
-        if not found_first_section:
-            # Looking for the first section-level BEGIN tag
-            m = TAG_BEGIN_RE.match(stripped)
-            if m:
-                found_first_section = True
-                in_section = True
-                section_depth_type = cast("TagType", m.group(1))
-                section_depth_id = m.group(2)
-                section_chunks.append(
-                    {
-                        "type": section_depth_type,
-                        "id": section_depth_id,
-                        "lines": [],
-                    }
-                )
-                i += 1
-                continue
-            # Reject stray END tags before any section opens
-            if TAG_END_RE.match(stripped):
-                msg = f"Unexpected END tag before any section: {stripped}"
-                raise ParseError(msg)
-            header_lines.append(line)
-            i += 1
-            continue
-
-        if not in_section:
-            # Between sections — check for next section or end of content
-            m = TAG_BEGIN_RE.match(stripped)
-            if m:
-                # Flush interstitial
-                if interstitial_lines:
-                    top_interstitial.append(
-                        (len(section_chunks), "\n".join(interstitial_lines))
-                    )
-                    interstitial_lines = []
-                in_section = True
-                section_depth_type = cast("TagType", m.group(1))
-                section_depth_id = m.group(2)
-                section_chunks.append(
-                    {
-                        "type": section_depth_type,
-                        "id": section_depth_id,
-                        "lines": [],
-                    }
-                )
-                i += 1
-                continue
-            # Reject stray END tags between sections
-            if TAG_END_RE.match(stripped):
-                msg = f"Unexpected END tag between sections: {stripped}"
-                raise ParseError(msg)
-            interstitial_lines.append(line)
-            i += 1
-            continue
-
-        # Inside a section — look for the matching END
-        m_end = TAG_END_RE.match(stripped)
-        if (
-            m_end
-            and m_end.group(1) == section_depth_type
-            and m_end.group(2) == section_depth_id
-        ):
-            in_section = False
-            section_depth_type = None
-            section_depth_id = None
-            interstitial_lines = []
-            i += 1
-            continue
-
-        # Accumulate section body lines
-        section_chunks[-1]["lines"].append(line)
-        i += 1
-
-    if in_section:
-        msg = f"Unclosed section tag: %%% BEGIN:{section_depth_type}:{section_depth_id}"
-        raise ParseError(msg)
-
-    # Remaining interstitial after last section = postamble
-    if interstitial_lines:
-        postamble_lines = interstitial_lines
-
-    # --- 3. Parse each section chunk ---
-    sections: list[ResumeSection | SkillsSection] = []
-    for chunk in section_chunks:
-        section = _parse_section(
-            cast("TagType", chunk["type"]), chunk["id"], chunk["lines"]
-        )
-        sections.append(section)
-
-    # --- 4. Validate ID uniqueness across the entire resume ---
+    sections: list[ResumeSection | SkillsSection] = [
+        _parse_section(cast("TagType", c["type"]), c["id"], c["lines"])
+        for c in section_chunks
+    ]
     _validate_unique_ids(sections)
 
     return ParsedResume(
@@ -321,16 +296,22 @@ def _parse_section(
     return _parse_regular_section(tag_type, tag_id, lines)
 
 
+@dataclass(frozen=True, slots=True)
+class _TagSpec[TIdent: tuple, TChild]:
+    """Bundle of regex patterns and callbacks for _collect_tagged_children."""
+
+    begin_re: re.Pattern[str]
+    end_re: re.Pattern[str]
+    begin_identity: Callable[[re.Match[str]], TIdent]
+    end_identity: Callable[[re.Match[str]], TIdent]
+    build_child: Callable[[TIdent, list[str]], TChild]
+    unexpected_end_error: Callable[[str], ParseError]
+    unclosed_error: Callable[[TIdent], ParseError]
+
+
 def _collect_tagged_children[TIdent: tuple, TChild](
     lines: list[str],
-    *,
-    begin_re: re.Pattern[str],
-    end_re: re.Pattern[str],
-    begin_identity: Callable[[re.Match[str]], TIdent],
-    end_identity: Callable[[re.Match[str]], TIdent],
-    build_child: Callable[[TIdent, list[str]], TChild],
-    unexpected_end_error: Callable[[str], ParseError],
-    unclosed_error: Callable[[TIdent], ParseError],
+    spec: _TagSpec[TIdent, TChild],
 ) -> tuple[list[TChild], list[tuple[int, str]]]:
     """Collect tagged child blocks with interstitial content.
 
@@ -353,24 +334,23 @@ def _collect_tagged_children[TIdent: tuple, TChild](
         stripped = line.strip()
 
         if not in_child:
-            m = begin_re.match(stripped)
+            m = spec.begin_re.match(stripped)
             if m:
                 if buffer:
                     interstitial.append((len(children), "\n".join(buffer)))
                     buffer = []
                 in_child = True
-                cur_ident = begin_identity(m)
+                cur_ident = spec.begin_identity(m)
                 child_lines = []
                 continue
-            if end_re.match(stripped):
-                raise unexpected_end_error(stripped)
+            if spec.end_re.match(stripped):
+                raise spec.unexpected_end_error(stripped)
             buffer.append(line)
             continue
 
-        m_end = end_re.match(stripped)
-        if m_end and end_identity(m_end) == cur_ident:
-            assert cur_ident is not None
-            children.append(build_child(cur_ident, child_lines))
+        m_end = spec.end_re.match(stripped)
+        if m_end and spec.end_identity(m_end) == cur_ident:
+            children.append(spec.build_child(cast("TIdent", cur_ident), child_lines))
             in_child = False
             cur_ident = None
             child_lines = []
@@ -379,8 +359,7 @@ def _collect_tagged_children[TIdent: tuple, TChild](
         child_lines.append(line)
 
     if in_child:
-        assert cur_ident is not None
-        raise unclosed_error(cur_ident)
+        raise spec.unclosed_error(cast("TIdent", cur_ident))
 
     if buffer:
         interstitial.append((len(children), "\n".join(buffer)))
@@ -394,18 +373,20 @@ def _parse_regular_section(
     """Parse a regular section (Education, Experience, Projects, etc.)."""
     items, interstitial = _collect_tagged_children(
         lines,
-        begin_re=TAG_BEGIN_RE,
-        end_re=TAG_END_RE,
-        begin_identity=lambda m: (cast("TagType", m.group(1)), m.group(2)),
-        end_identity=lambda m: (cast("TagType", m.group(1)), m.group(2)),
-        build_child=lambda ident, child_lines: _parse_item(
-            cast("TagType", ident[0]), cast("str", ident[1]), child_lines
-        ),
-        unexpected_end_error=lambda stripped: ParseError(
-            f"Unexpected END tag outside any item in section '{tag_id}': {stripped}"
-        ),
-        unclosed_error=lambda ident: ParseError(
-            f"Unclosed item tag: %%% BEGIN:{ident[0]}:{ident[1]}"
+        _TagSpec(
+            begin_re=TAG_BEGIN_RE,
+            end_re=TAG_END_RE,
+            begin_identity=lambda m: (cast("TagType", m.group(1)), m.group(2)),
+            end_identity=lambda m: (cast("TagType", m.group(1)), m.group(2)),
+            build_child=lambda ident, child_lines: _parse_item(
+                cast("TagType", ident[0]), cast("str", ident[1]), child_lines
+            ),
+            unexpected_end_error=lambda stripped: ParseError(
+                f"Unexpected END tag outside any item in section '{tag_id}': {stripped}"
+            ),
+            unclosed_error=lambda ident: ParseError(
+                f"Unclosed item tag: %%% BEGIN:{ident[0]}:{ident[1]}"
+            ),
         ),
     )
 
@@ -417,12 +398,29 @@ def _parse_regular_section(
     )
 
 
+def _check_compact_tag(
+    stripped: str, tag_id: str, *, found_first_bullet: bool
+) -> str | None:
+    """Return compact heading text if line is a valid COMPACT tag, else None."""
+    m = COMPACT_RE.match(stripped)
+    if not m:
+        return None
+    if found_first_bullet:
+        logger.warning(
+            "Ignoring misplaced %%% COMPACT: tag after first "
+            "bullet in item '%s'",
+            tag_id,
+        )
+        return None
+    return m.group(1)
+
+
 def _parse_item(tag_type: TagType, tag_id: str, lines: list[str]) -> ResumeItem:
     """Parse a single item's lines into heading + bullets."""
     bullets: list[Bullet] = []
     interstitial: list[tuple[int, str]] = []
     heading_lines: list[str] = []
-    buffer: list[str] = []  # interstitial between bullets
+    buffer: list[str] = []
     compact_heading: str | None = None
 
     in_bullet = False
@@ -435,23 +433,16 @@ def _parse_item(tag_type: TagType, tag_id: str, lines: list[str]) -> ResumeItem:
         stripped = line.strip()
 
         if not in_bullet:
-            # Check for %%% COMPACT: tag (must appear before first bullet)
-            m_compact = COMPACT_RE.match(stripped)
-            if m_compact:
-                if not found_first_bullet_tag:
-                    compact_heading = m_compact.group(1)
-                else:
-                    logger.warning(
-                        "Ignoring misplaced %%% COMPACT: tag after first "
-                        "bullet in item '%s'",
-                        tag_id,
-                    )
+            compact = _check_compact_tag(
+                stripped, tag_id, found_first_bullet=found_first_bullet_tag
+            )
+            if compact is not None or COMPACT_RE.match(stripped):
+                compact_heading = compact or compact_heading
                 continue
 
             m = TAG_BEGIN_RE.match(stripped)
             if m:
                 found_first_bullet_tag = True
-                # Flush buffer as interstitial
                 if buffer:
                     interstitial.append((len(bullets), "\n".join(buffer)))
                     buffer = []
@@ -461,7 +452,6 @@ def _parse_item(tag_type: TagType, tag_id: str, lines: list[str]) -> ResumeItem:
                 bullet_lines = []
                 continue
 
-            # Reject stray END tags outside any bullet
             if TAG_END_RE.match(stripped):
                 msg = (
                     f"Unexpected END tag outside any bullet in item "
@@ -478,12 +468,10 @@ def _parse_item(tag_type: TagType, tag_id: str, lines: list[str]) -> ResumeItem:
         # Inside a bullet tag
         m_end = TAG_END_RE.match(stripped)
         if m_end and m_end.group(1) == bullet_type and m_end.group(2) == bullet_id:
-            assert bullet_type is not None
-            assert bullet_id is not None
             bullets.append(
                 Bullet(
-                    tag_type=bullet_type,
-                    id=bullet_id,
+                    tag_type=cast("TagType", bullet_type),
+                    id=cast("str", bullet_id),
                     text="\n".join(bullet_lines),
                 )
             )
@@ -499,7 +487,6 @@ def _parse_item(tag_type: TagType, tag_id: str, lines: list[str]) -> ResumeItem:
         msg = f"Unclosed bullet tag: %%% BEGIN:{bullet_type}:{bullet_id}"
         raise ParseError(msg)
 
-    # Trailing interstitial
     if buffer:
         interstitial.append((len(bullets), "\n".join(buffer)))
 
@@ -523,19 +510,21 @@ def _parse_skills_section(
     """
     categories, interstitial = _collect_tagged_children(
         lines,
-        begin_re=SKILLS_BEGIN_RE,
-        end_re=SKILLS_END_RE,
-        begin_identity=lambda m: (m.group(1),),
-        end_identity=lambda m: (m.group(1),),
-        build_child=lambda ident, child_lines: _parse_skill_line(
-            cast("str", ident[0]), child_lines
-        ),
-        unexpected_end_error=lambda stripped: ParseError(
-            f"Unexpected END:SKILLS tag outside any category in "
-            f"section '{tag_id}': {stripped}"
-        ),
-        unclosed_error=lambda ident: ParseError(
-            f"Unclosed skills tag: %%% SKILLS:{ident[0]}"
+        _TagSpec(
+            begin_re=SKILLS_BEGIN_RE,
+            end_re=SKILLS_END_RE,
+            begin_identity=lambda m: (m.group(1),),
+            end_identity=lambda m: (m.group(1),),
+            build_child=lambda ident, child_lines: _parse_skill_line(
+                cast("str", ident[0]), child_lines
+            ),
+            unexpected_end_error=lambda stripped: ParseError(
+                f"Unexpected END:SKILLS tag outside any category in "
+                f"section '{tag_id}': {stripped}"
+            ),
+            unclosed_error=lambda ident: ParseError(
+                f"Unclosed skills tag: %%% SKILLS:{ident[0]}"
+            ),
         ),
     )
 
