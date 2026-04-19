@@ -90,7 +90,7 @@ jobs:
       - name: Upload to code-scanning
         id: upload_artifact
         if: ${{ !cancelled() }}
-        uses: github/codeql-action/upload-sarif@7fc6561ed893d15cec696e062df840b21db27eb0  # v4.35.2
+        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225  # v4.35.2
         with:
           sarif_file: results.sarif
       - name: Print Code Scanning PR URL
@@ -143,7 +143,7 @@ jobs:
           retention-days: 90
       - name: Upload to code-scanning
         if: ${{ !cancelled() }}
-        uses: github/codeql-action/upload-sarif@7fc6561ed893d15cec696e062df840b21db27eb0  # v4.35.2
+        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225  # v4.35.2
         with:
           sarif_file: results.sarif
       - name: Print Code Scanning URL
