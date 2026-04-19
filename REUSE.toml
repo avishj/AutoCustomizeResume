@@ -6,9 +6,9 @@ path = [
   "**/*.lock",
   ".copier-answers.yml",
   "src/autocustomizeresume/py.typed",
+  "AGENTS.md",
   "templates/fonts/**",
   "examples/*.pdf",
-  "AGENTS.md",
   "examples/.env.example",
   "tests/fixtures/*.tex",
   "src/autocustomizeresume/prompts/*.md"
