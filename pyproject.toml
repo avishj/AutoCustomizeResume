@@ -1,44 +1,149 @@
+# SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+[build-system]
+build-backend = "hatchling.build"
+requires = ["hatchling"]
+
 [project]
 name = "autocustomizeresume"
-version = "0.1.0"
+version = "0.0.1"
 description = "Auto-customize your LaTeX resume for different jobs using LLM-powered content selection"
 readme = "README.md"
-license = { file = "LICENSE" }
+license = "AGPL-3.0-or-later"
 requires-python = ">=3.13"
+authors = [{ name = "Avish Jha", email = "avish.j@pm.me" }]
+keywords = [
+    "cli",
+    "cover-letter",
+    "job-application",
+    "latex",
+    "llm",
+    "resume",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Typing :: Typed",
+]
 dependencies = [
-    "openai>=2.24.0",
-    "pypdf>=6.7.4",
-    "python-dotenv>=1.2.1",
+    "cyclopts>=4.10.2",
+    "pydantic-settings>=2.13.1",
+    "rich>=15.0.0",
+    "openai>=2.32.0",
+    "pypdf>=6.10.2",
     "pyyaml>=6.0.3",
     "watchdog>=6.0.0",
 ]
 
 [project.scripts]
-autocustomizeresume = "autocustomizeresume.cli:main"
+autocustomizeresume = "autocustomizeresume.cli:entrypoint"
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build.targets.wheel]
-packages = ["autocustomizeresume"]
+[project.urls]
+Changelog = "https://github.com/avishj/autocustomizeresume/blob/main/CHANGELOG.md"
+Documentation = "https://avishj.github.io/autocustomizeresume"
+Homepage = "https://github.com/avishj/autocustomizeresume"
+Issues = "https://github.com/avishj/autocustomizeresume/issues"
+Repository = "https://github.com/avishj/autocustomizeresume"
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.2",
-    "pytest-cov>=7.0.0",
-    "ruff>=0.15.4",
-    "ty>=0.0.20",
+    "commitizen>=4.13.10",
+    "complexipy>=5.3.0",
+    "mkdocstrings-python>=2.0.3",
+    "pre-commit>=4.5.1",
+    "pytest>=9.0.3",
+    "pytest-cov>=7.1.0",
+    "pytest-github-actions-annotate-failures>=0.4.0",
+    "pytest-mock>=3.15.1",
+    "pytest-randomly>=4.0.1",
+    "pytest-timeout>=2.4.0",
+    "pytest-xdist>=3.8.0",
+    "ruff>=0.15.11",
+    "ty>=0.0.31",
+    "zensical>=0.0.33",
 ]
 
-[tool.coverage.run]
-source = ["autocustomizeresume"]
-branch = true
+[tool.hatch.build.targets.wheel]
+packages = ["src/autocustomizeresume"]
 
-[tool.coverage.report]
-show_missing = true
-skip_empty = true
-fail_under = 80
+[tool.uv]
+python-preference = "managed"
+
+[tool.ruff]
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+ignore = [
+    "COM812", # conflicts with formatter
+    "ISC001", # conflicts with formatter
+]
+select = ["ALL"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["autocustomizeresume"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "ANN",    # annotations not required in tests
+    "ARG",    # unused arguments (fixtures)
+    "D",      # docstrings not required in tests
+    "FBT",    # boolean traps in tests
+    "PLR2004", # magic values in tests
+    "S101",   # assert allowed in tests
+]
+"tests/e2e/*.py" = [
+    "S603",   # subprocess.run is intentional in CLI end-to-end tests
+    "S607",   # console scripts from PATH are intentional in CLI end-to-end tests
+]
 
 [tool.pytest.ini_options]
-addopts = "--cov --cov-report=term-missing"
+addopts = [
+    "-ra",
+    "--strict-config",
+    "--strict-markers",
+]
+filterwarnings = ["error"]
+markers = [
+    "e2e: end-to-end tests invoking the installed CLI via subprocess",
+    "integration: tests exercising multiple components together (e.g. CliRunner)",
+    "unit: fast isolated tests with no external dependencies",
+]
+pythonpath = ["src"]
+testpaths = ["tests"]
+timeout = 60
+xfail_strict = true
+
+[tool.coverage.run]
+branch = true
+core = "ctrace"
+parallel = true
+patch = ["subprocess"]
+relative_files = true
+source = ["autocustomizeresume"]
+
+[tool.coverage.report]
+exclude_also = [
+    "@overload",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]
+fail_under = 70
+show_missing = true
+skip_empty = true
+
+[tool.commitizen]
+tag_format = "v$version"
+update_changelog_on_bump = true
+version = "0.0.1"
+version_files = ["pyproject.toml:version"]

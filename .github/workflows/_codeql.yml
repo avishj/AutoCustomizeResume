@@ -1,0 +1,50 @@
+# SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+name: CodeQL
+
+on:
+  workflow_call:
+
+permissions: {}
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python]
+    steps:
+      - name: Setup
+        uses: avishj/blueprints/stacks/python-cli/actions/setup@main
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@95e58e9a2cdfd71adc6e0353d5c52f41a045d225  # v4.35.2
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+          setup-python-dependencies: false
+          config: |
+            paths-ignore:
+              - "docs/**"
+              - "**/*_test.py"
+              - "**/test_*.py"
+              - "tests/**"
+            threat-models:
+              - remote-sources
+              - local-sources
+              - environment-sources
+
+      - name: Perform analysis
+        uses: github/codeql-action/analyze@95e58e9a2cdfd71adc6e0353d5c52f41a045d225  # v4.35.2
+        with:
+          category: /language:${{ matrix.language }}
+          output: codeql-results
+          upload: always

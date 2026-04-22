@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug CLI",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "autocustomizeresume",
+      "args": ["--help"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "AUTOCUSTOMIZERESUME_VERBOSE": "true"
+      }
+    }
+  ]
+}

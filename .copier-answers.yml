@@ -1,0 +1,14 @@
+# Changes here will be overwritten by Copier; DO NOT EDIT MANUALLY
+_src_path: /tmp/blueprints/stacks/python-cli
+author_email: avish.j@pm.me
+author_name: Avish Jha
+copyright_holder: Avish Jha <avish.j@pm.me>
+copyright_year: '2026'
+description: Auto-customize your LaTeX resume for different jobs using LLM-powered
+    content selection
+env_prefix: AUTOCUSTOMIZERESUME_
+github_topics: python, cli, latex, llm, resume
+owner: avishj
+project_name: autocustomizeresume
+sonar_org: avishj
+sonar_project_key: avishj_AutoCustomizeResume

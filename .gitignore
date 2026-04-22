@@ -1,8 +1,56 @@
+# SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Distribution
+build/
+dist/
+
+# Virtual environments
+.venv/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+results.xml
+
+# Linting
+.ruff_cache/
+
+# Type checking
+.ty/
+
+# SonarCloud
+.scannerwork/
+
+# Complexipy
+.complexipy_cache/
+
+# Docs
+site/
+
+# OS
+.DS_Store
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# --- Project-specific ---
+
 # Personal data (never commit)
 resume.tex
 resume.pdf
 jd.txt
-.env
 config.yaml
 signature.png
 coverletter/
@@ -19,25 +67,7 @@ history/
 *.fdb_latexmk
 *.synctex.gz
 
-# Python
-__pycache__/
-*.pyc
-.venv/
-*.egg-info/
-
-# IDE
-.vscode/
-.idea/
-
 # Planning files
 plan.md
 implementation.md
 *signs.md
-
-# Cache
-.pytest_cache/
-.ruff_cache/
-
-# Coverage
-.coverage
-htmlcov/

@@ -1,0 +1,22 @@
+version = 1
+
+[[annotations]]
+path = [
+  "**/*.json",
+  "**/*.lock",
+  ".copier-answers.yml",
+  "src/autocustomizeresume/py.typed",
+  "AGENTS.md",
+  "templates/fonts/**",
+  "examples/*.pdf",
+  "examples/.env.example",
+  "tests/fixtures/*.tex",
+  "src/autocustomizeresume/prompts/*.md"
+]
+SPDX-FileCopyrightText = "2026 Avish Jha <avish.j@pm.me>"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+[[annotations]]
+path = "LICENSES/**"
+SPDX-FileCopyrightText = "Free Software Foundation"
+SPDX-License-Identifier = "AGPL-3.0-or-later"

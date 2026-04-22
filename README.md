@@ -1,11 +1,26 @@
+<!--
+SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+-->
+
 # AutoCustomizeResume
 
 Customize your LaTeX resume and cover letter for every job application, automatically. Paste a job description, get a tailored and optimized one-page resume and matching cover letter as compiled PDFs.
 
-[![License: AGPL-3.0](https://img.shields.io/github/license/avishj/AutoCustomizeResume)](./LICENSE)
-[![Python >= 3.10](https://img.shields.io/badge/python-%3E%3D3.10-blue)](./pyproject.toml)
-[![Stars](https://img.shields.io/github/stars/avishj/AutoCustomizeResume)](https://github.com/avishj/AutoCustomizeResume/stargazers)
-[![Last commit](https://img.shields.io/github/last-commit/avishj/AutoCustomizeResume)](https://github.com/avishj/AutoCustomizeResume/commits/main)
+[![CI](https://github.com/avishj/autocustomizeresume/actions/workflows/ci.yml/badge.svg)](https://github.com/avishj/autocustomizeresume/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/avishj/autocustomizeresume/actions/workflows/_codeql.yml/badge.svg)](https://github.com/avishj/autocustomizeresume/actions/workflows/_codeql.yml)
+[![codecov](https://codecov.io/gh/avishj/autocustomizeresume/branch/main/graph/badge.svg)](https://codecov.io/gh/avishj/autocustomizeresume)
+[![PyPI](https://img.shields.io/pypi/v/autocustomizeresume)](https://pypi.org/project/autocustomizeresume/)
+[![Downloads](https://img.shields.io/pypi/dm/autocustomizeresume)](https://pypi.org/project/autocustomizeresume/)
+[![Python](https://img.shields.io/pypi/pyversions/autocustomizeresume)](https://pypi.org/project/autocustomizeresume/)
+[![License](https://img.shields.io/github/license/avishj/autocustomizeresume)](LICENSE)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/avishj/autocustomizeresume/badge)](https://scorecard.dev/viewer/?uri=github.com/avishj/autocustomizeresume)
+[![Docker Hub](https://img.shields.io/docker/v/avishj/autocustomizeresume?label=docker%20hub)](https://hub.docker.com/r/avishj/autocustomizeresume)
+[![GHCR](https://ghcr-badge.egpl.dev/avishj/autocustomizeresume/latest_tag?label=ghcr)](https://github.com/avishj/autocustomizeresume/pkgs/container/autocustomizeresume)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=avishj_AutoCustomizeResume&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=avishj_AutoCustomizeResume)
+[![Stars](https://img.shields.io/github/stars/avishj/autocustomizeresume)](https://github.com/avishj/autocustomizeresume/stargazers)
+[![Last commit](https://img.shields.io/github/last-commit/avishj/autocustomizeresume)](https://github.com/avishj/autocustomizeresume/commits/main)
 
 ## What it does
 
@@ -23,8 +38,8 @@ The output is a compiled PDF ready to submit. Every run is archived with timesta
 ## Quick start
 
 ```bash
-git clone https://github.com/avishj/AutoCustomizeResume.git
-cd AutoCustomizeResume
+git clone https://github.com/avishj/autocustomizeresume.git
+cd autocustomizeresume
 uv sync
 ```
 
@@ -32,7 +47,7 @@ Then follow the setup instructions in [`examples/`](./examples/) to configure yo
 
 ## Prerequisites
 
-- **Python 3.10+**
+- **Python 3.13+**
 - **[uv](https://docs.astral.sh/uv/)** (recommended)
 - **[Tectonic](https://tectonic-typesetting.github.io)** on PATH
   - macOS: `brew install tectonic`
@@ -140,10 +155,46 @@ The tool auto-drops lowest-scored optional items, but if your pinned content alo
 **Watch mode not triggering**
 Check that you are editing the file at `paths.jd_file` (default: `jd.txt`). The watcher debounces changes by `watcher.debounce_seconds` before running.
 
+## Development
+
+### Prerequisites
+
+- [uv](https://docs.astral.sh/uv/)
+- [just](https://github.com/casey/just)
+- [Tectonic](https://tectonic-typesetting.github.io) on PATH
+
+### Setup
+
+```bash
+git clone https://github.com/avishj/autocustomizeresume.git
+cd autocustomizeresume
+uv sync
+uv run pre-commit install
+```
+
+### Common tasks
+
+```bash
+just lint        # run pre-commit checks
+just test        # run tests with terminal coverage
+just build       # build + twine check + CLI smoke test
+just ci          # full local quality gate
+just docs        # build docs and serve locally
+just clean       # remove build artifacts
+```
+
+## Documentation
+
+[https://avishj.github.io/autocustomizeresume](https://avishj.github.io/autocustomizeresume)
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
+
 ## License
 
 [GNU Affero General Public License v3.0 (AGPL-3.0)](./LICENSE)
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=avishj/AutoCustomizeResume&type=Date)](https://star-history.com/#avishj/AutoCustomizeResume&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=avishj/autocustomizeresume&type=Date)](https://star-history.com/#avishj/autocustomizeresume&Date)

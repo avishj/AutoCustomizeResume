@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: 2026 Avish Jha <avish.j@pm.me>
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+"""Unit tests for application configuration."""
+
+import pytest
+
+from autocustomizeresume.config import Settings
+
+pytestmark = pytest.mark.unit
+
+
+def test_defaults(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("AUTOCUSTOMIZERESUME_VERBOSE", raising=False)
+    s = Settings()
+    assert s.verbose is False
+
+
+def test_env_prefix(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("AUTOCUSTOMIZERESUME_VERBOSE", "1")
+    s = Settings()
+    assert s.verbose is True
+
+
+def test_env_without_prefix_ignored(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("AUTOCUSTOMIZERESUME_VERBOSE", raising=False)
+    monkeypatch.setenv("VERBOSE", "true")
+    s = Settings()
+    assert s.verbose is False
