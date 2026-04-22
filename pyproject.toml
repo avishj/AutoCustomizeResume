@@ -107,9 +107,6 @@ convention = "google"
     "S607",   # console scripts from PATH are intentional in CLI end-to-end tests
 ]
 
-[tool.ty.environment]
-python-version = "3.13"
-
 [tool.pytest.ini_options]
 addopts = [
     "-ra",
@@ -140,8 +137,6 @@ exclude_also = [
     "@overload",
     "if __name__ == .__main__.:",
     "raise NotImplementedError",
-    "if TYPE_CHECKING:",
-    "\\.\\.\\.",
 ]
 fail_under = 70
 show_missing = true
