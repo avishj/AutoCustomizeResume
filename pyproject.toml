@@ -8,7 +8,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autocustomizeresume"
-version = "0.1.0"
+version = "0.0.1"
 description = "Auto-customize your LaTeX resume for different jobs using LLM-powered content selection"
 readme = "README.md"
 license = "AGPL-3.0-or-later"
@@ -78,8 +78,6 @@ src = ["src", "tests"]
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-    "D100",   # missing docstring in public module
-    "D104",   # missing docstring in public package
     "D203",   # one-blank-line-before-class (conflicts with D211)
     "D213",   # multi-line-summary-second-line (conflicts with D212)
     "COM812", # missing trailing comma (conflicts with formatter)
@@ -93,7 +91,6 @@ ignore = [
     "D",      # docstrings not required in tests
     "ARG",    # unused arguments (fixtures)
     "PLR2004", # magic values in tests
-    "SLF001", # private member access in tests
     "FBT",    # boolean traps in tests
 ]
 "tests/e2e/*.py" = [
@@ -106,9 +103,6 @@ known-first-party = ["autocustomizeresume"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
-
-[tool.ruff.lint.mccabe]
-max-complexity = 15
 
 [tool.ty.environment]
 python-version = "3.13"
@@ -151,11 +145,7 @@ exclude_lines = [
 ]
 
 [tool.commitizen]
-name = "cz_conventional_commits"
-version = "0.1.0"
+version = "0.0.1"
 tag_format = "v$version"
-version_files = [
-    "pyproject.toml:version",
-]
-changelog_file = "CHANGELOG.md"
+version_files = ["pyproject.toml:version"]
 update_changelog_on_bump = true
