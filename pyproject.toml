@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 [build-system]
-requires = ["hatchling"]
 build-backend = "hatchling.build"
+requires = ["hatchling"]
 
 [project]
 name = "autocustomizeresume"
@@ -14,7 +14,14 @@ readme = "README.md"
 license = "AGPL-3.0-or-later"
 requires-python = ">=3.13"
 authors = [{ name = "Avish Jha", email = "avish.j@pm.me" }]
-keywords = ["resume", "latex", "llm", "cli", "cover-letter", "job-application"]
+keywords = [
+    "cli",
+    "cover-letter",
+    "job-application",
+    "latex",
+    "llm",
+    "resume",
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
@@ -28,26 +35,23 @@ classifiers = [
 ]
 dependencies = [
     "cyclopts>=4.10.2",
-    "rich>=15.0.0",
     "pydantic-settings>=2.13.1",
+    "rich>=15.0.0",
     "openai>=2.32.0",
     "pypdf>=6.10.2",
     "pyyaml>=6.0.3",
     "watchdog>=6.0.0",
 ]
 
-[project.urls]
-Homepage = "https://github.com/avishj/autocustomizeresume"
-Documentation = "https://avishj.github.io/autocustomizeresume"
-Repository = "https://github.com/avishj/autocustomizeresume"
-Changelog = "https://github.com/avishj/autocustomizeresume/blob/main/CHANGELOG.md"
-Issues = "https://github.com/avishj/autocustomizeresume/issues"
-
 [project.scripts]
 autocustomizeresume = "autocustomizeresume.cli:entrypoint"
 
-[tool.uv]
-python-preference = "managed"
+[project.urls]
+Changelog = "https://github.com/avishj/autocustomizeresume/blob/main/CHANGELOG.md"
+Documentation = "https://avishj.github.io/autocustomizeresume"
+Homepage = "https://github.com/avishj/autocustomizeresume"
+Issues = "https://github.com/avishj/autocustomizeresume/issues"
+Repository = "https://github.com/avishj/autocustomizeresume"
 
 [dependency-groups]
 dev = [
@@ -70,33 +74,18 @@ dev = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/autocustomizeresume"]
 
+[tool.uv]
+python-preference = "managed"
+
 [tool.ruff]
-target-version = "py313"
-line-length = 88
 src = ["src", "tests"]
 
 [tool.ruff.lint]
-select = ["ALL"]
 ignore = [
-    "D203",   # one-blank-line-before-class (conflicts with D211)
-    "D213",   # multi-line-summary-second-line (conflicts with D212)
-    "COM812", # missing trailing comma (conflicts with formatter)
-    "ISC001", # implicit string concatenation (conflicts with formatter)
+    "COM812", # conflicts with formatter
+    "ISC001", # conflicts with formatter
 ]
-
-[tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = [
-    "S101",   # assert allowed in tests
-    "ANN",    # annotations not required in tests
-    "D",      # docstrings not required in tests
-    "ARG",    # unused arguments (fixtures)
-    "PLR2004", # magic values in tests
-    "FBT",    # boolean traps in tests
-]
-"tests/e2e/*.py" = [
-    "S603",   # subprocess.run is intentional in CLI end-to-end tests
-    "S607",   # console scripts from PATH are intentional in CLI end-to-end tests
-]
+select = ["ALL"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["autocustomizeresume"]
@@ -104,48 +93,62 @@ known-first-party = ["autocustomizeresume"]
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "ANN",    # annotations not required in tests
+    "ARG",    # unused arguments (fixtures)
+    "D",      # docstrings not required in tests
+    "FBT",    # boolean traps in tests
+    "PLR2004", # magic values in tests
+    "S101",   # assert allowed in tests
+]
+"tests/e2e/*.py" = [
+    "S603",   # subprocess.run is intentional in CLI end-to-end tests
+    "S607",   # console scripts from PATH are intentional in CLI end-to-end tests
+]
+
 [tool.ty.environment]
 python-version = "3.13"
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-pythonpath = ["src"]
 addopts = [
-    "--strict-markers",
-    "--strict-config",
     "-ra",
+    "--strict-config",
+    "--strict-markers",
 ]
-markers = [
-    "unit: fast isolated tests with no external dependencies",
-    "integration: tests exercising multiple components together (e.g. CliRunner)",
-    "e2e: end-to-end tests invoking the installed CLI via subprocess",
-]
-timeout = 60
 filterwarnings = ["error"]
+markers = [
+    "e2e: end-to-end tests invoking the installed CLI via subprocess",
+    "integration: tests exercising multiple components together (e.g. CliRunner)",
+    "unit: fast isolated tests with no external dependencies",
+]
+pythonpath = ["src"]
+testpaths = ["tests"]
+timeout = 60
 xfail_strict = true
 
 [tool.coverage.run]
-source = ["autocustomizeresume"]
 branch = true
+core = "ctrace"
 parallel = true
-relative_files = true
 patch = ["subprocess"]
+relative_files = true
+source = ["autocustomizeresume"]
 
 [tool.coverage.report]
+exclude_also = [
+    "@overload",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "\\.\\.\\.",
+]
 fail_under = 70
 show_missing = true
 skip_empty = true
-exclude_lines = [
-    "pragma: no cover",
-    "if TYPE_CHECKING:",
-    "if __name__ == .__main__.:",
-    "@overload",
-    "raise NotImplementedError",
-    "\\.\\.\\.",
-]
 
 [tool.commitizen]
-version = "0.0.1"
 tag_format = "v$version"
-version_files = ["pyproject.toml:version"]
 update_changelog_on_bump = true
+version = "0.0.1"
+version_files = ["pyproject.toml:version"]
